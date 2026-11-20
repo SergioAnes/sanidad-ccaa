@@ -1,6 +1,7 @@
 // Estructura HTML estática de la página; las vistas se rellenan desde ui.ts.
 // Es contenido propio (sin datos de usuario), así que se inserta tal cual.
 export const ESQUELETO = `<div class="wrap">
+  <noscript><p class="aviso">Esta web necesita JavaScript para mostrar los mapas y gráficos.</p></noscript>
   <header class="top">
     <div class="brand">Sanidad por comunidades<small>Gasto sanitario público y listas de espera de las 17 comunidades</small></div>
     <nav class="nav" aria-label="Secciones">
@@ -14,7 +15,7 @@ export const ESQUELETO = `<div class="wrap">
       <div class="intro-cab">
         <div>
           <h1>¿Cuánto gasta tu comunidad en sanidad y cuánto se espera?</h1>
-          <p>Datos oficiales del Ministerio de Sanidad: gasto de 2002 a 2024 y listas de espera a 31 de diciembre de 2025.</p>
+          <p id="p-intro">Datos oficiales del Ministerio de Sanidad.</p>
         </div>
         <label class="tucom" for="p-com">Tu comunidad<select id="p-com"></select></label>
       </div>
@@ -90,8 +91,8 @@ export const ESQUELETO = `<div class="wrap">
   <footer class="pie-fuentes">
     <h2>Fuentes</h2>
     <ul>
-      <li>Gasto: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm">Estadística de Gasto Sanitario Público</a> (gasto real 2002-2024; 2023 y 2024 provisionales).</li>
-      <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma.</li>
+      <li>Gasto: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm">Estadística de Gasto Sanitario Público</a> (<span id="f-gasto">gasto real</span>).</li>
+      <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma (<span id="f-listas">último corte</span>).</li>
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>
     </ul>

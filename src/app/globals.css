@@ -102,15 +102,6 @@ button, select, input { font: inherit; color: inherit; }
 .aviso b { color: var(--note); }
 .tabla tr.ciudad td { color: var(--muted); font-style: italic; }
 .tabla tr.sep td { border-bottom: 0; padding-top: 14px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.tile.ancha { aspect-ratio: auto; }
-.tile.isla { outline: 1.5px dashed var(--muted); outline-offset: 2px; }
-.tile { aspect-ratio: 1; border-radius: 8px; border: 0; padding: 4px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; text-align: left; min-width: 0; transition: background-color 0.35s, transform 0.15s; }
-.tile:hover { transform: scale(1.06); }
-.tile .ab { font-weight: 700; font-size: clamp(0.58rem, 1.6vw, 0.8rem); letter-spacing: 0.02em; }
-.tile .v { white-space: nowrap; font-size: clamp(0.52rem, 1.4vw, 0.72rem); font-variant-numeric: tabular-nums; opacity: 0.95; }
-.tile.sel { outline: 3px solid var(--fg); outline-offset: 1px; }
-.tile.neutro { background: var(--surface-2); color: var(--fg); }
-.tile.neutro.sel { background: var(--accent); color: #fff; outline: none; }
 .leyenda { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; }
 .leyenda .barra { height: 10px; width: 160px; border-radius: 5px; }
 .leyenda .clases { display: flex; flex-wrap: wrap; gap: 2px; flex: 1 1 100%; }
@@ -171,7 +162,6 @@ select { border: 1px solid var(--line); background: var(--surface); border-radiu
 .ficha-cab h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.05; }
 .ficha-cab .resumen { color: var(--muted); max-width: 60ch; margin: 10px 0 0; font-size: 1.02rem; }
 .ficha-cab .tilemap { margin-top: 8px; }
-.ficha-cab .tile .v { display: none; }
 .bloque { margin-top: 22px; }
 .bloque h2 { font-size: 1.2rem; }
 .bloque .sub { color: var(--muted); font-size: 0.85rem; margin: 4px 0 10px; }
