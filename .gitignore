@@ -10,4 +10,6 @@ datos-originales/*.xls
 datos-originales/*.xlsx
 datos-originales/*.csv
 datos-originales/*.pdf
+datos-originales/*.json
 __pycache__/
+*.tsbuildinfo

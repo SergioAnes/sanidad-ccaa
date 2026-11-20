@@ -1,18 +1,24 @@
 # Sanidad por comunidades
 
-Web pública estática para comparar datos sanitarios públicos entre comunidades autónomas
-(gasto por habitante, peso de los conciertos, atención primaria, farmacia…).
+Web pública estática para comparar el gasto sanitario público y las listas de espera de las 17
+comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
 
-> **Estado:** los 6 indicadores son **oficiales**, extraídos de la Estadística de Gasto Sanitario
-> Público 2002-2024 del Ministerio de Sanidad. Las cifras de 2023 y 2024 son provisionales.
+> **Estado:** todos los datos son **oficiales**: Estadística de Gasto Sanitario Público 2002-2024 y
+> SISLE-SNS (Ministerio de Sanidad), IPC (INE) y límites territoriales (IGN). Las cifras de gasto de
+> 2023 y 2024 son provisionales.
 
 ## Tecnología
 
-- Next.js (exportación estática, sin backend)
-- TypeScript
-- Recharts
-- CSS propio
+- Next.js (exportación estática, sin backend) y TypeScript
+- Gráficos y mapa en SVG propio, sin librerías de gráficos en el navegador
+- CSS propio, con modo oscuro
 - Datos separados en `src/data`
+
+## Secciones
+
+- **Portada:** dato elegido en el mapa, titulares automáticos y gráfico «¿Gastar más reduce la espera?».
+- **Explorador:** mapa, ranking, evolución (en euros de 2024 o de cada año) y tabla con descarga en CSV.
+- **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16.
 
 ## Instalación local
 
@@ -36,7 +42,10 @@ npm test
 | `src/data/ccaa.json` | Las 17 comunidades (id + nombre) |
 | `src/data/indicadores.json` | Qué se mide, unidad, fuente, URL y estado (`ejemplo` / `oficial`) |
 | `src/data/valores.json` | Formato largo: una fila por `indicador` + `ccaa` + `anio` + `valor` |
-| `datos-originales/` | Ficheros descargados tal cual de la fuente (Excel/CSV) para trazabilidad |
+| `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
+| `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
+| `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
+| `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |
 
 Para añadir un indicador nuevo: añádelo a `indicadores.json` y sus filas a `valores.json`.
 La web lo muestra automáticamente.
@@ -73,14 +82,26 @@ npm test
 
 El script lee todos los `Datos_ccaa_*.pdf`, regenera `src/data/listas-espera.json` (un valor por corte,
 lista, especialidad, medida y territorio) y comprueba que los pacientes de cada columna cuadran con la tasa
-por 1.000 habitantes publicada. Con varios cortes, el selector "Fecha" de la web se activa solo.
+por 1.000 habitantes publicada. La web muestra el corte más reciente.
 
-## Fuentes previstas
+## Actualizar el IPC (inflación)
 
-- Ministerio de Sanidad — Estadística de Gasto Sanitario Público (EGSP)
-- Ministerio de Sanidad — Indicadores Clave del SNS (INCLASNS)
-- Listas de espera del SNS
-- INE — población por comunidad (para ratios por habitante)
+```bash
+python scripts/extraer_ipc.py
+```
+
+Descarga la serie IPC251852 del INE (índice general nacional, base 2021), guarda la respuesta en
+`datos-originales/` y escribe la media de cada año completo en `src/data/ipc.json`.
+
+## Regenerar el mapa
+
+Solo hace falta si cambian los límites. Descarga
+https://cdn.jsdelivr.net/npm/es-atlas@0.6.0/es/autonomous_regions.json a
+`datos-originales/es-atlas-0.6.0-autonomous_regions.json` y ejecuta:
+
+```bash
+node scripts/proyectar_mapa.mjs
+```
 
 ## Despliegue
 
