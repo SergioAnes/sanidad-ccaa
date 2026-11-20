@@ -140,6 +140,14 @@ export function iniciar(DATA: DatosApp): void {
   };
   const NOTAS = DATA.notas; // notas del Ministerio sobre saltos en las series de gasto
   const notasDe = (id) => NOTAS.filter((n) => n.ccaa === id).sort((a, b) => a.anio - b.anio);
+  // Variaciones inusuales sin explicación oficial (detectadas en src/lib/avisos.ts)
+  const AVISOS = DATA.avisos.filter((a) => !a.explicado);
+  const avisosDe = (indId, ccaa) => AVISOS.filter((a) => a.indicador === indId && (!ccaa || a.ccaa === ccaa));
+  const firmado = (x, d) => (x > 0 ? "+" : x < 0 ? "−" : "") + nf(d).format(Math.abs(x));
+  function textoAviso(a, conNombre = true) {
+    const u = a.unidad === "%" ? " %" : " puntos", d = a.unidad === "%" ? 0 : 1;
+    return `${conNombre ? `${NOMBRE[a.ccaa]}, ${a.anio}: ` : ""}${firmado(a.cambio, d)}${u} respecto a ${a.anio - 1}${a.unidad === "%" ? " (en euros de cada año)" : ""}, cuando la mediana de las comunidades fue ${firmado(a.mediana, d)}${u}. Es la cifra oficial, pero el Ministerio no explica el motivo.`;
+  }
 
   // ---------- especialidades y procesos (listas de espera) ----------
   // Las tarjetas quirúrgicas (q_*) admiten especialidades quirúrgicas y procesos; las de consultas (c_*), especialidades de consultas.
@@ -450,6 +458,11 @@ export function iniciar(DATA: DatosApp): void {
     $("#e-nota").innerHTML = `${esc(ind.desc)} Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
       (tieneSerie(ind) && S.vistaE !== "evolucion" ? NOTAS.filter((n) => n.anio === anio).map((n) => `<div class="notas-oficiales"><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</div>`).join("") : "") +
+      (tieneSerie(ind) && S.vistaE !== "evolucion" ? (() => {
+        const lista = S.modo === "cambio" ? avisosDe(ind.id).filter((a) => a.anio <= anio) : avisosDe(ind.id).filter((a) => a.anio === anio);
+        if (!lista.length) return "";
+        return `<div class="notas-oficiales"><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${ANIOS[0]} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b><ul>${lista.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul> <a href="#metodo-calidad">Cómo las detectamos</a>.</div>`;
+      })() : "") +
       (S.vistaE !== "evolucion" ? `<div class="aviso"><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</div>` : "");
   }
 
@@ -721,17 +734,26 @@ export function iniciar(DATA: DatosApp): void {
     s += `<line id="cruz" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${muted}" stroke-width="1" visibility="hidden"/>
           <rect id="zona" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
     // Notas del Ministerio de las comunidades destacadas: un número sobre su línea y la explicación debajo.
-    const notasVis = S.sel.flatMap((sl) => notasDe(sl.id).map((n) => ({ ...n, c: css(SLOTS[sl.slot]) })));
-    notasVis.forEach((n, k) => {
+    // Notas del Ministerio (círculo continuo) y variaciones inusuales sin explicar (círculo discontinuo)
+    // de las comunidades destacadas, numeradas sobre su línea y explicadas debajo.
+    const marcas = S.sel.flatMap((sl) => [
+      ...notasDe(sl.id).map((n) => ({ ccaa: n.ccaa, anio: n.anio, tipo: "nota", texto: n.texto, c: css(SLOTS[sl.slot]) })),
+      ...avisosDe(ind.id, sl.id).map((a) => ({ ccaa: a.ccaa, anio: a.anio, tipo: "aviso", texto: textoAviso(a, false), c: css(SLOTS[sl.slot]) })),
+    ]).sort((a, b) => a.ccaa.localeCompare(b.ccaa) || a.anio - b.anio);
+    marcas.forEach((n, k) => {
       const v = ind.serie[n.ccaa][n.anio - ANIOS[0]];
       if (v == null) return;
-      s += `<g aria-hidden="true"><circle cx="${x(n.anio)}" cy="${y(v)}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2"/><text x="${x(n.anio)}" y="${y(v) + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
+      s += `<g aria-hidden="true"><circle cx="${x(n.anio)}" cy="${y(v)}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2" ${n.tipo === "aviso" ? 'stroke-dasharray="2 2"' : ""}/><text x="${x(n.anio)}" y="${y(v) + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
     });
     s += `</svg>`;
-    const conNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
-    s += `<div class="notas-oficiales">` + (notasVis.length
-      ? `<b>Notas del Ministerio sobre estas series:</b><ol>${notasVis.map((n) => `<li><b>${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>`
-      : "") + (conNotas.length ? `<p>El Ministerio explica saltos en las series de ${conNotas.map((k) => esc(NOMBRE[k])).join(", ")}. Destácalas para verlos en el gráfico.</p>` : "") + `</div>`;
+    const otrasNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
+    const otrosAvisos = [...new Set(avisosDe(ind.id).map((a) => a.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
+    s += `<div class="notas-oficiales">` + (marcas.length
+      ? `<b>Sobre las comunidades destacadas:</b><ol>${marcas.map((n) => `<li><b>${n.tipo === "nota" ? "Nota del Ministerio" : "Variación inusual"} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>`
+      : "") +
+      (otrasNotas.length ? `<p>El Ministerio explica saltos en las series de ${otrasNotas.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
+      (otrosAvisos.length ? `<p>Hay variaciones inusuales sin explicación oficial en este dato en ${otrosAvisos.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
+      (otrasNotas.length || otrosAvisos.length ? `<p>Destaca una comunidad para verlo en el gráfico. <a href="#metodo-calidad">Cómo los detectamos</a>.</p>` : "") + `</div>`;
     cont.innerHTML = s;
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
@@ -806,8 +828,9 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-vs").onchange = (e) => { S.vs = e.target.value; render(); };
     $("#c-leyenda-vs").innerHTML = S.vs ? `<span><i style="background:${css("--accent")}"></i>${esc(NOMBRE[id])}</span><span><i style="background:${css("--s2")}"></i>${esc(NOMBRE[S.vs])}</span>` : "";
     $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs)).join("");
-    const nts = notasDe(id);
-    $("#c-notas").innerHTML = nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "";
+    const nts = notasDe(id), avs = AVISOS.filter((a) => a.ccaa === id);
+    $("#c-notas").innerHTML = (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
+      (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "");
     $("#c-espera-sub").textContent = `Situación a ${DATA.corteListas}. Un valor más alto significa más espera.`;
     $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs)).join("");
     const esp = Object.entries(DATA.especQuir).map(([n, o]) => [n, o[id]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
@@ -820,10 +843,11 @@ export function iniciar(DATA: DatosApp): void {
     if ($("#m-cuerpo").dataset.listo) return; // contenido fijo: se pinta una vez
     const lista = (grupo) => DATA.inds.filter((i) => i.grupo === grupo).map((i) => `<dt>${esc(i.nombre)}</dt><dd>${esc(i.desc)}</dd>`).join("");
     const subida = nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100);
+    const CRIT_TXT = "10 puntos de crecimiento en los datos en euros, o 3 puntos en los porcentajes";
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -850,6 +874,19 @@ export function iniciar(DATA: DatosApp): void {
       <h2 id="metodo-notas">Notas del Ministerio</h2>
       <p>El Ministerio explica algunos saltos en las series de gasto de cada comunidad. Aparecen también en el gráfico de evolución (al destacar la comunidad) y en su ficha.</p>
       <ul>${NOTAS.slice().sort((a, b) => NOMBRE[a.ccaa].localeCompare(NOMBRE[b.ccaa], "es") || a.anio - b.anio).map((n) => `<li><b>${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>
+
+      <h2 id="metodo-calidad">Avisos de calidad: cómo revisamos los datos</h2>
+      <p>Además de las notas del Ministerio, revisamos los datos de forma automática cada vez que se actualiza la web:</p>
+      <ul>
+        <li><b>Que se han leído bien.</b> Al extraer el Excel comprobamos que los porcentajes cuadran con los importes y que la población implícita (gasto total entre gasto por habitante) cambia con suavidad cada año. Al extraer el PDF de listas de espera comprobamos que los totales cuadran con la suma de especialidades y que pacientes y tasas son coherentes.</li>
+        <li><b>Que son coherentes.</b> No faltan comunidades ni años, los porcentajes están entre 0 y 100 y la farmacia nunca supera al gasto total.</li>
+        <li><b>Variaciones inusuales.</b> Para cada dato y año comparamos el cambio de cada comunidad con el de las demás. Si se aleja mucho de lo normal ese año (más de 4 veces la dispersión típica y más de ${CRIT_TXT}), lo señalamos. Si el Ministerio tiene una nota para ese año, mostramos la nota; si no, avisamos de que la cifra es la oficial pero no tiene explicación publicada.</li>
+      </ul>
+      <p>Estas son las variaciones inusuales que el Ministerio no explica (${AVISOS.length}). No significan que el dato esté mal: puede deberse a cambios contables, a pagos extraordinarios o a otras causas que la estadística no detalla.</p>
+      <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Comunidad</th><th>Dato</th><th>Año</th><th>Cambio</th><th>Mediana del año</th></tr></thead><tbody>
+        ${AVISOS.map((a) => `<tr><td>${esc(NOMBRE[a.ccaa])}</td><td>${esc(IND[a.indicador].corto)}</td><td>${a.anio}</td><td>${firmado(a.cambio, a.unidad === "%" ? 0 : 1)}${a.unidad === "%" ? " %" : " p."}</td><td>${firmado(a.mediana, a.unidad === "%" ? 0 : 1)}${a.unidad === "%" ? " %" : " p."}</td></tr>`).join("")}
+      </tbody></table></div>
+      <p>Listas de espera: usamos ${DATA.versionListas ? `el fichero <b>${esc(DATA.versionListas.fichero)}</b>${DATA.versionListas.rectificado ? ", la <b>versión rectificada</b> que publicó el Ministerio" : ""}${DATA.versionListas.fecha_pdf ? ` (fecha del documento: ${DATA.versionListas.fecha_pdf.split("-").reverse().join("/")})` : ""}` : "el último informe publicado"}. Si comparas con otra versión del mismo informe, las cifras pueden no coincidir.${DATA.notasListas.length ? ` Notas del informe: ${DATA.notasListas.map((t) => esc(t)).join(" ")}` : ""}</p>
 
       <h2 id="metodo-limites">Lo que no dicen estos datos</h2>
       <ul>
@@ -908,7 +945,7 @@ export function iniciar(DATA: DatosApp): void {
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera a ${DATA.corteListas}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
-  $("#f-listas").textContent = `a ${DATA.corteListas}`;
+  $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
   addEventListener("hashchange", leerHash);
   let rz, anchoPrevio = innerWidth;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== anchoPrevio) { anchoPrevio = innerWidth; render(); } }, 150); });

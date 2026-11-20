@@ -29,6 +29,12 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).
 - `src/data/mapa-ccaa.json` se genera con `node scripts/proyectar_mapa.mjs` a partir de
   `datos-originales/es-atlas-0.6.0-autonomous_regions.json` (IGN vía es-atlas, CC BY 4.0).
+- Avisos de calidad: `src/lib/avisos.ts` detecta en cada compilación las variaciones inusuales de las series de
+  gasto (criterio fijo, documentado en «Cómo leer los datos»). La web distingue siempre «Nota del Ministerio»
+  (explicación oficial) de «Variación inusual» (detectada por nosotros; la cifra es oficial pero sin explicación).
+  Nunca escribir explicaciones propias de un salto: solo las de la fuente.
+- `extraer_egsp.py` comprueba que la población implícita no salta; `extraer_sisle.py` guarda la versión del PDF
+  (`versiones`: fichero, rectificado, fecha) y sus notas al pie (`notas_pdf`). `tests/calidad.test.ts` revisa la coherencia.
 - Los ficheros de `datos-originales/` no se suben a git (solo local).
 - Valores provisionales de la fuente: `"provisional": true` en la fila.
 - Medias entre CCAA: simples salvo que se indique lo contrario. Si se añade media ponderada, usar población INE.

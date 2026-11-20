@@ -228,11 +228,15 @@ def main() -> None:
                 continue
             add("farmacia_hab", ccaa, anio, gh[0] * pct / 100, prov, 2)
 
-        # Comprobación de coherencia: población implícita = total consolidado / gasto por habitante
+        # Comprobación de coherencia: población implícita = total consolidado / gasto por habitante.
+        # Debe variar con suavidad (la población no salta de un año a otro). Si salta, el error estaría en
+        # la lectura del Excel; si no, los saltos del gasto son de la fuente (la web los avisa).
         tot = {a: numero(s.row_values(fin)[c]) for c, (a, _) in cab.items()}
-        for anio in (2002, max(tot)):
-            pob = tot[anio] * 1000 / gasto_hab[(ccaa, anio)][0]
-            print(f"  {ccaa} {anio}: población implícita {pob:,.0f}")
+        pob = {a: tot[a] * 1000 / gasto_hab[(ccaa, a)][0] for a in tot}
+        for anio in sorted(pob)[1:]:
+            var = pob[anio] / pob[anio - 1] - 1
+            assert abs(var) < 0.06, (s.name, anio, f"población implícita {var:+.1%}")
+        print(f"  {ccaa}: población implícita {pob[min(pob)]:,.0f} ({min(pob)}) -> {pob[max(pob)]:,.0f} ({max(pob)}), sin saltos")
 
     faltan = set(NOMBRES.values()) - vistos
     if faltan:

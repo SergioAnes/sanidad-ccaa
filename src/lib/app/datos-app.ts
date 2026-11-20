@@ -6,6 +6,7 @@ import ipcJson from "@/data/ipc.json";
 import mapaJson from "@/data/mapa-ccaa.json";
 import notasJson from "@/data/notas-egsp.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
+import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
 import type { Unidad, Valor } from "@/types/datos";
 
@@ -66,6 +67,11 @@ export type DatosApp = {
   detalle: DetalleListas;
   /** Notas metodológicas del Ministerio por comunidad y año (saltos en las series de gasto) */
   notas: { ccaa: string; anio: number; texto: string }[];
+  /** Variaciones inusuales detectadas automáticamente (src/lib/avisos.ts) */
+  avisos: Aviso[];
+  /** Versión del PDF de listas de espera del último corte y sus notas al pie */
+  versionListas: { fichero: string; rectificado: boolean; fecha_pdf: string | null } | null;
+  notasListas: string[];
   geo: typeof mapaJson;
 };
 
@@ -135,6 +141,9 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     ciudades,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
+    avisos: detectarAvisos(valores, notasJson),
+    versionListas: (LISTAS as unknown as { versiones?: Record<string, DatosApp["versionListas"]> }).versiones?.[corte] ?? null,
+    notasListas: ((LISTAS as unknown as { notas_pdf?: { corte: string; texto: string }[] }).notas_pdf ?? []).filter((n) => n.corte === corte).map((n) => n.texto),
     geo: mapaJson,
   };
 }

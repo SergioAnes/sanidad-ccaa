@@ -202,14 +202,51 @@ def comprobar(filas: list[dict]) -> None:
                     raise SystemExit(f"{corte} {tipo}/{campo} {ccaa}: pacientes {pac} no cuadra con tasa {tasa}")
 
 
+def info_pdf(ruta: Path) -> tuple[dict, list[str]]:
+    """Versión del PDF (nombre, si es rectificado, fecha de modificación) y sus notas al pie
+    (líneas que empiezan por "(1)" o "*"), para avisar en la web de qué fichero salen los datos."""
+    with pdfplumber.open(ruta) as pdf:
+        fecha = (pdf.metadata or {}).get("ModDate") or (pdf.metadata or {}).get("CreationDate") or ""
+        notas: list[str] = []
+        for pagina in pdf.pages:
+            actual = None
+            for linea in (pagina.extract_text() or "").split(SALTO):
+                l = linea.strip()
+                if re.match(r"^(\(\d\)|\*)\s*\S", l):
+                    actual = [l]
+                    notas.append(actual)  # type: ignore[arg-type]
+                elif actual is not None and l and not l.lower().startswith(("fuente", "secretar")):
+                    actual.append(l)  # la nota sigue en la línea siguiente
+                else:
+                    actual = None
+        # Una entrada por nota (la misma llamada puede repetirse en varias páginas con matices)
+        unicas: dict[str, str] = {}
+        for partes in notas:
+            texto = " ".join(partes)  # type: ignore[arg-type]
+            clave = texto.split(")")[0] if texto.startswith("(") else texto[:1]
+            if len(texto) > len(unicas.get(clave, "")):
+                unicas[clave] = texto
+        notas = list(unicas.values())
+    m = re.match(r"D:(\d{4})(\d{2})(\d{2})", fecha)
+    version = {
+        "fichero": ruta.name,
+        "rectificado": "rectific" in ruta.name.lower(),
+        "fecha_pdf": f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None,
+    }
+    return version, notas
+
+
 def main() -> None:
     rutas = [Path(p) for p in sys.argv[1:]] or sorted((RAIZ / "datos-originales").glob("Datos_ccaa_*.pdf"))
     if not rutas:
         raise SystemExit("No hay PDFs del SISLE en datos-originales/")
     filas: list[dict] = []
     cortes = []
+    versiones, notas_pdf = {}, []
     for r in rutas:
         corte, f = extraer(r)
+        versiones[corte], notas = info_pdf(r)
+        notas_pdf += [{"corte": corte, "texto": t} for t in notas]
         if corte in cortes:
             raise SystemExit(f"Corte {corte} repetido ({r.name})")
         cortes.append(corte)
@@ -224,6 +261,8 @@ def main() -> None:
         "fuente": "Ministerio de Sanidad — Sistema de Información sobre Listas de Espera en el SNS (SISLE-SNS), datos por comunidad autónoma",
         "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm",
         "cortes": sorted(cortes),
+        "versiones": versiones,
+        "notas_pdf": notas_pdf,
         "tipos": TIPOS,
         "medidas": MEDIDAS,
     }

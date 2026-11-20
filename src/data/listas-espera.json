@@ -4,6 +4,23 @@
   "cortes": [
     "2025-12"
   ],
+  "versiones": {
+    "2025-12": {
+      "fichero": "Datos_ccaa_dic2025_rectificado.pdf",
+      "rectificado": true,
+      "fecha_pdf": "2026-09-18"
+    }
+  },
+  "notas_pdf": [
+    {
+      "corte": "2025-12",
+      "texto": "(1) RD 1039/2011 sobre criterios marco para garantizar un tiempo máximo de acceso a las prestaciones sanitarias del Sistema Nacional de Salud (alguno de los cuales se reporta a la OCDE). Cirugía cardíaca valvular, Cirugía cardíaca coronaria, Cataratas, Prótesis de cadera, Prótesis de rodilla"
+    },
+    {
+      "corte": "2025-12",
+      "texto": "*Se incluyen pacientes sin cita asignada, que en el momento del corte superaban los 60 días en el registro"
+    }
+  ],
   "tipos": [
     {
       "id": "quirurgica",
