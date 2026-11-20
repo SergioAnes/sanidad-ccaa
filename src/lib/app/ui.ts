@@ -230,9 +230,12 @@ export function iniciar(DATA: DatosApp): void {
         <button type="button" data-g="espera" aria-pressed="${grupo === "espera"}">Listas de espera</button>
       </div><div class="kpis">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
         <div class="seg sm" role="group" aria-label="Inflación">
-          <button type="button" data-r="1" aria-pressed="${S.real}">Euros de ${ULT} (sin inflación)</button>
-          <button type="button" data-r="0" aria-pressed="${!S.real}">Euros de cada año</button>
-        </div><span>Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE). ${S.real ? "Los años anteriores se expresan en euros de " + ULT + "." : "Ojo: así, parte de la subida es solo inflación."} Las cifras de ${ULT} son iguales en las dos opciones; cambian los años anteriores, la evolución y el cambio desde ${ANIOS[0]}.</span></div>` : "");
+          <button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button>
+          <button type="button" data-r="0" aria-pressed="${!S.real}">Sin descontar</button>
+        </div><span>${S.real
+          ? `Cada año se expresa en euros de ${ULT}: así se ve cuánto ha crecido el gasto de verdad. Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE).`
+          : `Cada año, en los euros de entonces: parte de la subida es solo inflación (los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]}).`}
+          Solo afecta a los datos en euros y a los años anteriores a ${ULT}: lo verás en la tendencia, al mover la barra de años y en «Cambio desde ${ANIOS[0]}». Los porcentajes no cambian.</span></div>` : "");
     cont.querySelectorAll(".real button").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
     // Solo los botones de tema: los de inflación (.real) también son .seg y tienen su propia acción.
     cont.querySelectorAll('.seg[aria-label="Tema"] button').forEach((b) => b.onclick = () => {
