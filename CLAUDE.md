@@ -4,7 +4,10 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 
 ## Estructura de la web
 
-- Una sola página con tres vistas por `#hash`: Portada, Explorador y Tu comunidad.
+- Una sola página con dos vistas por `#hash`: Datos (mapa, titulares, ranking/evolución/tabla y gasto frente a
+  espera) y Tu comunidad (ficha). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
+  `#portada` y `#explorar` (enlaces antiguos) llevan a Datos.
+- `public/og.png` es la vista previa al compartir; se regenera con una captura si cambia mucho el diseño.
 - `src/lib/app/datos-app.ts` prepara en compilación el paquete de datos de la interfaz a partir de `src/data`
   (textos cortos, abreviaturas e indicadores de listas de espera se definen ahí).
 - `src/lib/app/ui.ts` pinta todo (mapa SVG, gráficos, tablas) con DOM imperativo; viene de la maqueta aprobada.

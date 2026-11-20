@@ -197,3 +197,10 @@ select { border: 1px solid var(--line); background: var(--surface); border-radiu
 .pie-fuentes h2 { font-size: 0.95rem; color: var(--fg); margin-bottom: 6px; }
 .pie-fuentes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .pie-fuentes a { color: var(--accent); }
+
+/* Página única: mapa arriba, detalle (ranking/evolución/tabla) debajo */
+.panel.detalle { margin-top: 20px; }
+.panel.detalle h2 { margin-top: 16px; }
+.seg.modo { margin-top: 12px; }
+.seg.modo:empty { display: none; }
+.kpi-c { font-size: 0.74rem; font-weight: 600; color: var(--fg); }

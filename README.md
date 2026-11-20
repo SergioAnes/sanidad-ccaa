@@ -16,8 +16,9 @@ comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una f
 
 ## Secciones
 
-- **Portada:** dato elegido en el mapa, titulares automáticos y gráfico «¿Gastar más reduce la espera?».
-- **Explorador:** mapa, ranking, evolución (en euros de 2024 o de cada año) y tabla con descarga en CSV.
+- **Datos:** mapa (valor del año o crecimiento desde 2002), titulares automáticos, ranking, evolución
+  (descontando o no la inflación), tabla con descarga en CSV, listas de espera por especialidad y proceso,
+  y gráfico «¿Gastar más reduce la espera?». La dirección guarda la vista para compartirla.
 - **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16.
 
 ## Instalación local

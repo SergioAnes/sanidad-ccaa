@@ -5,12 +5,11 @@ export const ESQUELETO = `<div class="wrap">
   <header class="top">
     <div class="brand">Sanidad por comunidades<small>Gasto sanitario público y listas de espera de las 17 comunidades</small></div>
     <nav class="nav" aria-label="Secciones">
-      <a href="#portada" data-vista="portada">Portada</a>
-      <a href="#explorar" data-vista="explorar">Explorador</a>
+      <a href="#datos" data-vista="datos">Datos</a>
       <a href="#comunidad" data-vista="comunidad">Tu comunidad</a>
     </nav>
   </header>
-  <section id="v-portada" hidden>
+  <section id="v-datos" hidden>
     <div class="intro">
       <div class="intro-cab">
         <div>
@@ -19,18 +18,33 @@ export const ESQUELETO = `<div class="wrap">
         </div>
         <label class="tucom" for="p-com">Tu comunidad<select id="p-com"></select></label>
       </div>
-      <div class="selector" id="sel-portada"></div>
-      <div class="campo" id="p-campo"></div>
+      <div class="selector" id="sel-datos"></div>
+      <div class="campo" id="d-campo"></div>
     </div>
     <div class="portada-grid">
       <div class="panel">
         <h2 id="p-titulo"></h2>
         <p class="sub" id="p-sub"></p>
+        <div class="seg sm modo" id="p-modo" role="group" aria-label="Qué muestra el mapa"></div>
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
         <div class="anios" id="p-anios"></div>
       </div>
       <div class="insights" id="p-insights"></div>
+    </div>
+    <div class="panel detalle">
+      <div class="fila">
+        <div class="seg" id="e-vistas" role="group" aria-label="Tipo de gráfico">
+          <button type="button" data-v="ranking">Ranking</button>
+          <button type="button" data-v="evolucion">Evolución</button>
+          <button type="button" data-v="tabla">Tabla</button>
+        </div>
+        <div class="selec" id="e-selec"></div>
+      </div>
+      <h2 id="e-titulo"></h2>
+      <p class="sub" id="e-sub"></p>
+      <div class="chart" id="e-chart"></div>
+      <p class="nota" id="e-nota"></p>
     </div>
     <div class="panel xy">
       <h2 id="x-titulo"></h2>
@@ -38,28 +52,6 @@ export const ESQUELETO = `<div class="wrap">
       <div class="fila"><div class="seg sm" id="x-y" role="group" aria-label="Qué espera comparar"></div></div>
       <div class="chart" id="x-chart"></div>
       <p class="nota" id="x-nota"></p>
-    </div>
-  </section>
-  <section id="v-explorar" hidden>
-    <div class="toolbar">
-      <div class="selector" id="sel-explorar"></div>
-      <div class="campo" id="e-campo"></div>
-      <div class="fila">
-        <div class="seg" id="e-vistas" role="group" aria-label="Tipo de vista">
-          <button type="button" data-v="mapa">Mapa</button>
-          <button type="button" data-v="ranking">Ranking</button>
-          <button type="button" data-v="evolucion">Evolución</button>
-          <button type="button" data-v="tabla">Tabla</button>
-        </div>
-        <div class="selec" id="e-selec"></div>
-      </div>
-    </div>
-    <div class="panel">
-      <h2 id="e-titulo"></h2>
-      <p class="sub" id="e-sub"></p>
-      <div class="chart" id="e-chart"></div>
-      <div class="anios" id="e-anios"></div>
-      <p class="nota" id="e-nota"></p>
     </div>
   </section>
   <section id="v-comunidad" hidden>
@@ -77,7 +69,7 @@ export const ESQUELETO = `<div class="wrap">
     </div>
     <div class="bloque">
       <h2>Gasto sanitario público</h2>
-      <p class="sub">Año 2024 (provisional). Cada punto gris es otra comunidad; la raya marca la media de las 17.</p>
+      <p class="sub" id="c-gasto-sub"></p>
       <div class="filas" id="c-gasto"></div>
     </div>
     <div class="bloque">
