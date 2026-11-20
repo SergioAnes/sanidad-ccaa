@@ -168,7 +168,7 @@ export function iniciar(DATA: DatosApp): void {
     }
     return IND[id];
   }
-  function selectorCampo(cont, base) {
+  function selectorCampo(cont, base, selId) {
     if (base.grupo !== "espera") { cont.innerHTML = ""; return; }
     const opc = (tipo, c) => `<option value="${tipo}:${c.id}" ${S.campoE === `${tipo}:${c.id}` ? "selected" : ""}>${esc(c.nombre)}</option>`;
     const grupos = familias(base).map((tipo) => {
@@ -176,8 +176,8 @@ export function iniciar(DATA: DatosApp): void {
       const campos = t.campos.filter((c) => c.id !== "total");
       return `<optgroup label="${tipo === "procesos" ? "Procesos frecuentes" : "Especialidades"}">${campos.map((c) => opc(tipo, c)).join("")}</optgroup>`;
     }).join("");
-    cont.innerHTML = `<label for="e-campo-sel">Especialidad o proceso:</label>
-      <select id="e-campo-sel"><option value="total" ${S.campoE === "total" ? "selected" : ""}>Todas (total)</option>${grupos}</select>` +
+    cont.innerHTML = `<label for="${selId}">Especialidad o proceso:</label>
+      <select id="${selId}"><option value="total" ${S.campoE === "total" ? "selected" : ""}>Todas (total)</option>${grupos}</select>` +
       (S.campoE !== "total" ? `<span>Las tarjetas de arriba siguen mostrando el total.</span>` : "");
     cont.querySelector("select").onchange = (e) => { S.campoE = e.target.value; render(); };
   }
@@ -232,9 +232,10 @@ export function iniciar(DATA: DatosApp): void {
         <div class="seg sm" role="group" aria-label="Inflación">
           <button type="button" data-r="1" aria-pressed="${S.real}">Euros de ${ULT} (sin inflación)</button>
           <button type="button" data-r="0" aria-pressed="${!S.real}">Euros de cada año</button>
-        </div><span>Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE). ${S.real ? "Los años anteriores se expresan en euros de " + ULT + "." : "Ojo: así, parte de la subida es solo inflación."}</span></div>` : "");
+        </div><span>Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE). ${S.real ? "Los años anteriores se expresan en euros de " + ULT + "." : "Ojo: así, parte de la subida es solo inflación."} Las cifras de ${ULT} son iguales en las dos opciones; cambian los años anteriores, la evolución y el cambio desde ${ANIOS[0]}.</span></div>` : "");
     cont.querySelectorAll(".real button").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
-    cont.querySelectorAll(".seg button").forEach((b) => b.onclick = () => {
+    // Solo los botones de tema: los de inflación (.real) también son .seg y tienen su propia acción.
+    cont.querySelectorAll('.seg[aria-label="Tema"] button').forEach((b) => b.onclick = () => {
       if (b.dataset.g !== grupo) onPick(DATA.inds.find((i) => i.grupo === b.dataset.g).id);
     });
     cont.querySelectorAll(".kpi").forEach((b) => b.onclick = () => onPick(b.dataset.id));
@@ -339,7 +340,7 @@ export function iniciar(DATA: DatosApp): void {
     } else {
       out.push({ k: "Extremos", t: `<strong>${NOMBRE[top]}</strong> tiene el valor más alto (${fmt(vals[top], u)}) y <strong>${NOMBRE[bot]}</strong> el más bajo (${fmt(vals[bot], u)}).` });
     }
-    out.push({ k: "Media", t: `La media de las 17 comunidades es <strong>${fmt(m, u)}</strong>. ${o.filter((id) => vals[id] > m).length} están por encima.` });
+    out.push({ k: "Media", t: `La media de las ${o.length} comunidades${o.length < IDS.length ? " con dato" : ""} es <strong>${fmt(m, u)}</strong>. ${o.filter((id) => vals[id] > m).length} están por encima.` });
     if (tieneSerie(ind) && anio > ANIOS[0]) {
       const base = valores(ind, ANIOS[0]);
       const cambio = {};
@@ -355,16 +356,26 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- PORTADA ----------
+  // Si la especialidad elegida no vale para la tarjeta (p. ej. de quirúrgica a consultas), vuelve al total.
+  function campoValido(base) {
+    if (S.campoE !== "total" && (base.grupo !== "espera" || !familias(base).includes(S.campoE.split(":")[0]))) S.campoE = "total";
+    return indDetalle(base, S.campoE);
+  }
+
   function renderPortada() {
-    const ind = IND[S.indP];
+    const baseInd = IND[S.indP];
+    const ind = campoValido(baseInd);
     selector($("#sel-portada"), S.indP, (id) => { pararPlay(); S.indP = id; render(); });
+    selectorCampo($("#p-campo"), baseInd, "p-campo-sel");
     $("#p-com").innerHTML = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.com ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
     $("#p-com").onchange = (e) => { S.com = e.target.value; render(); };
     const anio = tieneSerie(ind) ? S.anioP : null;
     const vals = valores(ind, anio);
     const { out, top, bot } = titulares(ind, anio);
     const ord = ordenados(vals);
-    out.unshift({ k: "Tu comunidad", t: `<strong>${NOMBRE[S.com]}</strong>: ${fmt(vals[S.com], ind.unidad)}. ${puestoTxt(ind, ord.indexOf(S.com) + 1)}. <a href="#comunidad">Ver su ficha completa</a>` });
+    out.unshift({ k: "Tu comunidad", t: vals[S.com] == null
+      ? `<strong>${NOMBRE[S.com]}</strong>: sin dato en el informe para esta especialidad. <a href="#comunidad">Ver su ficha completa</a>`
+      : `<strong>${NOMBRE[S.com]}</strong>: ${fmt(vals[S.com], ind.unidad)}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. <a href="#comunidad">Ver su ficha completa</a>` });
     $("#p-titulo").textContent = `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
     $("#p-sub").textContent = tieneSerie(ind) ? `${anio}${esProv(anio) ? " (provisional)" : ""} · pulsa una comunidad para ver su ficha` : `${DATA.corteListas} · pulsa una comunidad para ver su ficha`;
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), vals, ind, { selIds: [S.com], onClick: (id) => { S.com = id; location.hash = "comunidad"; } }));
@@ -378,12 +389,10 @@ export function iniciar(DATA: DatosApp): void {
   // ---------- EXPLORADOR ----------
   function renderExplorar() {
     const baseInd = IND[S.indE];
-    // Si la especialidad elegida no vale para esta tarjeta (p. ej. de quirúrgica a consultas), vuelve al total.
-    if (S.campoE !== "total" && (baseInd.grupo !== "espera" || !familias(baseInd).includes(S.campoE.split(":")[0]))) S.campoE = "total";
-    const ind = indDetalle(baseInd, S.campoE);
+    const ind = campoValido(baseInd);
     if (!tieneSerie(ind) && S.vistaE === "evolucion") S.vistaE = "ranking";
     selector($("#sel-explorar"), S.indE, (id) => { pararPlay(); S.indE = id; render(); });
-    selectorCampo($("#e-campo"), baseInd);
+    selectorCampo($("#e-campo"), baseInd, "e-campo-sel");
     document.querySelectorAll("#e-vistas button").forEach((b) => {
       b.setAttribute("aria-pressed", b.dataset.v === S.vistaE);
       b.disabled = b.dataset.v === "evolucion" && !tieneSerie(ind);

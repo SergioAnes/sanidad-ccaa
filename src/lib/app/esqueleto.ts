@@ -19,6 +19,7 @@ export const ESQUELETO = `<div class="wrap">
         <label class="tucom" for="p-com">Tu comunidad<select id="p-com"></select></label>
       </div>
       <div class="selector" id="sel-portada"></div>
+      <div class="campo" id="p-campo"></div>
     </div>
     <div class="portada-grid">
       <div class="panel">
