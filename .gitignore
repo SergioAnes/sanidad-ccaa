@@ -4,3 +4,10 @@ out/
 .vercel/
 .env.local
 .DS_Store
+
+# Ficheros originales: solo en local, no se suben
+datos-originales/*.xls
+datos-originales/*.xlsx
+datos-originales/*.csv
+datos-originales/*.pdf
+__pycache__/

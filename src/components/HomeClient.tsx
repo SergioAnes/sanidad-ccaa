@@ -1,18 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BarChart3, GitCompare, Info, Database } from "lucide-react";
+import { BarChart3, Clock, GitCompare, Info, Database } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { ListasEspera } from "@/components/ListasEspera";
 import { MetricCard } from "@/components/MetricCard";
 import {
-  CCAA, INDICADORES, aniosDisponibles, formatear, mediaSimple, nombreCcaa, ranking, serie, variacionPct,
+  CCAA, INDICADORES, aniosDisponibles, esProvisional, formatear, mediaSimple, nombreCcaa, ranking, serie, variacionPct,
 } from "@/lib/datos";
 import { porcentaje } from "@/lib/formatos";
+import { LISTAS, nombreCorte } from "@/lib/listas";
 
-type Tab = "ranking" | "comparar" | "fuentes";
+type Tab = "ranking" | "comparar" | "listas" | "fuentes";
 
 export function HomeClient() {
   const [tab, setTab] = useState<Tab>("ranking");
@@ -37,6 +39,9 @@ export function HomeClient() {
   }, [indId, ccaaA, ccaaB]);
 
   const fmt = (v: number | undefined) => formatear(v, indicador.unidad);
+  const prov = (a: number) => esProvisional(indId, a);
+  const aniosProv = anios.filter(prov);
+  const etiquetaAnio = (a: number) => (prov(a) ? `${a} (provisional)` : String(a));
 
   return (
     <main>
@@ -46,11 +51,12 @@ export function HomeClient() {
           <h1>Sanidad por comunidades</h1>
           <p>
             Compara cuánto y en qué gasta cada comunidad autónoma en sanidad pública: gasto por habitante,
-            peso de los conciertos con la privada, atención primaria, farmacia…
+            peso de los conciertos con la privada, atención primaria, farmacia… y cuánto se espera para operarse o
+            ver al especialista.
           </p>
         </div>
         <div className="hero-card">
-          <span>{indicador.nombre} · {anioSel}</span>
+          <span>{indicador.nombre} · {etiquetaAnio(anioSel)}</span>
           <strong>{fmt(media)}</strong>
           <small>Media simple de las 17 comunidades. Máximo: {maximo?.nombre} ({fmt(maximo?.valor)}).</small>
         </div>
@@ -70,13 +76,16 @@ export function HomeClient() {
         <button className={tab === "comparar" ? "active" : ""} onClick={() => setTab("comparar")}>
           <GitCompare size={16} /> Comparar dos CCAA
         </button>
+        <button className={tab === "listas" ? "active" : ""} onClick={() => setTab("listas")}>
+          <Clock size={16} /> Listas de espera
+        </button>
         <button className={tab === "fuentes" ? "active" : ""} onClick={() => setTab("fuentes")}>
           <Database size={16} /> Fuentes
         </button>
       </nav>
 
       <section className="panel">
-        {tab !== "fuentes" ? (
+        {tab === "ranking" || tab === "comparar" ? (
           <div className={`controls ${tab === "ranking" ? "grid-2" : "grid-3"}`}>
             <label>
               Indicador
@@ -91,7 +100,7 @@ export function HomeClient() {
                 Año
                 <select value={anioSel} onChange={(e) => setAnio(Number(e.target.value))}>
                   {anios.map((a) => (
-                    <option key={a} value={a}>{a}</option>
+                    <option key={a} value={a}>{etiquetaAnio(a)}</option>
                   ))}
                 </select>
               </label>
@@ -121,7 +130,7 @@ export function HomeClient() {
         {tab === "ranking" ? (
           <>
             <div className="section-title">
-              <h2>{indicador.nombre}, {anioSel}</h2>
+              <h2>{indicador.nombre}, {etiquetaAnio(anioSel)}</h2>
               <p><Info size={14} /> {indicador.descripcion}</p>
             </div>
             <div className="metrics">
@@ -157,7 +166,10 @@ export function HomeClient() {
           <>
             <div className="section-title">
               <h2>{nombreCcaa(ccaaA)} frente a {nombreCcaa(ccaaB)}</h2>
-              <p>{indicador.nombre}, evolución anual.</p>
+              <p>
+                {indicador.nombre}, evolución anual.
+                {aniosProv.length ? ` Los años ${aniosProv.join(" y ")} son provisionales (*).` : ""}
+              </p>
             </div>
             <div className="chart tall">
               <ResponsiveContainer width="100%" height={380}>
@@ -180,7 +192,7 @@ export function HomeClient() {
                 <tbody>
                   {comparacion.map((r) => (
                     <tr key={r.anio}>
-                      <td>{r.anio}</td>
+                      <td>{r.anio}{prov(r.anio) ? " *" : ""}</td>
                       <td>{fmt(r.A)}</td>
                       <td>{fmt(r.B)}</td>
                     </tr>
@@ -190,6 +202,8 @@ export function HomeClient() {
             </div>
           </>
         ) : null}
+
+        {tab === "listas" ? <ListasEspera /> : null}
 
         {tab === "fuentes" ? (
           <div className="prose">
@@ -207,10 +221,20 @@ export function HomeClient() {
                       <td>{i.estado === "oficial" ? "Oficial" : "Ejemplo (pendiente)"}</td>
                     </tr>
                   ))}
+                  <tr>
+                    <td>Listas de espera (quirúrgica, procesos y consultas)</td>
+                    <td><a href={LISTAS.url} target="_blank" rel="noreferrer">{LISTAS.fuente}</a></td>
+                    <td>Oficial · {LISTAS.cortes.map(nombreCorte).join(", ")}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
             <p>Las medias son simples (cada comunidad cuenta igual), no ponderadas por población.</p>
+            <p>
+              Los datos de la Estadística de Gasto Sanitario Público son de devengo y corresponden al gasto
+              consolidado de cada comunidad autónoma. Las cifras de los dos últimos años que publica el Ministerio
+              son provisionales y pueden cambiar en la siguiente edición.
+            </p>
           </div>
         ) : null}
       </section>

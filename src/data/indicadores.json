@@ -3,38 +3,58 @@
     "id": "gasto_hab",
     "nombre": "Gasto sanitario público por habitante",
     "unidad": "eur_hab",
-    "descripcion": "Gasto sanitario público consolidado del sector comunidades autónomas dividido entre la población.",
-    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público (EGSP)",
+    "descripcion": "Gasto sanitario público consolidado de la comunidad autónoma dividido entre su población (INE, Estadística Continua de Población).",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Anexo I.2",
     "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
-    "estado": "ejemplo"
+    "estado": "oficial"
+  },
+  {
+    "id": "pct_pib",
+    "nombre": "Gasto sanitario público (% del PIB regional)",
+    "unidad": "pct",
+    "descripcion": "Gasto sanitario público consolidado de la comunidad autónoma sobre su producto interior bruto (INE, Contabilidad Regional de España).",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Anexo I.1",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "oficial",
+    "neutral": true
   },
   {
     "id": "pct_conciertos",
     "nombre": "Gasto en conciertos (% del gasto sanitario)",
     "unidad": "pct",
-    "descripcion": "Peso de los conciertos con centros privados sobre el gasto sanitario público total de la comunidad.",
-    "fuente": "Ministerio de Sanidad — EGSP, clasificación económica",
+    "descripcion": "Peso de los conciertos (asistencia que la comunidad contrata con centros ajenos, sobre todo privados) en el gasto sanitario consolidado de la comunidad. Clasificación económico-presupuestaria.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4.01 a 3.4.17",
     "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
-    "estado": "ejemplo",
+    "estado": "oficial",
     "neutral": true
   },
   {
     "id": "pct_primaria",
     "nombre": "Gasto en atención primaria (% del gasto sanitario)",
     "unidad": "pct",
-    "descripcion": "Peso de los servicios primarios de salud sobre el gasto sanitario público total.",
-    "fuente": "Ministerio de Sanidad — EGSP, clasificación funcional",
+    "descripcion": "Peso de los servicios primarios de salud en el gasto sanitario público de la comunidad. Clasificación funcional.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4.01 a 3.4.17",
     "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
-    "estado": "ejemplo"
+    "estado": "oficial"
+  },
+  {
+    "id": "pct_hospital",
+    "nombre": "Gasto en hospitales y especializada (% del gasto sanitario)",
+    "unidad": "pct",
+    "descripcion": "Peso de los servicios hospitalarios y especializados en el gasto sanitario público de la comunidad. Clasificación funcional.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4.01 a 3.4.17",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "oficial",
+    "neutral": true
   },
   {
     "id": "farmacia_hab",
-    "nombre": "Gasto farmacéutico (recetas) por habitante",
+    "nombre": "Gasto en farmacia (recetas) por habitante",
     "unidad": "eur_hab",
-    "descripcion": "Gasto en farmacia a través de receta oficial del SNS por habitante.",
-    "fuente": "Ministerio de Sanidad — EGSP / Indicadores de facturación de recetas",
+    "descripcion": "Gasto en farmacia de la clasificación funcional (productos dispensados con receta en oficinas de farmacia) por habitante. Calculado como gasto por habitante (Anexo I.2) × % de farmacia, es decir, con la misma población que usa el Ministerio.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4 y Anexo I.2 (cálculo propio)",
     "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
-    "estado": "ejemplo",
+    "estado": "oficial",
     "neutral": true
   }
 ]

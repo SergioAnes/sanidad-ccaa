@@ -1,4 +1,4 @@
-export type Unidad = "eur_hab" | "pct" | "eur_mill";
+export type Unidad = "eur_hab" | "pct" | "eur_mill" | "num" | "por_mil" | "dias";
 
 export type Ccaa = {
   id: string;
@@ -24,4 +24,6 @@ export type Valor = {
   ccaa: string;
   anio: number;
   valor: number;
+  /** true si la fuente marca la cifra como provisional (p. ej. "2023(*)" en la EGSP) */
+  provisional?: boolean;
 };

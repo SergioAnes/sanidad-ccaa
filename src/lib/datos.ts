@@ -16,6 +16,11 @@ export function aniosDisponibles(indicador: string, valores: Valor[] = VALORES):
   return [...new Set(valores.filter((v) => v.indicador === indicador).map((v) => v.anio))].sort((a, b) => a - b);
 }
 
+/** true si algún valor del indicador en ese año está marcado como provisional por la fuente. */
+export function esProvisional(indicador: string, anio: number, valores: Valor[] = VALORES): boolean {
+  return valores.some((v) => v.indicador === indicador && v.anio === anio && v.provisional);
+}
+
 export type FilaRanking = { ccaa: string; nombre: string; valor: number; posicion: number };
 
 /** Ranking de CCAA para un indicador y año, de mayor a menor. */
@@ -53,5 +58,11 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return porcentaje(valor);
     case "eur_mill":
       return `${numero(valor, 1)} M€`;
+    case "num":
+      return numero(valor, 0);
+    case "por_mil":
+      return `${numero(valor, 2)} ‰`;
+    case "dias":
+      return `${numero(valor, 0)} días`;
   }
 }
