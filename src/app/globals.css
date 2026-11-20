@@ -243,3 +243,5 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .metodo .tabla td:nth-child(2) { text-align: left; }
 .notas-oficiales ul { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .notas-oficiales a, .notas-min a { color: var(--accent); }
+.periodo { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
+.periodo select { font-weight: 600; color: var(--fg); }
