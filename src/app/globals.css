@@ -135,7 +135,6 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 
 /* Barra de años */
 .anios { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
-.anios input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
 .anios .anio { font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; min-width: 5.5ch; font-variant-numeric: tabular-nums; }
 .anios .prov { font-size: 0.75rem; color: var(--note); background: var(--note-bg); padding: 2px 8px; border-radius: 6px; }
 .play { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; }
@@ -245,3 +244,22 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .notas-oficiales a, .notas-min a { color: var(--accent); }
 .periodo { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.9rem; color: var(--muted); }
 .periodo select { font-weight: 600; color: var(--fg); }
+
+/* Línea de tiempo: un tirador (año) o dos (periodo), con marcas de años */
+.anios .linea { position: relative; flex: 1 1 240px; min-width: 200px; height: 44px; }
+.anios .linea input[type=range] { position: absolute; left: 0; top: 4px; width: 100%; height: 24px; margin: 0; background: none; accent-color: var(--accent); }
+.anios .linea .marcas { position: absolute; left: 0; right: 0; top: 30px; height: 14px; font-size: 0.68rem; color: var(--muted); }
+.anios .linea .marcas span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+.anios .rango .pista, .anios .rango .tramo { position: absolute; top: 13px; height: 6px; border-radius: 3px; }
+.anios .rango .pista { left: 10px; right: 10px; background: var(--line); }
+.anios .rango .tramo { background: var(--accent); }
+.anios .rango input[type=range] { -webkit-appearance: none; appearance: none; pointer-events: none; z-index: 2; }
+.anios .rango input[type=range]::-webkit-slider-runnable-track { background: none; border: 0; }
+.anios .rango input[type=range]::-moz-range-track { background: none; border: 0; }
+.anios .rango input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); cursor: grab; box-shadow: 0 1px 3px rgb(0 0 0 / 0.25); }
+.anios .rango input[type=range]::-moz-range-thumb { pointer-events: auto; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); cursor: grab; }
+.anios .rango input[type=range]:focus-visible { outline: none; }
+.anios .rango input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.anios .rango-txt { min-width: 7.5ch; }
+.anios .ayuda-rango { flex-basis: 100%; font-size: 0.78rem; color: var(--muted); }
+.anios .prov[hidden] { display: none; }

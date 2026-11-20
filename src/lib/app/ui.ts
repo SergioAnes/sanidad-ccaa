@@ -311,15 +311,32 @@ export function iniciar(DATA: DatosApp): void {
   function leyenda(cont, esca) { cont.innerHTML = esca.leyenda; }
 
   let timer = null;
-  function barraAnios(cont, ind, anio, onChange, desde = ANIOS[0]) {
-    if (!tieneSerie(ind)) { cont.innerHTML = `<span class="nota" style="margin:0">Listas de espera: un solo corte (${DATA.corteListas}). La evolución llegará al añadir más informes.</span>`; return; }
-    cont.innerHTML = `<button type="button" class="play" aria-label="Reproducir años">${timer ? "❚❚" : "▶"}</button>
-      <span class="anio">${anio}</span>${esProv(anio) ? '<span class="prov">provisional</span>' : ""}
-      <input type="range" min="${desde}" max="${ULT}" value="${anio}" aria-label="Año">`;
-    cont.querySelector("input").oninput = (e) => { pararPlay(); onChange(+e.target.value); };
-    cont.querySelector(".play").onclick = () => {
+  // Línea de tiempo. El control se crea una vez y luego solo se actualiza: si se volviera a crear en cada
+  // paso, el navegador soltaría el tirador a mitad de un arrastre.
+  const pctAnio = (a) => ((a - ANIOS[0]) / (ULT - ANIOS[0])) * 100;
+  const marcasAnios = () => `<div class="marcas" aria-hidden="true">${ANIOS.filter((a, i) => a === ANIOS[0] || a === ULT || (a - ANIOS[0]) % 4 === 0 && ULT - a >= 3)
+    .map((a) => `<span style="left:calc(10px + (100% - 20px) * ${pctAnio(a) / 100})">${a}</span>`).join("")}</div>`;
+  function barraAnios(cont, ind, anio, onChange) {
+    if (!tieneSerie(ind)) {
+      cont.dataset.tipo = "";
+      cont.innerHTML = `<span class="nota" style="margin:0">Listas de espera: un solo corte (${DATA.corteListas}). La evolución llegará al añadir más informes.</span>`;
+      return;
+    }
+    if (cont.dataset.tipo !== "anio") {
+      cont.dataset.tipo = "anio";
+      cont.innerHTML = `<button type="button" class="play"></button><span class="anio"></span><span class="prov">provisional</span>
+        <div class="linea"><input type="range" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año">${marcasAnios()}</div>`;
+    }
+    const inp = cont.querySelector("input"), play = cont.querySelector(".play");
+    if (+inp.value !== anio) inp.value = anio;
+    cont.querySelector(".anio").textContent = anio;
+    cont.querySelector(".prov").hidden = !esProv(anio);
+    play.textContent = timer ? "❚❚" : "▶";
+    play.setAttribute("aria-label", timer ? "Pausar" : "Reproducir los años");
+    inp.oninput = () => { pararPlay(); onChange(+inp.value); };
+    play.onclick = () => {
       if (timer) { pararPlay(); render(); return; }
-      let a = anio >= ULT ? desde : anio;
+      let a = anio >= ULT ? ANIOS[0] : anio;
       onChange(a);
       timer = setInterval(() => { a++; if (a > ULT) { pararPlay(); render(); return; } onChange(a); }, 420);
       render();
@@ -328,13 +345,32 @@ export function iniciar(DATA: DatosApp): void {
   function pararPlay() { if (timer) { clearInterval(timer); timer = null; } }
   // Año de partida para los cambios: el elegido en modo «Crecimiento», o el primero de la serie.
   const base0 = () => (S.modo === "cambio" ? S.desde : ANIOS[0]);
-  // En modo «Crecimiento»: elegir el periodo (desde / hasta) en lugar de un solo año.
+  // En modo «Crecimiento»: la misma línea de tiempo con dos tiradores (desde y hasta) y el tramo resaltado.
   function barraPeriodo(cont, onChange) {
-    const opc = (lista, sel) => lista.map((a) => `<option value="${a}" ${a === sel ? "selected" : ""}>${a}${esProv(a) ? " (provisional)" : ""}</option>`).join("");
-    cont.innerHTML = `<label class="periodo">Desde <select id="p-desde" aria-label="Año de inicio">${opc(ANIOS.filter((a) => a < S.anioP), S.desde)}</select></label>
-      <label class="periodo">hasta <select id="p-hasta" aria-label="Año final">${opc(ANIOS.filter((a) => a > S.desde), S.anioP)}</select></label>`;
-    cont.querySelector("#p-desde").onchange = (e) => { S.desde = +e.target.value; onChange(); };
-    cont.querySelector("#p-hasta").onchange = (e) => { S.anioP = +e.target.value; onChange(); };
+    if (cont.dataset.tipo !== "rango") {
+      cont.dataset.tipo = "rango";
+      cont.innerHTML = `<span class="anio rango-txt"></span><span class="prov">provisional</span>
+        <div class="linea rango"><div class="pista"></div><div class="tramo"></div>
+          <input type="range" class="r-desde" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año de inicio del periodo">
+          <input type="range" class="r-hasta" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año final del periodo">${marcasAnios()}</div>
+        <span class="ayuda-rango">Arrastra los dos extremos para elegir el periodo</span>`;
+    }
+    const d = cont.querySelector(".r-desde"), h = cont.querySelector(".r-hasta");
+    const pintar = () => {
+      if (+d.value !== S.desde) d.value = S.desde;
+      if (+h.value !== S.anioP) h.value = S.anioP;
+      cont.querySelector(".rango-txt").textContent = `${S.desde} → ${S.anioP}`;
+      cont.querySelector(".prov").hidden = !esProv(S.anioP) && !esProv(S.desde);
+      const t = cont.querySelector(".tramo");
+      t.style.left = `calc(10px + (100% - 20px) * ${pctAnio(S.desde) / 100})`;
+      t.style.width = `calc((100% - 20px) * ${(pctAnio(S.anioP) - pctAnio(S.desde)) / 100})`;
+      // el tirador más cercano al otro extremo queda encima, para poder moverlo siempre
+      d.style.zIndex = S.desde > ULT - 2 ? 3 : 2;
+    };
+    pintar();
+    // Los extremos nunca se cruzan: como mínimo, un año de diferencia.
+    d.oninput = () => { const v = Math.min(+d.value, S.anioP - 1); d.value = v; if (v !== S.desde) { S.desde = v; onChange(); } };
+    h.oninput = () => { const v = Math.max(+h.value, S.desde + 1); h.value = v; if (v !== S.anioP) { S.anioP = v; onChange(); } };
   }
 
   // Posición en palabras. En listas de espera, el puesto 1 es la peor situación.
@@ -417,7 +453,7 @@ export function iniciar(DATA: DatosApp): void {
     const fecha = tieneSerie(ind) ? `${anio}${esProv(anio) ? " (provisional)" : ""}` : DATA.corteListas;
     $("#p-sub").textContent = `${S.modo === "cambio" ? `De ${S.desde} a ${fecha}` : fecha} · pulsa una comunidad para elegirla como la tuya`;
     $("#p-modo").innerHTML = tieneSerie(ind) ? `<button type="button" data-m="valor" aria-pressed="${S.modo === "valor"}">Valor en ${anio}</button>
-      <button type="button" data-m="cambio" aria-pressed="${S.modo === "cambio"}">${ind.unidad === "pct" ? "Cambio en un periodo" : "Crecimiento en un periodo"}</button>` : "";
+      <button type="button" data-m="cambio" aria-pressed="${S.modo === "cambio"}">${ind.unidad === "pct" ? "Cambio" : "Crecimiento"}</button>` : "";
     $("#p-modo").querySelectorAll("button").forEach((b) => b.onclick = () => { S.modo = b.dataset.m; render(); });
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); } }));
     botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, `${$("#p-titulo").textContent}. ${$("#p-sub").textContent.split(" · ")[0]}`, $("#p-leyenda")));
