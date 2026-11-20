@@ -121,7 +121,7 @@ export function iniciar(DATA: DatosApp): void {
     const k = (id) => kz(vals[id]);
     const nombres = ["muy por debajo", "por debajo", "en la media", "por encima", "muy por encima"];
     const et = nombres.map((n, c) => { const n2 = o.filter((id) => k(id) === c).length; return `<b>${n}</b>(${n2})`; });
-    return { color: (id) => caja(cols[k(id)]), colorV: (v) => caja(cols[kz(v)]), leyenda: clases(cols, et, `Media de las 17: <b class="num">${fmt(m, u)}</b>. «En la media» = a menos de ${fmtCorto(sd / 3, u)} de ella.`) };
+    return { color: (id) => caja(cols[k(id)]), colorV: (v) => caja(cols[kz(v)]), leyenda: clases(cols, et, `Media de las ${o.length}: <b class="num">${fmt(m, u)}</b>. «En la media» = a menos de ${fmtCorto(sd / 3, u)} de ella.`) };
   }
 
   // tooltip
@@ -145,7 +145,42 @@ export function iniciar(DATA: DatosApp): void {
     com: "AN",
     real: true,
     yXY: "q_dias",
+    campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
   };
+
+  // ---------- especialidades y procesos (listas de espera) ----------
+  // Las tarjetas quirúrgicas (q_*) admiten especialidades quirúrgicas y procesos; las de consultas (c_*), especialidades de consultas.
+  const familias = (base) => base.tipo === "consultas" ? ["consultas"] : ["quirurgica", "procesos"];
+  function indDetalle(base, clave) {
+    if (base.grupo !== "espera" || clave === "total") return base;
+    const [tipo, campo] = clave.split(":");
+    const t = DATA.detalle[tipo];
+    if (!familias(base).includes(tipo) || !t || !t.v[campo]) return base;
+    const id = `${base.id}@${tipo}:${campo}`;
+    if (!IND[id]) {
+      const datos = t.v[campo][base.medida] || {};
+      const valor = {}; IDS.forEach((k) => { if (datos[k] != null) valor[k] = datos[k]; });
+      const ciu = {}; ["CE", "ML"].forEach((k) => { if (datos[k] != null) ciu[k] = datos[k]; });
+      const nombreCampo = t.campos.find((c) => c.id === campo).nombre;
+      const que = tipo === "procesos" ? "Proceso" : "Especialidad";
+      IND[id] = { ...base, id, valor, nombre: `${base.nombre}: ${nombreCampo}`, desc: `${base.desc.replace(/ \(todas las especialidades\)/, "")} ${que}: ${nombreCampo}.`, campoNombre: nombreCampo };
+      DATA.ciudades[id] = ciu;
+    }
+    return IND[id];
+  }
+  function selectorCampo(cont, base) {
+    if (base.grupo !== "espera") { cont.innerHTML = ""; return; }
+    const opc = (tipo, c) => `<option value="${tipo}:${c.id}" ${S.campoE === `${tipo}:${c.id}` ? "selected" : ""}>${esc(c.nombre)}</option>`;
+    const grupos = familias(base).map((tipo) => {
+      const t = DATA.detalle[tipo];
+      const campos = t.campos.filter((c) => c.id !== "total");
+      return `<optgroup label="${tipo === "procesos" ? "Procesos frecuentes" : "Especialidades"}">${campos.map((c) => opc(tipo, c)).join("")}</optgroup>`;
+    }).join("");
+    cont.innerHTML = `<label for="e-campo-sel">Especialidad o proceso:</label>
+      <select id="e-campo-sel"><option value="total" ${S.campoE === "total" ? "selected" : ""}>Todas (total)</option>${grupos}</select>` +
+      (S.campoE !== "total" ? `<span>Las tarjetas de arriba siguen mostrando el total.</span>` : "");
+    cont.querySelector("select").onchange = (e) => { S.campoE = e.target.value; render(); };
+  }
   const SLOTS = ["--s1", "--s2", "--s3"];
   const colorSel = (id) => { const s = S.sel.find((x) => x.id === id); return s ? css(SLOTS[s.slot]) : null; };
   function alternarSel(id) {
@@ -218,11 +253,12 @@ export function iniciar(DATA: DatosApp): void {
     const m = GEO.marco;
     let sv = `<svg class="geo" viewBox="0 0 ${GEO.w} ${GEO.h}" role="group" aria-label="Mapa de las comunidades autónomas">
       <rect x="${m.x}" y="${m.y}" width="${m.w}" height="${m.h}" rx="10" fill="none" stroke="${linea}" stroke-dasharray="4 4"/>`;
-    const color = (id) => neutro ? (selIds.includes(id) ? { bg: acc, fg: "#ffffff" } : { bg: linea, fg }) : esca.color(id);
+    const falta = (id) => !neutro && vals[id] == null; // comunidad sin dato en el informe (alguna especialidad)
+    const color = (id) => neutro ? (selIds.includes(id) ? { bg: acc, fg: "#ffffff" } : { bg: linea, fg }) : falta(id) ? { bg: linea, fg } : esca.color(id);
     GEO.regiones.forEach((r) => {
       if (SIN_DATOS.includes(r.id)) { sv += `<path d="${r.d}" fill="${muted}" stroke="none"/>`; return; }
       const v = vals ? vals[r.id] : null;
-      const et = neutro ? NOMBRE[r.id] : `${NOMBRE[r.id]}: ${fmt(v, ind.unidad)}`;
+      const et = neutro ? NOMBRE[r.id] : `${NOMBRE[r.id]}: ${falta(r.id) ? "sin dato" : fmt(v, ind.unidad)}`;
       sv += `<path class="reg" data-id="${r.id}" d="${r.d}" fill="${color(r.id).bg}" stroke="${surf}" stroke-width="1" stroke-linejoin="round" tabindex="0" role="button" aria-label="${esc(et)}"/>`;
     });
     // borde de las seleccionadas, por encima de todo
@@ -230,7 +266,7 @@ export function iniciar(DATA: DatosApp): void {
     if (!neutro) GEO.regiones.forEach((r) => {
       if (SIN_DATOS.includes(r.id)) return;
       const k = color(r.id), grande = r.area > 2500, peq = r.area < 1300;
-      const v = fmtCorto(vals[r.id], ind.unidad).replace(" €", "");
+      const v = falta(r.id) ? "s/d" : fmtCorto(vals[r.id], ind.unidad).replace(" €", "");
       // Halo del color de la comunidad: la etiqueta se lee aunque se salga de su silueta.
       const halo = `stroke="${k.bg}" stroke-width="3" stroke-linejoin="round" paint-order="stroke"`;
       sv += `<text x="${r.lx}" y="${r.ly + (grande ? -2 : 4)}" text-anchor="middle" font-size="${peq ? 10 : 12}" font-weight="700" fill="${k.fg}" ${halo}>${ABR[r.id]}</text>`;
@@ -256,6 +292,7 @@ export function iniciar(DATA: DatosApp): void {
       t.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick && onClick(id); } };
       t.onmousemove = (e) => {
         if (neutro) { showTip(`<b>${esc(NOMBRE[id])}</b>`, e.clientX, e.clientY); return; }
+        if (falta(id)) { showTip(`<b>${esc(NOMBRE[id])}</b><br>Sin dato en el informe`, e.clientX, e.clientY); return; }
         const orden = ordenados(vals);
         showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)} · ${orden.indexOf(id) + 1}.ª de ${orden.length}`, e.clientX, e.clientY);
       };
@@ -340,9 +377,13 @@ export function iniciar(DATA: DatosApp): void {
 
   // ---------- EXPLORADOR ----------
   function renderExplorar() {
-    const ind = IND[S.indE];
+    const baseInd = IND[S.indE];
+    // Si la especialidad elegida no vale para esta tarjeta (p. ej. de quirúrgica a consultas), vuelve al total.
+    if (S.campoE !== "total" && (baseInd.grupo !== "espera" || !familias(baseInd).includes(S.campoE.split(":")[0]))) S.campoE = "total";
+    const ind = indDetalle(baseInd, S.campoE);
     if (!tieneSerie(ind) && S.vistaE === "evolucion") S.vistaE = "ranking";
     selector($("#sel-explorar"), S.indE, (id) => { pararPlay(); S.indE = id; render(); });
+    selectorCampo($("#e-campo"), baseInd);
     document.querySelectorAll("#e-vistas button").forEach((b) => {
       b.setAttribute("aria-pressed", b.dataset.v === S.vistaE);
       b.disabled = b.dataset.v === "evolucion" && !tieneSerie(ind);
@@ -384,15 +425,18 @@ export function iniciar(DATA: DatosApp): void {
       ranking(cont, vals, ind);
       barraAnios($("#e-anios"), ind, S.anioE, (a) => { S.anioE = a; render(); });
     }
+    const sinDato = IDS.filter((k) => vals[k] == null);
     $("#e-nota").innerHTML = `${esc(ind.desc)} Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
+      (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
       (S.vistaE !== "evolucion" ? `<div class="aviso"><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</div>` : "");
   }
 
   function ranking(cont, vals, ind) {
     const ciu = DATA.ciudades[ind.id] ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
-    const W = Math.max(320, cont.clientWidth || 800), fila = 26, top = 8, extra = ciu.length ? 30 + ciu.length * fila : 0, H = top + IDS.length * fila + 26 + extra;
+    const o = ordenados(vals);
+    const W = Math.max(320, cont.clientWidth || 800), fila = 26, top = 8, extra = ciu.length ? 30 + ciu.length * fila : 0, H = top + o.length * fila + 26 + extra;
     const lab = W < 520 ? 92 : 140, der = 70;
-    const o = ordenados(vals); const max = Math.max(...o.map((id) => vals[id]), ...ciu.map((k) => datoCiudad(ind, k)));
+    const max = Math.max(...o.map((id) => vals[id]), ...ciu.map((k) => datoCiudad(ind, k)));
     const x = (v) => lab + (v / max) * (W - lab - der);
     const m = media(vals);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), base = css("--grey-line");
@@ -407,9 +451,9 @@ export function iniciar(DATA: DatosApp): void {
         ${destacado ? `<text x="${x(vals[id]) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(vals[id], ind.unidad)}</text>` : ""}
       </g>`;
     });
-    const xm = x(m), y17 = top + IDS.length * fila;
+    const xm = x(m), y17 = top + o.length * fila;
     s += `<line x1="${xm}" x2="${xm}" y1="${top - 4}" y2="${y17 + 4}" stroke="${fg}" stroke-dasharray="3 3" stroke-width="1.2"/>
-      <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">media de las 17: ${fmt(m, ind.unidad)}</text>`;
+      <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">media de las ${o.length}: ${fmt(m, ind.unidad)}</text>`;
     s += `<line x1="${lab}" x2="${lab}" y1="${top}" y2="${y17}" stroke="${line}"/>`;
     if (ciu.length) {
       const y0 = y17 + 30;
@@ -440,7 +484,7 @@ export function iniciar(DATA: DatosApp): void {
     const cambio = (id) => u === "pct" ? signo(vals[id] - base[id], nf(1).format(Math.abs(vals[id] - base[id])) + " p.") : signo(vals[id] - base[id], nf(0).format(Math.abs(vals[id] / base[id] - 1) * 100) + " %");
     const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${ANIOS[0]}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${serie ? anio : "Valor"}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th></tr>`;
     const filas = o.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i + 1}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td></tr>`).join("");
-    const pie = `<tr><td></td><td>Media de las 17</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td></tr>`;
+    const pie = `<tr><td></td><td>Media de las ${o.length}</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td></tr>`;
     const nCol = 4 + (serie ? 2 : 0);
     const ciu = !serie && DATA.ciudades[ind.id] ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
@@ -464,7 +508,7 @@ export function iniciar(DATA: DatosApp): void {
     const csv = "\ufeff" + filas.map((f) => f.map((c) => /[;"\n]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(";")).join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `${ind.id}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    a.download = `${ind.id.replace(/[^a-z0-9_-]+/gi, "_")}.csv`; document.body.appendChild(a); a.click(); a.remove();
   }
 
   // ---------- gasto frente a espera ----------

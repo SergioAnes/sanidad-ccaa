@@ -41,6 +41,7 @@ export const ESQUELETO = `<div class="wrap">
   <section id="v-explorar" hidden>
     <div class="toolbar">
       <div class="selector" id="sel-explorar"></div>
+      <div class="campo" id="e-campo"></div>
       <div class="fila">
         <div class="seg" id="e-vistas" role="group" aria-label="Tipo de vista">
           <button type="button" data-v="mapa">Mapa</button>

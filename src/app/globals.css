@@ -119,6 +119,12 @@ button, select, input { font: inherit; color: inherit; }
 .leyenda .clase b { color: var(--fg); font-weight: 600; }
 .leyenda .pie { flex-basis: 100%; }
 .leyenda .pie b { color: var(--fg); }
+/* Especialidad o proceso (listas de espera, Explorador) */
+.campo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 0.88rem; color: var(--muted); }
+.campo:empty { display: none; }
+.campo label { font-weight: 600; }
+.campo select { font-weight: 600; color: var(--fg); flex: 0 1 auto; min-width: 0; max-width: 100%; }
+@media (max-width: 640px) { .campo select { flex: 1 1 100%; width: 100%; } }
 .real { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 0.8rem; color: var(--muted); }
 .seg.sm { flex-wrap: wrap; max-width: 100%; }
 .seg.sm button { padding: 5px 11px; font-size: 0.8rem; }

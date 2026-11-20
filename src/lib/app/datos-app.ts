@@ -44,7 +44,10 @@ const UNIDAD_MEDIDA: Record<MedidaLista, Unidad> = { pacientes: "num", tasa: "po
 
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
-  | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; valor: Record<string, number> };
+  | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; valor: Record<string, number>; tipo: TipoLista; medida: MedidaLista };
+
+/** Detalle por especialidad o proceso: tipo -> campos y valores[campo][medida][territorio] (incluye Ceuta y Melilla). */
+export type DetalleListas = Record<string, { nombre: string; campos: { id: string; nombre: string }[]; v: Record<string, Record<string, Record<string, number>>> }>;
 
 export type DatosApp = {
   anios: number[];
@@ -58,6 +61,8 @@ export type DatosApp = {
   ipc: Record<string, number>;
   /** Valores de Ceuta y Melilla (se muestran aparte) por indicador de espera */
   ciudades: Record<string, Record<string, number>>;
+  /** Listas de espera por especialidad (quirúrgica y consultas) y por proceso, último corte */
+  detalle: DetalleListas;
   geo: typeof mapaJson;
 };
 
@@ -89,8 +94,22 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     }
     ciudades[e.id] = {};
     for (const c of ["CE", "ML"]) { const x = de(c); if (x !== undefined) ciudades[e.id][c] = x; }
-    return { id: e.id, grupo: "espera", corto: e.corto, nombre: e.nombre, unidad: UNIDAD_MEDIDA[e.medida], desc: e.desc, valor };
+    return { id: e.id, grupo: "espera", corto: e.corto, nombre: e.nombre, unidad: UNIDAD_MEDIDA[e.medida], desc: e.desc, valor, tipo: e.tipo, medida: e.medida };
   });
+
+  const detalle: DetalleListas = {};
+  const medidas = [...new Set(ESPERA.map((e) => e.medida))];
+  for (const t of LISTAS.tipos) {
+    const v: DetalleListas[string]["v"] = {};
+    for (const c of t.campos) {
+      v[c.id] = {};
+      for (const m of medidas) v[c.id][m] = {};
+    }
+    for (const f of filasCorte) {
+      if (f.tipo === t.id && v[f.campo] && v[f.campo][f.medida]) v[f.campo][f.medida][f.ccaa] = f.valor;
+    }
+    detalle[t.id] = { nombre: t.nombre, campos: t.campos, v };
+  }
 
   const especQuir: DatosApp["especQuir"] = {};
   const quir = LISTAS.tipos.find((t) => t.id === "quirurgica")!;
@@ -111,6 +130,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     especQuir,
     ipc: ipcJson.medias,
     ciudades,
+    detalle,
     geo: mapaJson,
   };
 }

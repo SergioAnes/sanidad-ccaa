@@ -32,6 +32,14 @@ describe("datos de la interfaz", () => {
     expect(Object.keys(d.ciudades.q_dias).sort()).toEqual(["CE", "ML"]);
   });
 
+  it("el detalle por especialidad coincide con el total del indicador", () => {
+    const q = d.inds.find((i) => i.id === "q_dias");
+    if (!q || q.grupo !== "espera") throw new Error("falta q_dias");
+    expect(d.detalle.quirurgica.v.total.dias).toMatchObject(q.valor);
+    expect(d.detalle.procesos.campos.some((c) => c.id === "catarata")).toBe(true);
+    expect(Object.keys(d.detalle.consultas.v.traumatologia.dias).length).toBeGreaterThanOrEqual(17);
+  });
+
   it("el mapa tiene un trazado para cada comunidad", () => {
     const enMapa = new Set(d.geo.regiones.map((r) => r.id));
     for (const c of d.ccaa) expect(enMapa.has(c.id)).toBe(true);
