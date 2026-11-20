@@ -1,0 +1,2042 @@
+[
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AN",
+  "anio": 2019,
+  "valor": 1450.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AN",
+  "anio": 2020,
+  "valor": 1509.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AN",
+  "anio": 2021,
+  "valor": 1584.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AN",
+  "anio": 2022,
+  "valor": 1632.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AN",
+  "anio": 2023,
+  "valor": 1689.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AR",
+  "anio": 2019,
+  "valor": 1889.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AR",
+  "anio": 2020,
+  "valor": 1965.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AR",
+  "anio": 2021,
+  "valor": 2046.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AR",
+  "anio": 2022,
+  "valor": 2108
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AR",
+  "anio": 2023,
+  "valor": 2157.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AS",
+  "anio": 2019,
+  "valor": 1855.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AS",
+  "anio": 2020,
+  "valor": 1925.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AS",
+  "anio": 2021,
+  "valor": 1982.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AS",
+  "anio": 2022,
+  "valor": 2040.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "AS",
+  "anio": 2023,
+  "valor": 2096
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "IB",
+  "anio": 2019,
+  "valor": 1496.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "IB",
+  "anio": 2020,
+  "valor": 1575.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "IB",
+  "anio": 2021,
+  "valor": 1640.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "IB",
+  "anio": 2022,
+  "valor": 1730
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "IB",
+  "anio": 2023,
+  "valor": 1816.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CN",
+  "anio": 2019,
+  "valor": 1692.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CN",
+  "anio": 2020,
+  "valor": 1734.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CN",
+  "anio": 2021,
+  "valor": 1829.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CN",
+  "anio": 2022,
+  "valor": 1900.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CN",
+  "anio": 2023,
+  "valor": 1974.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CB",
+  "anio": 2019,
+  "valor": 1555.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CB",
+  "anio": 2020,
+  "valor": 1585.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CB",
+  "anio": 2021,
+  "valor": 1617.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CB",
+  "anio": 2022,
+  "valor": 1715.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CB",
+  "anio": 2023,
+  "valor": 1813.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CL",
+  "anio": 2019,
+  "valor": 1706.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CL",
+  "anio": 2020,
+  "valor": 1794.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CL",
+  "anio": 2021,
+  "valor": 1875.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CL",
+  "anio": 2022,
+  "valor": 1938.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CL",
+  "anio": 2023,
+  "valor": 2005.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CM",
+  "anio": 2019,
+  "valor": 1608.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CM",
+  "anio": 2020,
+  "valor": 1682
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CM",
+  "anio": 2021,
+  "valor": 1739.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CM",
+  "anio": 2022,
+  "valor": 1777
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CM",
+  "anio": 2023,
+  "valor": 1850.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CT",
+  "anio": 2019,
+  "valor": 1654.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CT",
+  "anio": 2020,
+  "valor": 1708.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CT",
+  "anio": 2021,
+  "valor": 1755.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CT",
+  "anio": 2022,
+  "valor": 1793.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "CT",
+  "anio": 2023,
+  "valor": 1901.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "VC",
+  "anio": 2019,
+  "valor": 1490.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "VC",
+  "anio": 2020,
+  "valor": 1580.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "VC",
+  "anio": 2021,
+  "valor": 1639.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "VC",
+  "anio": 2022,
+  "valor": 1718.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "VC",
+  "anio": 2023,
+  "valor": 1764.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "EX",
+  "anio": 2019,
+  "valor": 1897.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "EX",
+  "anio": 2020,
+  "valor": 1949.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "EX",
+  "anio": 2021,
+  "valor": 2042.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "EX",
+  "anio": 2022,
+  "valor": 2115.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "EX",
+  "anio": 2023,
+  "valor": 2194.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "GA",
+  "anio": 2019,
+  "valor": 1530.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "GA",
+  "anio": 2020,
+  "valor": 1611.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "GA",
+  "anio": 2021,
+  "valor": 1696.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "GA",
+  "anio": 2022,
+  "valor": 1735.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "GA",
+  "anio": 2023,
+  "valor": 1771
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MD",
+  "anio": 2019,
+  "valor": 1736.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MD",
+  "anio": 2020,
+  "valor": 1797.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MD",
+  "anio": 2021,
+  "valor": 1850.8
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MD",
+  "anio": 2022,
+  "valor": 1925.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MD",
+  "anio": 2023,
+  "valor": 2004.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MC",
+  "anio": 2019,
+  "valor": 1892.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MC",
+  "anio": 2020,
+  "valor": 1956.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MC",
+  "anio": 2021,
+  "valor": 2056.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MC",
+  "anio": 2022,
+  "valor": 2118.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "MC",
+  "anio": 2023,
+  "valor": 2218.1
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "NC",
+  "anio": 2019,
+  "valor": 1659.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "NC",
+  "anio": 2020,
+  "valor": 1722.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "NC",
+  "anio": 2021,
+  "valor": 1821.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "NC",
+  "anio": 2022,
+  "valor": 1891.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "NC",
+  "anio": 2023,
+  "valor": 2004.9
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "PV",
+  "anio": 2019,
+  "valor": 1807.4
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "PV",
+  "anio": 2020,
+  "valor": 1907.2
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "PV",
+  "anio": 2021,
+  "valor": 2002.7
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "PV",
+  "anio": 2022,
+  "valor": 2087.6
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "PV",
+  "anio": 2023,
+  "valor": 2199.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "RI",
+  "anio": 2019,
+  "valor": 1588.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "RI",
+  "anio": 2020,
+  "valor": 1641.5
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "RI",
+  "anio": 2021,
+  "valor": 1694.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "RI",
+  "anio": 2022,
+  "valor": 1758.3
+ },
+ {
+  "indicador": "gasto_hab",
+  "ccaa": "RI",
+  "anio": 2023,
+  "valor": 1833.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AN",
+  "anio": 2019,
+  "valor": 4.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AN",
+  "anio": 2020,
+  "valor": 4.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AN",
+  "anio": 2021,
+  "valor": 4.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AN",
+  "anio": 2022,
+  "valor": 4.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AN",
+  "anio": 2023,
+  "valor": 4.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AR",
+  "anio": 2019,
+  "valor": 8.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AR",
+  "anio": 2020,
+  "valor": 8.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AR",
+  "anio": 2021,
+  "valor": 8.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AR",
+  "anio": 2022,
+  "valor": 8.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AR",
+  "anio": 2023,
+  "valor": 8.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AS",
+  "anio": 2019,
+  "valor": 6.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AS",
+  "anio": 2020,
+  "valor": 6.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AS",
+  "anio": 2021,
+  "valor": 6.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AS",
+  "anio": 2022,
+  "valor": 6.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "AS",
+  "anio": 2023,
+  "valor": 6.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "IB",
+  "anio": 2019,
+  "valor": 12.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "IB",
+  "anio": 2020,
+  "valor": 12.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "IB",
+  "anio": 2021,
+  "valor": 12
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "IB",
+  "anio": 2022,
+  "valor": 12
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "IB",
+  "anio": 2023,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CN",
+  "anio": 2019,
+  "valor": 7.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CN",
+  "anio": 2020,
+  "valor": 7.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CN",
+  "anio": 2021,
+  "valor": 7.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CN",
+  "anio": 2022,
+  "valor": 7.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CN",
+  "anio": 2023,
+  "valor": 7.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CB",
+  "anio": 2019,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CB",
+  "anio": 2020,
+  "valor": 7.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CB",
+  "anio": 2021,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CB",
+  "anio": 2022,
+  "valor": 7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CB",
+  "anio": 2023,
+  "valor": 7.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CL",
+  "anio": 2019,
+  "valor": 10.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CL",
+  "anio": 2020,
+  "valor": 10.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CL",
+  "anio": 2021,
+  "valor": 10.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CL",
+  "anio": 2022,
+  "valor": 10.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CL",
+  "anio": 2023,
+  "valor": 10.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CM",
+  "anio": 2019,
+  "valor": 7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CM",
+  "anio": 2020,
+  "valor": 6.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CM",
+  "anio": 2021,
+  "valor": 7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CM",
+  "anio": 2022,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CM",
+  "anio": 2023,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CT",
+  "anio": 2019,
+  "valor": 8.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CT",
+  "anio": 2020,
+  "valor": 8.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CT",
+  "anio": 2021,
+  "valor": 8.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CT",
+  "anio": 2022,
+  "valor": 8.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "CT",
+  "anio": 2023,
+  "valor": 8.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "VC",
+  "anio": 2019,
+  "valor": 7.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "VC",
+  "anio": 2020,
+  "valor": 7.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "VC",
+  "anio": 2021,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "VC",
+  "anio": 2022,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "VC",
+  "anio": 2023,
+  "valor": 7.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "EX",
+  "anio": 2019,
+  "valor": 7.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "EX",
+  "anio": 2020,
+  "valor": 7.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "EX",
+  "anio": 2021,
+  "valor": 7.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "EX",
+  "anio": 2022,
+  "valor": 7.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "EX",
+  "anio": 2023,
+  "valor": 7.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "GA",
+  "anio": 2019,
+  "valor": 11.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "GA",
+  "anio": 2020,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "GA",
+  "anio": 2021,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "GA",
+  "anio": 2022,
+  "valor": 11.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "GA",
+  "anio": 2023,
+  "valor": 11.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MD",
+  "anio": 2019,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MD",
+  "anio": 2020,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MD",
+  "anio": 2021,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MD",
+  "anio": 2022,
+  "valor": 13.9
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MD",
+  "anio": 2023,
+  "valor": 14.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MC",
+  "anio": 2019,
+  "valor": 10.8
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MC",
+  "anio": 2020,
+  "valor": 11
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MC",
+  "anio": 2021,
+  "valor": 11.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MC",
+  "anio": 2022,
+  "valor": 11.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "MC",
+  "anio": 2023,
+  "valor": 11
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "NC",
+  "anio": 2019,
+  "valor": 9.4
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "NC",
+  "anio": 2020,
+  "valor": 9.3
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "NC",
+  "anio": 2021,
+  "valor": 9.3
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "NC",
+  "anio": 2022,
+  "valor": 9.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "NC",
+  "anio": 2023,
+  "valor": 9.3
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "PV",
+  "anio": 2019,
+  "valor": 6.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "PV",
+  "anio": 2020,
+  "valor": 6.1
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "PV",
+  "anio": 2021,
+  "valor": 6.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "PV",
+  "anio": 2022,
+  "valor": 6.2
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "PV",
+  "anio": 2023,
+  "valor": 6.3
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "RI",
+  "anio": 2019,
+  "valor": 8.5
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "RI",
+  "anio": 2020,
+  "valor": 8.6
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "RI",
+  "anio": 2021,
+  "valor": 8.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "RI",
+  "anio": 2022,
+  "valor": 8.7
+ },
+ {
+  "indicador": "pct_conciertos",
+  "ccaa": "RI",
+  "anio": 2023,
+  "valor": 8.7
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AN",
+  "anio": 2019,
+  "valor": 14.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AN",
+  "anio": 2020,
+  "valor": 14.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AN",
+  "anio": 2021,
+  "valor": 14.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AN",
+  "anio": 2022,
+  "valor": 14.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AN",
+  "anio": 2023,
+  "valor": 14
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AR",
+  "anio": 2019,
+  "valor": 12.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AR",
+  "anio": 2020,
+  "valor": 12.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AR",
+  "anio": 2021,
+  "valor": 12
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AR",
+  "anio": 2022,
+  "valor": 12
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AR",
+  "anio": 2023,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AS",
+  "anio": 2019,
+  "valor": 14.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AS",
+  "anio": 2020,
+  "valor": 14.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AS",
+  "anio": 2021,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AS",
+  "anio": 2022,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "AS",
+  "anio": 2023,
+  "valor": 13.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "IB",
+  "anio": 2019,
+  "valor": 13.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "IB",
+  "anio": 2020,
+  "valor": 13.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "IB",
+  "anio": 2021,
+  "valor": 13.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "IB",
+  "anio": 2022,
+  "valor": 13.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "IB",
+  "anio": 2023,
+  "valor": 12.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CN",
+  "anio": 2019,
+  "valor": 12.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CN",
+  "anio": 2020,
+  "valor": 12.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CN",
+  "anio": 2021,
+  "valor": 12.6
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CN",
+  "anio": 2022,
+  "valor": 12.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CN",
+  "anio": 2023,
+  "valor": 12.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CB",
+  "anio": 2019,
+  "valor": 15.6
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CB",
+  "anio": 2020,
+  "valor": 15.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CB",
+  "anio": 2021,
+  "valor": 15
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CB",
+  "anio": 2022,
+  "valor": 15
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CB",
+  "anio": 2023,
+  "valor": 14.7
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CL",
+  "anio": 2019,
+  "valor": 11.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CL",
+  "anio": 2020,
+  "valor": 11
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CL",
+  "anio": 2021,
+  "valor": 10.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CL",
+  "anio": 2022,
+  "valor": 11
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CL",
+  "anio": 2023,
+  "valor": 10.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CM",
+  "anio": 2019,
+  "valor": 15.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CM",
+  "anio": 2020,
+  "valor": 15.6
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CM",
+  "anio": 2021,
+  "valor": 15.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CM",
+  "anio": 2022,
+  "valor": 15.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CM",
+  "anio": 2023,
+  "valor": 15.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CT",
+  "anio": 2019,
+  "valor": 13.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CT",
+  "anio": 2020,
+  "valor": 13.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CT",
+  "anio": 2021,
+  "valor": 13.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CT",
+  "anio": 2022,
+  "valor": 13
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "CT",
+  "anio": 2023,
+  "valor": 13
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "VC",
+  "anio": 2019,
+  "valor": 14.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "VC",
+  "anio": 2020,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "VC",
+  "anio": 2021,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "VC",
+  "anio": 2022,
+  "valor": 13.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "VC",
+  "anio": 2023,
+  "valor": 13.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "EX",
+  "anio": 2019,
+  "valor": 11.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "EX",
+  "anio": 2020,
+  "valor": 11.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "EX",
+  "anio": 2021,
+  "valor": 11.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "EX",
+  "anio": 2022,
+  "valor": 11.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "EX",
+  "anio": 2023,
+  "valor": 11.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "GA",
+  "anio": 2019,
+  "valor": 16
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "GA",
+  "anio": 2020,
+  "valor": 16
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "GA",
+  "anio": 2021,
+  "valor": 15.7
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "GA",
+  "anio": 2022,
+  "valor": 15.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "GA",
+  "anio": 2023,
+  "valor": 15
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MD",
+  "anio": 2019,
+  "valor": 14.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MD",
+  "anio": 2020,
+  "valor": 14.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MD",
+  "anio": 2021,
+  "valor": 14.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MD",
+  "anio": 2022,
+  "valor": 14.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MD",
+  "anio": 2023,
+  "valor": 13.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MC",
+  "anio": 2019,
+  "valor": 11.3
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MC",
+  "anio": 2020,
+  "valor": 11.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MC",
+  "anio": 2021,
+  "valor": 10.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MC",
+  "anio": 2022,
+  "valor": 10.7
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "MC",
+  "anio": 2023,
+  "valor": 10.7
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "NC",
+  "anio": 2019,
+  "valor": 12.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "NC",
+  "anio": 2020,
+  "valor": 12.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "NC",
+  "anio": 2021,
+  "valor": 12.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "NC",
+  "anio": 2022,
+  "valor": 12
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "NC",
+  "anio": 2023,
+  "valor": 11.9
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "PV",
+  "anio": 2019,
+  "valor": 15.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "PV",
+  "anio": 2020,
+  "valor": 14.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "PV",
+  "anio": 2021,
+  "valor": 14.5
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "PV",
+  "anio": 2022,
+  "valor": 14.4
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "PV",
+  "anio": 2023,
+  "valor": 14.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "RI",
+  "anio": 2019,
+  "valor": 12.2
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "RI",
+  "anio": 2020,
+  "valor": 12.1
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "RI",
+  "anio": 2021,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "RI",
+  "anio": 2022,
+  "valor": 11.8
+ },
+ {
+  "indicador": "pct_primaria",
+  "ccaa": "RI",
+  "anio": 2023,
+  "valor": 11.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AN",
+  "anio": 2019,
+  "valor": 243.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AN",
+  "anio": 2020,
+  "valor": 249.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AN",
+  "anio": 2021,
+  "valor": 256
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AN",
+  "anio": 2022,
+  "valor": 268.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AN",
+  "anio": 2023,
+  "valor": 271.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AR",
+  "anio": 2019,
+  "valor": 216.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AR",
+  "anio": 2020,
+  "valor": 224.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AR",
+  "anio": 2021,
+  "valor": 234.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AR",
+  "anio": 2022,
+  "valor": 241.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AR",
+  "anio": 2023,
+  "valor": 244.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AS",
+  "anio": 2019,
+  "valor": 228.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AS",
+  "anio": 2020,
+  "valor": 231.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AS",
+  "anio": 2021,
+  "valor": 235.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AS",
+  "anio": 2022,
+  "valor": 241.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "AS",
+  "anio": 2023,
+  "valor": 244
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "IB",
+  "anio": 2019,
+  "valor": 258.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "IB",
+  "anio": 2020,
+  "valor": 262.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "IB",
+  "anio": 2021,
+  "valor": 266
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "IB",
+  "anio": 2022,
+  "valor": 276.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "IB",
+  "anio": 2023,
+  "valor": 287.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CN",
+  "anio": 2019,
+  "valor": 277.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CN",
+  "anio": 2020,
+  "valor": 286
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CN",
+  "anio": 2021,
+  "valor": 294.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CN",
+  "anio": 2022,
+  "valor": 306.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CN",
+  "anio": 2023,
+  "valor": 322.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CB",
+  "anio": 2019,
+  "valor": 263
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CB",
+  "anio": 2020,
+  "valor": 268.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CB",
+  "anio": 2021,
+  "valor": 277
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CB",
+  "anio": 2022,
+  "valor": 287.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CB",
+  "anio": 2023,
+  "valor": 292.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CL",
+  "anio": 2019,
+  "valor": 248.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CL",
+  "anio": 2020,
+  "valor": 257
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CL",
+  "anio": 2021,
+  "valor": 262.3
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CL",
+  "anio": 2022,
+  "valor": 272.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CL",
+  "anio": 2023,
+  "valor": 278.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CM",
+  "anio": 2019,
+  "valor": 240.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CM",
+  "anio": 2020,
+  "valor": 246.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CM",
+  "anio": 2021,
+  "valor": 255.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CM",
+  "anio": 2022,
+  "valor": 266.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CM",
+  "anio": 2023,
+  "valor": 278.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CT",
+  "anio": 2019,
+  "valor": 233.3
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CT",
+  "anio": 2020,
+  "valor": 238.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CT",
+  "anio": 2021,
+  "valor": 242.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CT",
+  "anio": 2022,
+  "valor": 248.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "CT",
+  "anio": 2023,
+  "valor": 258.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "VC",
+  "anio": 2019,
+  "valor": 272.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "VC",
+  "anio": 2020,
+  "valor": 282.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "VC",
+  "anio": 2021,
+  "valor": 291.1
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "VC",
+  "anio": 2022,
+  "valor": 293.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "VC",
+  "anio": 2023,
+  "valor": 308
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "EX",
+  "anio": 2019,
+  "valor": 209.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "EX",
+  "anio": 2020,
+  "valor": 218.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "EX",
+  "anio": 2021,
+  "valor": 223.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "EX",
+  "anio": 2022,
+  "valor": 229.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "EX",
+  "anio": 2023,
+  "valor": 233.3
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "GA",
+  "anio": 2019,
+  "valor": 221.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "GA",
+  "anio": 2020,
+  "valor": 232.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "GA",
+  "anio": 2021,
+  "valor": 241.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "GA",
+  "anio": 2022,
+  "valor": 250.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "GA",
+  "anio": 2023,
+  "valor": 260.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MD",
+  "anio": 2019,
+  "valor": 236.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MD",
+  "anio": 2020,
+  "valor": 244
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MD",
+  "anio": 2021,
+  "valor": 252.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MD",
+  "anio": 2022,
+  "valor": 257.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MD",
+  "anio": 2023,
+  "valor": 267.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MC",
+  "anio": 2019,
+  "valor": 209
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MC",
+  "anio": 2020,
+  "valor": 212.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MC",
+  "anio": 2021,
+  "valor": 221.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MC",
+  "anio": 2022,
+  "valor": 227
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "MC",
+  "anio": 2023,
+  "valor": 237
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "NC",
+  "anio": 2019,
+  "valor": 278.6
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "NC",
+  "anio": 2020,
+  "valor": 285.3
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "NC",
+  "anio": 2021,
+  "valor": 291.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "NC",
+  "anio": 2022,
+  "valor": 297.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "NC",
+  "anio": 2023,
+  "valor": 307.5
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "PV",
+  "anio": 2019,
+  "valor": 270.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "PV",
+  "anio": 2020,
+  "valor": 282.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "PV",
+  "anio": 2021,
+  "valor": 289.7
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "PV",
+  "anio": 2022,
+  "valor": 293.2
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "PV",
+  "anio": 2023,
+  "valor": 298.4
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "RI",
+  "anio": 2019,
+  "valor": 258
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "RI",
+  "anio": 2020,
+  "valor": 268.9
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "RI",
+  "anio": 2021,
+  "valor": 278.3
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "RI",
+  "anio": 2022,
+  "valor": 289.8
+ },
+ {
+  "indicador": "farmacia_hab",
+  "ccaa": "RI",
+  "anio": 2023,
+  "valor": 295.7
+ }
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "id": "gasto_hab",
+    "nombre": "Gasto sanitario público por habitante",
+    "unidad": "eur_hab",
+    "descripcion": "Gasto sanitario público consolidado del sector comunidades autónomas dividido entre la población.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público (EGSP)",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "ejemplo"
+  },
+  {
+    "id": "pct_conciertos",
+    "nombre": "Gasto en conciertos (% del gasto sanitario)",
+    "unidad": "pct",
+    "descripcion": "Peso de los conciertos con centros privados sobre el gasto sanitario público total de la comunidad.",
+    "fuente": "Ministerio de Sanidad — EGSP, clasificación económica",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "ejemplo",
+    "neutral": true
+  },
+  {
+    "id": "pct_primaria",
+    "nombre": "Gasto en atención primaria (% del gasto sanitario)",
+    "unidad": "pct",
+    "descripcion": "Peso de los servicios primarios de salud sobre el gasto sanitario público total.",
+    "fuente": "Ministerio de Sanidad — EGSP, clasificación funcional",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "ejemplo"
+  },
+  {
+    "id": "farmacia_hab",
+    "nombre": "Gasto farmacéutico (recetas) por habitante",
+    "unidad": "eur_hab",
+    "descripcion": "Gasto en farmacia a través de receta oficial del SNS por habitante.",
+    "fuente": "Ministerio de Sanidad — EGSP / Indicadores de facturación de recetas",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "ejemplo",
+    "neutral": true
+  }
+]
