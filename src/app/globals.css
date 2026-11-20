@@ -204,3 +204,38 @@ select { border: 1px solid var(--line); background: var(--surface); border-radiu
 .seg.modo { margin-top: 12px; }
 .seg.modo:empty { display: none; }
 .kpi-c { font-size: 0.74rem; font-weight: 600; color: var(--fg); }
+
+/* Solo para lectores de pantalla */
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Foco visible en elementos SVG (mapa, barras, puntos) */
+svg [tabindex]:focus { outline: none; }
+svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Descargas */
+.descargas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.descargas:empty { display: none; }
+.btn.sm { padding: 6px 12px; font-size: 0.84rem; }
+/* Notas oficiales */
+.notas-oficiales { margin-top: 12px; font-size: 0.82rem; color: var(--muted); }
+.notas-oficiales ol { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.notas-oficiales b { color: var(--fg); }
+.notas-min { margin-top: 10px; font-size: 0.84rem; color: var(--muted); }
+.notas-min:empty { display: none; }
+.notas-min ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+/* Comparar en la ficha */
+.comparar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; font-size: 0.88rem; color: var(--muted); }
+.comparar label { font-weight: 600; }
+.comparar select { font-weight: 600; color: var(--fg); }
+.leyenda-vs { display: inline-flex; gap: 12px; align-items: center; }
+.leyenda-vs i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.ind .vs { font-size: 0.78rem; color: var(--muted); }
+/* Cómo leer los datos */
+.metodo { max-width: 760px; padding-block: 24px 8px; }
+.metodo h1 { font-size: clamp(1.7rem, 3.6vw, 2.4rem); line-height: 1.1; }
+.metodo h2 { font-size: 1.15rem; margin-top: 28px; }
+.metodo p, .metodo li { line-height: 1.6; }
+.metodo ul { padding-left: 20px; }
+.metodo dl { display: grid; gap: 10px; margin: 10px 0 0; }
+.metodo dt { font-weight: 700; }
+.metodo dd { margin: 2px 0 0; color: var(--muted); }
+.metodo a { color: var(--accent); }
+.metodo .indice { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; margin-top: 14px; }

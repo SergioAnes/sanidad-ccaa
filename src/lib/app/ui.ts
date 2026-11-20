@@ -136,7 +136,10 @@ export function iniciar(DATA: DatosApp): void {
     real: true,
     yXY: "q_dias",
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
+    vs: "", // comunidad con la que comparar en la ficha
   };
+  const NOTAS = DATA.notas; // notas del Ministerio sobre saltos en las series de gasto
+  const notasDe = (id) => NOTAS.filter((n) => n.ccaa === id).sort((a, b) => a.anio - b.anio);
 
   // ---------- especialidades y procesos (listas de espera) ----------
   // Las tarjetas quirúrgicas (q_*) admiten especialidades quirúrgicas y procesos; las de consultas (c_*), especialidades de consultas.
@@ -290,6 +293,8 @@ export function iniciar(DATA: DatosApp): void {
         showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)} · ${orden.indexOf(id) + 1}.ª de ${orden.length}`, e.clientX, e.clientY);
       };
       t.onmouseleave = hideTip;
+      t.onfocus = () => { const r = t.getBoundingClientRect(); t.onmousemove({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }); };
+      t.onblur = hideTip;
     });
     return esca;
   }
@@ -396,6 +401,7 @@ export function iniciar(DATA: DatosApp): void {
       <button type="button" data-m="cambio" aria-pressed="${S.modo === "cambio"}">${ind.unidad === "pct" ? "Cambio" : "Crecimiento"} desde ${ANIOS[0]}</button>` : "";
     $("#p-modo").querySelectorAll("button").forEach((b) => b.onclick = () => { S.modo = b.dataset.m; render(); });
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); } }));
+    botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, `${$("#p-titulo").textContent}. ${$("#p-sub").textContent.split(" · ")[0]}`, $("#p-leyenda")));
     barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); }, S.modo === "cambio" ? ANIOS[1] : ANIOS[0]);
 
     renderDetalle(ind, mapa, anio);
@@ -437,9 +443,13 @@ export function iniciar(DATA: DatosApp): void {
       $("#e-sub").textContent = "Pulsa una barra para destacar esa comunidad en la evolución.";
       ranking(cont, mapa.vals, mapa.ind);
     }
+    if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
+    else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
+      [...document.querySelectorAll("#e-chart .notas-oficiales li")].map((li, k) => `${k + 1}. ${li.textContent.replace(/\s+/g, " ").trim()}`)));
     const sinDato = IDS.filter((k) => vals[k] == null);
     $("#e-nota").innerHTML = `${esc(ind.desc)} Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
+      (tieneSerie(ind) && S.vistaE !== "evolucion" ? NOTAS.filter((n) => n.anio === anio).map((n) => `<div class="notas-oficiales"><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</div>`).join("") : "") +
       (S.vistaE !== "evolucion" ? `<div class="aviso"><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</div>` : "");
   }
 
@@ -484,7 +494,7 @@ export function iniciar(DATA: DatosApp): void {
     o.forEach((id, i) => {
       const y = top + i * fila; const c = colorSel(id);
       const destacado = c || i === 0 || i === o.length - 1;
-      s += `<g class="barra" data-id="${id}" style="cursor:pointer">
+      s += `<g class="barra" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: ${esc(fmt(vals[id], ind.unidad))}, ${i + 1}.ª de ${o.length}. Pulsa para ${c ? "dejar de destacar" : "destacar"}">
         <rect x="0" y="${y}" width="${W}" height="${fila}" fill="transparent"/>
         <text x="${lab - 8}" y="${y + fila / 2 + 4}" text-anchor="end" font-size="12.5" fill="${c ? fg : muted}" font-weight="${c ? 700 : 400}">${esc(NOMBRE[id])}</text>
         ${barra(y, vals[id], `fill="${c || base}"`)}
@@ -510,6 +520,7 @@ export function iniciar(DATA: DatosApp): void {
     cont.querySelectorAll(".barra").forEach((g) => {
       const id = g.dataset.id;
       g.onclick = () => { alternarSel(id); render(); };
+      g.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternarSel(id); render(); } };
       const enPuntos = ["pct", "pp", "var"].includes(ind.unidad);
       const dif = enPuntos ? `${vals[id] >= m ? "+" : "−"}${nf(1).format(Math.abs(vals[id] - m))} puntos frente a la media`
         : `${vals[id] >= m ? "+" : "−"}${nf(0).format(Math.abs(vals[id] / m - 1) * 100)} % frente a la media`;
@@ -552,6 +563,51 @@ export function iniciar(DATA: DatosApp): void {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     a.download = `${ind.id.replace(/[^a-z0-9_-]+/gi, "_")}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // Imagen PNG de un gráfico: título, el propio SVG, la leyenda (si la hay) y la fuente.
+  function descargarPNG(svgEl, nombre, titulo, leyendaEl, notasPie = []) {
+    const vb = svgEl.viewBox.baseVal, W = vb.width, H = vb.height;
+    const ancho = Math.max(W, 720), esc2 = Math.min(1, (ancho - 48) / W), w = W * esc2, h = H * esc2;
+    const fondo = css("--surface"), fg = css("--fg"), muted = css("--muted");
+    // título en una o dos líneas
+    const palabras = titulo.split(" "), lineasT = [""];
+    palabras.forEach((pa) => { const l = lineasT[lineasT.length - 1]; if ((l + " " + pa).length > ancho / 11 && l) lineasT.push(pa); else lineasT[lineasT.length - 1] = (l ? l + " " : "") + pa; });
+    const cab = 24 + lineasT.length * 26 + 10;
+    let leg = "", legH = 0;
+    if (leyendaEl) {
+      // Solo el rango o el nombre de cada tramo (lo que va en negrita), para que no se pisen
+      const items = [...leyendaEl.querySelectorAll(".clase")].map((c) => ({ color: c.querySelector("i").style.background, txt: (c.querySelector("b") || c).textContent.replace(/\s+/g, " ").trim() }));
+      const anchoItem = (ancho - 48) / Math.max(items.length, 1);
+      items.forEach((it, k) => { leg += `<rect x="${24 + k * anchoItem}" y="${cab + h + 12}" width="${anchoItem - 4}" height="10" rx="3" fill="${it.color}"/><text x="${24 + k * anchoItem}" y="${cab + h + 38}" font-size="12" fill="${fg}">${esc(it.txt)}</text>`; });
+      legH = items.length ? 48 : 0;
+    }
+    // Notas (p. ej. las del Ministerio numeradas en la evolución), en líneas de ~ancho del gráfico
+    const porLinea = Math.floor((ancho - 48) / 6.6), lineasN = [];
+    notasPie.forEach((t) => { let l = ""; t.split(" ").forEach((pa) => { if ((l + " " + pa).length > porLinea && l) { lineasN.push(l); l = pa; } else l = l ? l + " " + pa : pa; }); if (l) lineasN.push(l); });
+    const notasH = lineasN.length ? lineasN.length * 16 + 12 : 0;
+    const notasSvg = lineasN.map((l, k) => `<text x="24" y="${cab + h + legH + 22 + k * 16}" font-size="11.5" fill="${muted}">${esc(l)}</text>`).join("");
+    const total = cab + h + legH + notasH + 40;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ancho}" height="${total}" font-family="Inter, Arial, sans-serif">
+      <rect width="100%" height="100%" fill="${fondo}"/>
+      ${lineasT.map((l, k) => `<text x="24" y="${34 + k * 26}" font-size="20" font-weight="700" fill="${fg}">${esc(l)}</text>`).join("")}
+      <svg x="${(ancho - w) / 2}" y="${cab}" width="${w}" height="${h}" viewBox="0 0 ${W} ${H}">${svgEl.innerHTML}</svg>
+      ${leg}${notasSvg}
+      <text x="24" y="${total - 14}" font-size="12" fill="${muted}">Fuente: Ministerio de Sanidad · sanidad-ccaa.vercel.app</text></svg>`;
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement("canvas"); cv.width = ancho * 2; cv.height = total * 2;
+      const cx = cv.getContext("2d"); cx.scale(2, 2); cx.drawImage(img, 0, 0);
+      cv.toBlob((blob) => {
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = `${nombre.replace(/[^a-z0-9_-]+/gi, "_")}.png`; document.body.appendChild(a); a.click(); a.remove();
+      }, "image/png");
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  function botonPNG(cont, texto, accion) {
+    cont.innerHTML = `<button type="button" class="btn sm">${texto}</button>`;
+    cont.querySelector("button").onclick = accion;
   }
 
   // ---------- gasto frente a espera ----------
@@ -607,7 +663,7 @@ export function iniciar(DATA: DatosApp): void {
     ids.forEach((id) => cajas.push({ x: X(vx[id]) - 5, y: Y(vy[id]) - 5, w: 10, h: 10 }));
     ids.filter((id) => id !== S.com).forEach((id) => {
       const [tx, ty, an] = colocar(id, ABR[id].length * 6.8);
-      sv += `<g class="pt" data-id="${id}" style="cursor:pointer"><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="12" fill="transparent"/><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="5.5" fill="${grey}" stroke="${surf}" stroke-width="1.5"/><text x="${tx}" y="${ty}" text-anchor="${an}" font-size="11" fill="${muted}">${ABR[id]}</text></g>`;
+      sv += `<g class="pt" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: gasto ${esc(fmt(vx[id], "eur_hab"))}, ${esc(gy.corto)} ${esc(fmt(vy[id], gy.unidad))}. Pulsa para elegirla como tu comunidad"><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="12" fill="transparent"/><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="5.5" fill="${grey}" stroke="${surf}" stroke-width="1.5"/><text x="${tx}" y="${ty}" text-anchor="${an}" font-size="11" fill="${muted}">${ABR[id]}</text></g>`;
     });
     const c = S.com;
     sv += `<g class="pt" data-id="${c}"><circle cx="${X(vx[c])}" cy="${Y(vy[c])}" r="8" fill="${acc}" stroke="${surf}" stroke-width="2"/><text x="${nomDer ? X(vx[c]) + 11 : X(vx[c]) - 11}" y="${Y(vy[c]) + 4}" text-anchor="${nomDer ? "start" : "end"}" font-size="12.5" font-weight="700" fill="${fg}">${esc(NOMBRE[c])}</text></g>`;
@@ -616,6 +672,7 @@ export function iniciar(DATA: DatosApp): void {
     cont.querySelectorAll(".pt").forEach((g) => {
       const id = g.dataset.id;
       g.onclick = () => { S.com = id; render(); };
+      g.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); S.com = id; render(); } };
       g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>Gasto: ${fmt(vx[id], "eur_hab")}<br>${esc(gy.corto)}: ${fmt(vy[id], gy.unidad)}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
@@ -662,7 +719,19 @@ export function iniciar(DATA: DatosApp): void {
     etiquetas.forEach((e) => { const yy = Math.max(y(e.v) + 4, ult + 14); ult = yy;
       s += `<text x="${x(ULT) + 8}" y="${yy}" font-size="12" font-weight="${e.id === "media" ? 400 : 700}" fill="${e.id === "media" ? muted : fg}">${esc(W < 520 ? (ABR[e.id] || e.txt) : e.txt)}</text>`; });
     s += `<line id="cruz" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${muted}" stroke-width="1" visibility="hidden"/>
-          <rect id="zona" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+          <rect id="zona" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
+    // Notas del Ministerio de las comunidades destacadas: un número sobre su línea y la explicación debajo.
+    const notasVis = S.sel.flatMap((sl) => notasDe(sl.id).map((n) => ({ ...n, c: css(SLOTS[sl.slot]) })));
+    notasVis.forEach((n, k) => {
+      const v = ind.serie[n.ccaa][n.anio - ANIOS[0]];
+      if (v == null) return;
+      s += `<g aria-hidden="true"><circle cx="${x(n.anio)}" cy="${y(v)}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2"/><text x="${x(n.anio)}" y="${y(v) + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
+    });
+    s += `</svg>`;
+    const conNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
+    s += `<div class="notas-oficiales">` + (notasVis.length
+      ? `<b>Notas del Ministerio sobre estas series:</b><ol>${notasVis.map((n) => `<li><b>${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>`
+      : "") + (conNotas.length ? `<p>El Ministerio explica saltos en las series de ${conNotas.map((k) => esc(NOMBRE[k])).join(", ")}. Destácalas para verlos en el gráfico.</p>` : "") + `</div>`;
     cont.innerHTML = s;
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
@@ -678,7 +747,7 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- TU COMUNIDAD ----------
-  function filaInd(ind, id) {
+  function filaInd(ind, id, vs = "") {
     const anio = tieneSerie(ind) ? ULT : null;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
     const pos = o.indexOf(id) + 1;
@@ -692,22 +761,25 @@ export function iniciar(DATA: DatosApp): void {
     let strip = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><line x1="${P}" x2="${W - P}" y1="17" y2="17" stroke="${css("--line")}" stroke-width="2"/>`;
     o.filter((k) => k !== id).forEach((k) => { strip += `<circle cx="${x(vals[k])}" cy="17" r="4.5" fill="${grey}"><title>${esc(NOMBRE[k])}: ${fmt(vals[k], ind.unidad)}</title></circle>`; });
     strip += `<line x1="${x(m)}" x2="${x(m)}" y1="6" y2="28" stroke="${fg}" stroke-width="1.5"/>`;
+    const cvs = css("--s2");
+    if (vs && vals[vs] != null) strip += `<circle cx="${x(vals[vs])}" cy="17" r="6" fill="${cvs}" stroke="${surf}" stroke-width="2"><title>${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</title></circle>`;
     strip += `<circle cx="${x(v)}" cy="17" r="7.5" fill="${acc}" stroke="${surf}" stroke-width="2.5"/>`;
     strip += `<text x="${P}" y="${H}" font-size="9" fill="${muted}">menos</text><text x="${W - P}" y="${H}" font-size="9" fill="${muted}" text-anchor="end">más</text></svg>`;
     // sparkline
     let spark = "";
     if (tieneSerie(ind)) {
       const serie = ind.serie[id]; const sw = 120, sh = 34;
-      const smin = Math.min(...serie), smax = Math.max(...serie);
+      const otra = vs ? ind.serie[vs] : null;
+      const smin = Math.min(...serie, ...(otra || [])), smax = Math.max(...serie, ...(otra || []));
       const sx = (i) => 2 + (i / (serie.length - 1)) * (sw - 8), sy = (val) => 4 + (1 - (val - smin) / (smax - smin || 1)) * (sh - 8);
       const d = serie.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("");
-      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${ANIOS[0]}-${ULT}"><path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/><path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/><circle cx="${sx(serie.length - 1)}" cy="${sy(serie[serie.length - 1])}" r="3" fill="${acc}"/></svg><div class="pos">${ANIOS[0]}-${ULT}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
+      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${ANIOS[0]}-${ULT}"><path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/>${otra ? `<path d="${otra.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("")}" fill="none" stroke="${css("--s2")}" stroke-width="1.5"/>` : ""}<path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/><circle cx="${sx(serie.length - 1)}" cy="${sy(serie[serie.length - 1])}" r="3" fill="${acc}"/></svg><div class="pos">${ANIOS[0]}-${ULT}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
     } else {
       spark = `<div class="pos">Evolución: con más informes</div>`;
     }
     return `<div class="ind">
       <div><div class="n">${esc(ind.corto)}</div><div class="pos">${puestoTxt(ind, pos, o.length)}</div></div>
-      <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${dif}</div></div>
+      <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${dif}</div>${vs ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</div>` : ""}</div>
       <div class="strip">${strip}</div>
       <div class="spark">${spark}</div>
     </div>`;
@@ -716,7 +788,7 @@ export function iniciar(DATA: DatosApp): void {
   function renderComunidad() {
     const id = S.com;
     // La dirección refleja la comunidad elegida, para poder compartir el enlace (sin volver a dibujar).
-    const hash = "#comunidad-" + id.toLowerCase();
+    const hash = "#comunidad-" + id.toLowerCase() + (S.vs ? "?vs=" + S.vs.toLowerCase() : "");
     if (location.hash !== hash) history.replaceState(null, "", hash);
     $("#c-sel").innerHTML = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === id ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
     $("#c-sel").onchange = (e) => { S.com = e.target.value; render(); };
@@ -729,28 +801,107 @@ export function iniciar(DATA: DatosApp): void {
     const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : `la ${qp}.ª espera más larga de 17`;
     $("#c-resumen").innerHTML = `En ${ULT} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública: ${gtx}. Sus pacientes llevan de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
     $("#c-gasto-sub").textContent = `Año ${ULT}${esProv(ULT) ? " (provisional)" : ""}. Cada punto gris es otra comunidad; la raya marca la media de las 17.`;
-    $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id)).join("");
+    if (S.vs === id) S.vs = "";
+    $("#c-vs").innerHTML = `<option value="">Nadie</option>` + IDS.filter((k) => k !== id).sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.vs ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
+    $("#c-vs").onchange = (e) => { S.vs = e.target.value; render(); };
+    $("#c-leyenda-vs").innerHTML = S.vs ? `<span><i style="background:${css("--accent")}"></i>${esc(NOMBRE[id])}</span><span><i style="background:${css("--s2")}"></i>${esc(NOMBRE[S.vs])}</span>` : "";
+    $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs)).join("");
+    const nts = notasDe(id);
+    $("#c-notas").innerHTML = nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "";
     $("#c-espera-sub").textContent = `Situación a ${DATA.corteListas}. Un valor más alto significa más espera.`;
-    $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id)).join("");
+    $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs)).join("");
     const esp = Object.entries(DATA.especQuir).map(([n, o]) => [n, o[id]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
     $("#c-extra").innerHTML = `Especialidad quirúrgica con más espera en ${esc(NOMBRE[id])}: <strong>${esc(esp[0][0])}</strong> (${fmt(esp[0][1], "dias")} de media). Con menos: <strong>${esc(esp[esp.length - 1][0])}</strong> (${fmt(esp[esp.length - 1][1], "dias")}).`;
   }
 
 
+  // ---------- CÓMO LEER LOS DATOS ----------
+  function renderMetodo() {
+    if ($("#m-cuerpo").dataset.listo) return; // contenido fijo: se pinta una vez
+    const lista = (grupo) => DATA.inds.filter((i) => i.grupo === grupo).map((i) => `<dt>${esc(i.nombre)}</dt><dd>${esc(i.desc)}</dd>`).join("");
+    const subida = nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100);
+    $("#m-cuerpo").innerHTML = `
+      <h1>Cómo leer los datos</h1>
+      <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+
+      <h2 id="metodo-gasto">Gasto sanitario público</h2>
+      <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
+      <p>Es el gasto <b>consolidado</b> de cada comunidad (sin contar dos veces el dinero que se pasan entre administraciones). Los datos de ${DATA.prov.join(" y ")} son <b>provisionales</b> y pueden cambiar en la próxima edición.</p>
+      <dl>${lista("gasto")}</dl>
+
+      <h2 id="metodo-espera">Listas de espera</h2>
+      <p>Fuente: Ministerio de Sanidad, Sistema de Información sobre Listas de Espera del SNS (SISLE-SNS), situación a ${DATA.corteListas}. Es una foto de un día concreto: cuántas personas esperan y cuánto llevan esperando, no cuánto tardaron las que ya fueron atendidas.</p>
+      <dl>${lista("espera")}</dl>
+      <p>Las listas de espera se pueden ver también por <b>especialidad</b> (Traumatología, Oftalmología…) y por <b>proceso</b> (cataratas, prótesis de cadera…). Si una comunidad no aparece en una especialidad es porque el informe no trae ese dato; se muestra en gris y no cuenta para la media.</p>
+
+      <h2 id="metodo-inflacion">Descontar la inflación</h2>
+      <p>Un euro de ${ANIOS[0]} no compra lo mismo que uno de ${ULT}: los precios han subido un ${subida} % (IPC general nacional del INE, media anual). Con «Descontando la inflación», cada año se expresa en euros de ${ULT}, así que el crecimiento que ves es real. Solo afecta a los datos en euros; los porcentajes no cambian, porque suben a la vez el gasto y aquello con lo que se compara.</p>
+      <p>Usamos el IPC nacional para todas las comunidades, como es habitual al comparar gasto público entre regiones. El IPC de cada comunidad mide cómo cambian los precios de la cesta de los hogares, no los costes sanitarios, y no permite comparar niveles de precios entre comunidades.</p>
+
+      <h2 id="metodo-comparar">Comparar comunidades</h2>
+      <ul>
+        <li><b>Medias simples:</b> cada comunidad cuenta igual, sea grande o pequeña.</li>
+        <li><b>Colores del mapa:</b> en gasto, cinco tramos de 3 o 4 comunidades cada uno, de menos a más. En listas de espera, el color dice si la comunidad está por encima (rojo) o por debajo (azul) de la media, en gris si está cerca.</li>
+        <li><b>Ceuta y Melilla</b> aparecen aparte en listas de espera: su sanidad la gestiona el Ministerio (INGESA) y su población es muy pequeña. No cuentan para medias, puestos ni colores. En gasto no aparecen, porque el Excel solo recoge la parte del INGESA.</li>
+        <li><b>Gasto frente a espera:</b> que dos datos vayan juntos no prueba que uno cause el otro.</li>
+      </ul>
+
+      <h2 id="metodo-notas">Notas del Ministerio</h2>
+      <p>El Ministerio explica algunos saltos en las series de gasto de cada comunidad. Aparecen también en el gráfico de evolución (al destacar la comunidad) y en su ficha.</p>
+      <ul>${NOTAS.slice().sort((a, b) => NOMBRE[a.ccaa].localeCompare(NOMBRE[b.ccaa], "es") || a.anio - b.anio).map((n) => `<li><b>${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>
+
+      <h2 id="metodo-limites">Lo que no dicen estos datos</h2>
+      <ul>
+        <li><b>La edad de la población:</b> las comunidades más envejecidas necesitan gastar más por habitante. El gasto que mostramos no está ajustado por edad.</li>
+        <li><b>La calidad:</b> gastar más o menos, o esperar más o menos, no mide por sí solo si la atención es mejor o peor.</li>
+        <li><b>La sanidad privada y las mutualidades</b> (MUFACE, ISFAS, MUGEJU) no están en el gasto público de las comunidades.</li>
+        <li><b>La atención primaria:</b> el SISLE no mide cuánto se tarda en conseguir cita con el médico de familia.</li>
+      </ul>
+      <p>¿Has visto un error? Puedes comprobar cada cifra en las fuentes enlazadas al pie, descargar los datos en CSV desde la tabla o revisar el código en GitHub.</p>`;
+    $("#m-cuerpo").dataset.listo = "1";
+    // los enlaces del índice no deben cambiar de vista: desplazan dentro de la sección
+    $("#m-cuerpo").querySelectorAll(".indice a").forEach((a) => a.onclick = (e) => { e.preventDefault(); document.getElementById(a.getAttribute("href").slice(1)).scrollIntoView({ behavior: "smooth" }); });
+  }
+
   // ---------- navegación ----------
+  // Tras redibujar, el foco vuelve al mismo control (si no, quien usa el teclado pierde su sitio).
+  function selectorFoco() {
+    const f = document.activeElement;
+    if (!f || f === document.body) return null;
+    if (f.id) return "#" + f.id;
+    const caja = f.closest("[id]"); if (!caja) return null;
+    for (const a of ["id", "v", "g", "m", "r"]) if (f.dataset[a]) return `#${caja.id} [data-${a}="${f.dataset[a]}"]`;
+    return null;
+  }
+  let anunciado = "";
   function render() {
+    const foco = selectorFoco();
+    renderVista();
+    if (foco) { const e = document.querySelector(foco); if (e && e !== document.activeElement) e.focus({ preventScroll: true }); }
+    // Aviso para lectores de pantalla: qué se está mostrando ahora
+    const t = S.vista === "datos" ? $("#p-titulo").textContent : S.vista === "comunidad" ? `Ficha de ${NOMBRE[S.com]}` : "Cómo leer los datos";
+    if (t !== anunciado) { anunciado = t; $("#anuncio").textContent = t; }
+  }
+  function renderVista() {
     hideTip();
     document.querySelectorAll(".nav a").forEach((a) => a.toggleAttribute("aria-current", false));
     const act = document.querySelector(`.nav a[data-vista="${S.vista}"]`); if (act) act.setAttribute("aria-current", "page");
-    ["datos", "comunidad"].forEach((v) => { $("#v-" + v).hidden = v !== S.vista; });
+    ["datos", "comunidad", "metodo"].forEach((v) => { $("#v-" + v).hidden = v !== S.vista; });
     if (S.vista === "datos") renderDatos();
     if (S.vista === "comunidad") renderComunidad();
+    if (S.vista === "metodo") renderMetodo();
   }
   function leerHash() {
     const [h, qs] = location.hash.replace("#", "").split("?");
     const m = h.match(/^comunidad-([a-z]{2})$/);
-    if (m && IDS.includes(m[1].toUpperCase())) { S.com = m[1].toUpperCase(); S.vista = "comunidad"; }
+    if (m && IDS.includes(m[1].toUpperCase())) {
+      S.com = m[1].toUpperCase(); S.vista = "comunidad";
+      const vs = (new URLSearchParams(qs || "").get("vs") || "").toUpperCase(); S.vs = IDS.includes(vs) ? vs : "";
+    }
     else if (h === "comunidad") S.vista = "comunidad";
+    else if (h === "metodo") S.vista = "metodo";
+    else if (h.startsWith("metodo-")) { S.vista = "metodo"; render(); const e = document.getElementById(h); if (e) e.scrollIntoView(); return; }
     else { S.vista = "datos"; if (qs) leerEnlace(qs); } // #portada y #explorar (enlaces antiguos) llevan aquí
     pararPlay(); render(); window.scrollTo(0, 0);
   }

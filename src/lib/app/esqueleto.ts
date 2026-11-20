@@ -7,6 +7,7 @@ export const ESQUELETO = `<div class="wrap">
     <nav class="nav" aria-label="Secciones">
       <a href="#datos" data-vista="datos">Datos</a>
       <a href="#comunidad" data-vista="comunidad">Tu comunidad</a>
+      <a href="#metodo" data-vista="metodo">Cómo leer los datos</a>
     </nav>
   </header>
   <section id="v-datos" hidden>
@@ -29,6 +30,7 @@ export const ESQUELETO = `<div class="wrap">
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
         <div class="anios" id="p-anios"></div>
+        <div class="descargas" id="p-desc"></div>
       </div>
       <div class="insights" id="p-insights"></div>
     </div>
@@ -44,7 +46,8 @@ export const ESQUELETO = `<div class="wrap">
       <h2 id="e-titulo"></h2>
       <p class="sub" id="e-sub"></p>
       <div class="chart" id="e-chart"></div>
-      <p class="nota" id="e-nota"></p>
+      <div class="descargas" id="e-desc"></div>
+      <div class="nota" id="e-nota"></div>
     </div>
     <div class="panel xy">
       <h2 id="x-titulo"></h2>
@@ -61,6 +64,7 @@ export const ESQUELETO = `<div class="wrap">
         <select id="c-sel"></select>
         <h1 id="c-nombre" style="margin-top:12px"></h1>
         <p class="resumen" id="c-resumen"></p>
+        <div class="comparar"><label for="c-vs">Comparar con</label><select id="c-vs"></select><span class="leyenda-vs" id="c-leyenda-vs"></span></div>
       </div>
       <div>
         <p class="ayuda">O púlsala en el mapa</p>
@@ -71,6 +75,7 @@ export const ESQUELETO = `<div class="wrap">
       <h2>Gasto sanitario público</h2>
       <p class="sub" id="c-gasto-sub"></p>
       <div class="filas" id="c-gasto"></div>
+      <div class="notas-min" id="c-notas"></div>
     </div>
     <div class="bloque">
       <h2>Listas de espera</h2>
@@ -78,6 +83,10 @@ export const ESQUELETO = `<div class="wrap">
       <div class="filas" id="c-espera"></div>
       <p class="extra" id="c-extra"></p>
     </div>
+  </section>
+
+  <section id="v-metodo" hidden>
+    <div class="metodo" id="m-cuerpo"></div>
   </section>
 
   <footer class="pie-fuentes">
@@ -88,7 +97,9 @@ export const ESQUELETO = `<div class="wrap">
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>
     </ul>
-    <p>Las medias entre comunidades son simples (cada comunidad cuenta igual). Código y datos: <a href="https://github.com/SergioAnes/sanidad-ccaa">GitHub</a>.</p>
+    <p>Las medias entre comunidades son simples (cada comunidad cuenta igual). Más detalles en <a href="#metodo">Cómo leer los datos</a>. Código y datos: <a href="https://github.com/SergioAnes/sanidad-ccaa">GitHub</a>.
+    Contamos las visitas de forma anónima y sin cookies (Vercel Web Analytics).</p>
   </footer>
 </div>
-<div class="tip" id="tip" hidden></div>`;
+<div class="tip" id="tip" hidden></div>
+<p class="sr" aria-live="polite" id="anuncio"></p>`;

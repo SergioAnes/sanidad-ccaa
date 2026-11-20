@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const cuerpo = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--f-body", display: "swap" });
@@ -29,7 +30,11 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${cuerpo.variable} ${titulos.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Recuento anónimo de visitas, sin cookies. Hay que activarlo en Vercel: proyecto > Analytics > Enable. */}
+        <Analytics />
+      </body>
     </html>
   );
 }

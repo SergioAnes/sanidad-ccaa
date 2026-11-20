@@ -19,6 +19,9 @@ Hojas que usa:
 
 Los años marcados con (*) en el Excel son provisionales y se guardan con
 "provisional": true.
+
+También extrae las notas metodológicas de cada comunidad (años marcados con letra, p. ej. "2012b",
+y su texto en el bloque "Notas:" de la hoja) a src/data/notas-egsp.json.
 """
 
 from __future__ import annotations
@@ -34,6 +37,7 @@ import xlrd
 RAIZ = Path(__file__).resolve().parent.parent
 EXCEL_DEFECTO = RAIZ / "datos-originales" / "egsp-gasto-real-2002-2024.xls"
 SALIDA = RAIZ / "src" / "data" / "valores.json"
+SALIDA_NOTAS = RAIZ / "src" / "data" / "notas-egsp.json"
 
 # Nombre oficial en el Excel -> id de src/data/ccaa.json
 NOMBRES = {
@@ -135,6 +139,42 @@ def fila_pct(s, ini: int, fin: int, cab: dict, nombre: str) -> dict[int, tuple[f
     return out
 
 
+def notas_hoja(s: xlrd.sheet.Sheet) -> dict[int, str]:
+    """Notas al pie de una hoja de CCAA: {año: texto}.
+
+    Los años con nota llevan una letra en la cabecera ("2008a"); el texto está tras la fila "Notas:",
+    empezando por esa letra ("a En 2008, …"). Una nota puede ocupar varias filas o celdas."""
+    letras: dict[str, int] = {}
+    for r in range(s.nrows):
+        for v in s.row_values(r):
+            m = re.fullmatch(r"\s*(\d{4})(?:\.0)?\s*([a-z])\s*(\(\*\))?\s*", str(v))
+            if m:
+                letras[m.group(2)] = int(m.group(1))
+    if not letras:
+        return {}
+    ini = next((r for r in range(s.nrows) if etiqueta(s.row_values(r)).startswith("nota")), None)
+    if ini is None:
+        raise SystemExit(f"{s.name}: hay años con nota {letras} pero no el bloque de notas")
+    textos: dict[str, list[str]] = {}
+    actual = None
+    for r in range(ini + 1, s.nrows):
+        t = " ".join(str(v).strip() for v in s.row_values(r) if str(v).strip())
+        if not t:
+            continue
+        m = re.match(r"^([a-z])\s+(.*)", t, re.S)
+        if m and m.group(1) in letras:
+            actual = m.group(1)
+            textos[actual] = [m.group(2)]
+        elif actual:
+            textos[actual].append(t)
+    out = {}
+    for letra, anio in letras.items():
+        if letra not in textos:
+            raise SystemExit(f"{s.name}: falta el texto de la nota {letra} ({anio})")
+        out[anio] = re.sub(r"\s+", " ", " ".join(textos[letra])).strip()
+    return out
+
+
 def main() -> None:
     excel = Path(sys.argv[1]) if len(sys.argv) > 1 else EXCEL_DEFECTO
     libro = xlrd.open_workbook(str(excel))
@@ -156,6 +196,7 @@ def main() -> None:
         add("pct_pib", ccaa, anio, v, prov, 2)
 
     vistos = set()
+    notas: list[dict] = []
     for s in libro.sheets():
         if not re.fullmatch(r"Tabla 3\.4\.\d\d", s.name):
             continue
@@ -163,6 +204,8 @@ def main() -> None:
         if not ccaa:
             raise SystemExit(f"{s.name}: no se reconoce la comunidad")
         vistos.add(ccaa)
+        for anio, texto in sorted(notas_hoja(s).items()):
+            notas.append({"ccaa": ccaa, "anio": anio, "texto": texto, "hoja": s.name})
 
         ini, fin, cab = bloque(s, "clasificacion economico-presupuestaria")
         # En esta tabla el % se calcula sobre el gasto consolidado del subsector
@@ -199,6 +242,9 @@ def main() -> None:
     # Una fila por línea: legible y con diffs limpios en git.
     cuerpo = ",\n".join("  " + json.dumps(f, ensure_ascii=False) for f in filas)
     SALIDA.write_text("[\n" + cuerpo + "\n]\n", encoding="utf-8")
+
+    SALIDA_NOTAS.write_text(json.dumps(notas, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"Escrito {SALIDA_NOTAS.relative_to(RAIZ)}: {len(notas)} notas")
 
     resumen: dict[str, int] = {}
     for f in filas:

@@ -4,6 +4,7 @@
  */
 import ipcJson from "@/data/ipc.json";
 import mapaJson from "@/data/mapa-ccaa.json";
+import notasJson from "@/data/notas-egsp.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
 import type { Unidad, Valor } from "@/types/datos";
@@ -63,6 +64,8 @@ export type DatosApp = {
   ciudades: Record<string, Record<string, number>>;
   /** Listas de espera por especialidad (quirúrgica y consultas) y por proceso, último corte */
   detalle: DetalleListas;
+  /** Notas metodológicas del Ministerio por comunidad y año (saltos en las series de gasto) */
+  notas: { ccaa: string; anio: number; texto: string }[];
   geo: typeof mapaJson;
 };
 
@@ -131,6 +134,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     ipc: ipcJson.medias,
     ciudades,
     detalle,
+    notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
     geo: mapaJson,
   };
 }

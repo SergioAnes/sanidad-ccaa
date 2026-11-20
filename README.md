@@ -19,7 +19,11 @@ comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una f
 - **Datos:** mapa (valor del año o crecimiento desde 2002), titulares automáticos, ranking, evolución
   (descontando o no la inflación), tabla con descarga en CSV, listas de espera por especialidad y proceso,
   y gráfico «¿Gastar más reduce la espera?». La dirección guarda la vista para compartirla.
-- **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16.
+- **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16, comparación con otra
+  comunidad y notas del Ministerio sobre saltos en sus series.
+- **Cómo leer los datos:** qué mide cada dato, fuentes, inflación, cómo comparar y límites.
+
+Mapas y gráficos se pueden descargar en PNG; las tablas, en CSV.
 
 ## Instalación local
 
@@ -66,7 +70,7 @@ python scripts/extraer_egsp.py [ruta_al_excel]
 npm test
 ```
 
-El script regenera `src/data/valores.json` y comprueba que los porcentajes cuadran con los importes.
+El script regenera `src/data/valores.json` (y las notas metodológicas en `src/data/notas-egsp.json`) y comprueba que los porcentajes cuadran con los importes.
 
 ## Actualizar las listas de espera (SISLE-SNS)
 

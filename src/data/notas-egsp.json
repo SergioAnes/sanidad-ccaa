@@ -1,0 +1,56 @@
+[
+ {
+  "ccaa": "AS",
+  "anio": 2009,
+  "texto": "La disminución del importe de gasto en la liquidación del ejercicio 2009 respecto al 2008 correspondiente a la Consejería de Salud y Servicios Sanitarios se concentra, fundamentalmente, en el capítulo de inversiones reales, cuya reducción responde a la confluencia de dos factores: · La culminación de la ejecución de los principales proyectos de centros de salud desarrollados en los últimos años. · La financiación extrapresupuestaria de las dos principales infraestructuras sanitarias en proceso de ejecución durante el ejercicio 2009, que son los nuevos hospitales: Hospital Universitario Central de Asturias y Hospital Álvarez Buylla.",
+  "hoja": "Tabla 3.4.03"
+ },
+ {
+  "ccaa": "AS",
+  "anio": 2020,
+  "texto": "Desde 2020, los gastos dedicados a programar, coordinar, financiar y evaluar todas las acciones de investigación y su fomento, así como los cursos específicos desarrollados por instituciones docentes de ámbito sanitario se gestionan en la Fundación para la Investigación e Innovación Biosanitaria del Principado de Asturias (FINBA).",
+  "hoja": "Tabla 3.4.03"
+ },
+ {
+  "ccaa": "CB",
+  "anio": 2008,
+  "texto": "En 2008, la Consejeria de Sanidad y Servicios Sociales pasa a denominarse Consejeria de Sanidad, y los siguientes programas 231A PRESTACIÓN Y PROGRAMAS DE SERVICIOS SOCIALES 231B ATENCIÓN A PERSONAS DEPENDIENTES 231C ATENCIÓN A LA INFANCIA, ADOLESCENCIA Y FAMILIA 231D ATENCIÓN A PERSONAS MAYORES 231E POLÍTICAS SOCIALES que han sido en años anteriores incluidos dentro de la Ficha de la Estadística de Gasto Sanitario Público, por ser imposible discernir hasta qué punto eran sanitarios o sociales, no se incluyen a partir de la liquidación de este año. Este aspecto debería considerarse a la hora de realizar cualquier estudio de los datos.",
+  "hoja": "Tabla 3.4.06"
+ },
+ {
+  "ccaa": "CB",
+  "anio": 2012,
+  "texto": "En 2012, las cifras del Servicio Cántabro de Salud incluyen la imputación a presupuesto de los pagos tramitados a través del mecanismo Extraordinario de Pago a Proveedores (MEPP), por un importe total de 256.767.398 euros.",
+  "hoja": "Tabla 3.4.06"
+ },
+ {
+  "ccaa": "EX",
+  "anio": 2009,
+  "texto": "En 2009 se incrementa el gasto de la Consejería al incluir los gastos de los hospitales psiquiátricos transferidos desde las Diputaciones Provinciales de Cáceres y Badajoz.",
+  "hoja": "Tabla 3.4.11"
+ },
+ {
+  "ccaa": "MD",
+  "anio": 2017,
+  "texto": "Hasta 2016, el gasto de la Unidad Central de Radiodiagnóstico se incluye en Nuevos hospitales.",
+  "hoja": "Tabla 3.4.13"
+ },
+ {
+  "ccaa": "MC",
+  "anio": 2021,
+  "texto": "En 2021, se cambia el criterio contable en la imputación de determinados gastos de formación contratados con empresas, que se estaban imputando como gastos de bienes y servicios y pasan a imputarse como gastos de personal.",
+  "hoja": "Tabla 3.4.14"
+ },
+ {
+  "ccaa": "PV",
+  "anio": 2007,
+  "texto": "Desde 2007, se recoge la liquidación completa de la Dirección de Drogodependencias, Servicio 24 de la Sección 07, Vivienda y Asuntos Sociales.",
+  "hoja": "Tabla 3.4.16"
+ },
+ {
+  "ccaa": "PV",
+  "anio": 2010,
+  "texto": "Desde 2010, el gasto en drogodependencias se incluye en la liquidación del Departamento de Salud.",
+  "hoja": "Tabla 3.4.16"
+ }
+]

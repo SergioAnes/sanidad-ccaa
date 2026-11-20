@@ -4,8 +4,8 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 
 ## Estructura de la web
 
-- Una sola página con dos vistas por `#hash`: Datos (mapa, titulares, ranking/evolución/tabla y gasto frente a
-  espera) y Tu comunidad (ficha). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
+- Una sola página con tres vistas por `#hash`: Datos (mapa, titulares, ranking/evolución/tabla y gasto frente a
+  espera), Tu comunidad (ficha, con «Comparar con»: `#comunidad-an?vs=md`) y Cómo leer los datos (`#metodo`). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
   `#portada` y `#explorar` (enlaces antiguos) llevan a Datos.
 - `public/og.png` es la vista previa al compartir; se regenera con una captura si cambia mucho el diseño.
 - `src/lib/app/datos-app.ts` prepara en compilación el paquete de datos de la interfaz a partir de `src/data`
@@ -22,6 +22,8 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   citada en `src/data/indicadores.json` y, cuando sea posible, el fichero original guardado en `datos-originales/`.
 - `src/data/valores.json` se genera con `python scripts/extraer_egsp.py` a partir del Excel de la EGSP
   en `datos-originales/`. No editarlo a mano. La compilación falla si algún indicador no tiene `"estado": "oficial"`.
+- `src/data/notas-egsp.json` (notas metodológicas del Ministerio por comunidad y año) también lo genera
+  `extraer_egsp.py`; la web las muestra en la evolución, la ficha y «Cómo leer los datos». No editarlo a mano.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).
@@ -39,3 +41,4 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   con `c:\` vitest carga dos copias de sí mismo y falla con "Cannot read properties of undefined (reading 'config')"
 - `npm run build` — exportación estática a `out/`
 - En PowerShell, usar `npm.cmd` / `npx.cmd` (los `.ps1` están bloqueados por la política de ejecución).
+- Visitas: Vercel Web Analytics (`<Analytics />` en `layout.tsx`, sin cookies). Se activa en Vercel: proyecto > Analytics.

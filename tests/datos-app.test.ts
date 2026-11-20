@@ -40,6 +40,16 @@ describe("datos de la interfaz", () => {
     expect(Object.keys(d.detalle.consultas.v.traumatologia.dias).length).toBeGreaterThanOrEqual(17);
   });
 
+  it("las notas del Ministerio son de comunidades y años con datos", () => {
+    expect(d.notas.length).toBeGreaterThan(0);
+    for (const n of d.notas) {
+      expect(d.ccaa.some((c) => c.id === n.ccaa)).toBe(true);
+      expect(d.anios).toContain(n.anio);
+      expect(n.texto.length).toBeGreaterThan(20);
+    }
+    expect(d.notas.some((n) => n.ccaa === "CB" && n.anio === 2012 && n.texto.includes("256.767.398"))).toBe(true);
+  });
+
   it("el mapa tiene un trazado para cada comunidad", () => {
     const enMapa = new Set(d.geo.regiones.map((r) => r.id));
     for (const c of d.ccaa) expect(enMapa.has(c.id)).toBe(true);
