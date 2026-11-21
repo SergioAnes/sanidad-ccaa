@@ -61,7 +61,7 @@ export const ESQUELETO = `<div class="wrap">
       <p class="sub" id="x-sub"></p>
       <div class="fila"><div class="seg sm" id="x-y" role="group" aria-label="Qué espera comparar"></div></div>
       <div class="chart" id="x-chart"></div>
-      <p class="nota" id="x-nota"></p>
+      <div class="nota" id="x-nota"></div>
     </div>
   </section>
   <section id="v-comunidad" hidden>

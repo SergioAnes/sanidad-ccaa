@@ -1,6 +1,7 @@
 // @ts-nocheck -- Interfaz imperativa (DOM + SVG) trasladada tal cual de la maqueta aprobada.
 // Recibe los datos ya preparados en compilación (datos-app.ts) y pinta las tres vistas por #hash.
 import type { DatosApp } from "./datos-app";
+import { correlacionCritica, pearson, spearman } from "../estadistica";
 
 let iniciada = false;
 
@@ -826,18 +827,12 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- gasto frente a espera ----------
-  function pearson(xs, ys) {
-    const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
-    let sxy = 0, sxx = 0, syy = 0;
-    xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
-    return sxy / Math.sqrt(sxx * syy);
-  }
   // Gasto frente a espera. Solo con «Listas de espera»: compara el gasto por habitante con la espera que
   // esté elegida arriba (tarjeta y especialidad). Con «Gasto», solo una invitación a verlo.
   function renderXY(ind) {
     const gx = IND.gasto_hab;
     if (ind.grupo !== "espera") {
-      $("#x-titulo").textContent = "¿Gastar más reduce la espera?";
+      $("#x-titulo").textContent = "¿Van juntos el gasto y la espera?";
       $("#x-sub").textContent = "Compara el gasto por habitante de cada comunidad con sus listas de espera.";
       $("#x-y").innerHTML = `<button type="button" class="btn sm" id="x-ir">Verlo en Listas de espera</button>`;
       $("#x-y").classList.remove("seg");
@@ -849,9 +844,16 @@ export function iniciar(DATA: DatosApp): void {
     $("#x-y").innerHTML = ""; $("#x-y").classList.remove("seg");
     const vx = valores(gx, ULT), vy = valores(gy, null);
     const ids = IDS.filter((id) => vx[id] != null && vy[id] != null);
-    const r = pearson(ids.map((id) => vx[id]), ids.map((id) => vy[id]));
-    const fuerza = Math.abs(r) < 0.3 ? "apenas" : Math.abs(r) < 0.5 ? "poco" : "sí";
-    $("#x-titulo").textContent = `¿Gastar más reduce la espera? ${fuerza === "apenas" ? "Apenas se nota" : fuerza === "poco" ? (r < 0 ? "Un poco" : "No: va al revés, pero débil") : (r < 0 ? "Sí, en buena medida" : "No: va al revés")}`;
+    // Relación descriptiva entre comunidades (no causal). Con tan pocos puntos, solo se habla de relación si la
+    // correlación supera el umbral a partir del cual no se puede atribuir fácilmente al azar (95 %).
+    const xsR = ids.map((id) => vx[id]), ysR = ids.map((id) => vy[id]);
+    const r = pearson(xsR, ysR), rho = spearman(xsR, ysR), rc = correlacionCritica(ids.length);
+    const clara = Math.abs(r) > rc && Math.abs(rho) > rc && Math.sign(r) === Math.sign(rho);
+    const respuesta = !clara ? "No se aprecia una relación clara" : `Posible relación: las que más gastan tienden a esperar ${r < 0 ? "menos" : "más"}`;
+    // Comparaciones múltiples: se pueden mirar muchas combinaciones de espera y especialidad; al 95 %, alrededor
+    // del 5 % saldría con «relación» solo por azar. Se avisa siempre que aparezca una.
+    const combinaciones = DATA.inds.filter((i) => i.grupo === "espera").reduce((n, i) => n + 1 + familias(i).reduce((m, t) => m + DATA.detalle[t].campos.filter((c) => c.id !== "total").length, 0), 0);
+    $("#x-titulo").textContent = `¿Van juntos el gasto y la espera? ${respuesta}`;
     $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${nombreY.toLowerCase()} (${DATA.corteListas}). Cambia la tarjeta o la especialidad de arriba para comparar otra espera.`;
     const cont = $("#x-chart");
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 340 : 420;
@@ -902,7 +904,14 @@ export function iniciar(DATA: DatosApp): void {
       g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>Gasto: ${fmt(vx[id], "eur_hab")}<br>${esc(nombreY)}: ${fmt(vy[id], gy.unidad)}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
-    $("#x-nota").textContent = `${conTuya ? "" : `${NOMBRE[c0]} no aparece: el informe no trae ese dato. `}${ids.length < IDS.length ? `Hay ${ids.length} comunidades con dato. ` : ""}Sin Ceuta y Melilla (no hay gasto comparable). Correlación: ${nf(2).format(r)} (de −1 a 1; cerca de 0 = sin relación). Que dos datos vayan juntos no prueba que uno cause el otro: también influyen la edad de la población, la dispersión geográfica o cómo se organiza cada servicio. Las líneas discontinuas marcan la media de las ${ids.length}.`;
+    const c2 = (v) => (v < 0 ? "−" : "") + nf(2).format(Math.abs(v));
+    $("#x-nota").innerHTML = `<b>Cómo leer este gráfico</b><ul class="leer">
+      <li><b>Qué muestra:</b> cada punto es una comunidad; las líneas discontinuas marcan la media de las ${ids.length}. ${conTuya ? "" : `${esc(NOMBRE[c0])} no aparece: el informe no trae ese dato. `}Sin Ceuta y Melilla (no tienen gasto comparable).</li>
+      <li><b>Relación:</b> correlación ${c2(r)} (Pearson) y ${c2(rho)} por rangos (Spearman), en una escala de −1 a 1 en la que 0 es ninguna relación. Con ${ids.length} comunidades, cualquier valor entre −${c2(rc)} y +${c2(rc)} podría deberse al azar, así que ${clara ? `esta relación supera ese umbral. <b>Pero ojo:</b> la web permite mirar ${combinaciones} combinaciones de espera y especialidad, y al mirar tantas, unas ${Math.round(combinaciones * 0.05)} saldrían con «relación» solo por azar. Tómalo como una pista para investigar, no como una conclusión` : "no hay base para hablar de relación entre estos dos datos"}.</li>
+      <li><b>Ir juntos no es causar:</b> ${clara ? "esta relación no prueba" : "ni aunque hubiera relación probaría"} que gastar más acorte o alargue la espera. Influyen otros factores que el gráfico no tiene en cuenta: la edad de la población, la dispersión geográfica, las derivaciones a centros concertados, el seguro privado, la organización de cada servicio y cómo registra cada comunidad sus listas.</li>
+      <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${DATA.corteListas}.</li>
+      <li><b>Comunidades, no personas:</b> compara cifras de comunidades enteras; no dice nada de lo que espera cada paciente.</li>
+    </ul><a href="#metodo-comparar">Más en «Cómo leer los datos»</a>`;
   }
 
   function ticks(min, max, n = 5) {
@@ -1100,7 +1109,7 @@ export function iniciar(DATA: DatosApp): void {
         <li><b>Medias simples:</b> cada comunidad cuenta igual, sea grande o pequeña.</li>
         <li><b>Colores del mapa:</b> en gasto, cinco tramos de 3 o 4 comunidades cada uno, de menos a más. En listas de espera, el color dice si la comunidad está por encima (rojo) o por debajo (azul) de la media, en gris si está cerca.</li>
         <li><b>Ceuta y Melilla</b> aparecen aparte en listas de espera: su sanidad la gestiona el Ministerio (INGESA) y su población es muy pequeña. No cuentan para medias, puestos ni colores. En gasto no aparecen, porque el Excel solo recoge la parte del INGESA.</li>
-        <li><b>Gasto frente a espera:</b> que dos datos vayan juntos no prueba que uno cause el otro.</li>
+        <li><b>Gasto frente a espera:</b> el gráfico describe si las comunidades que más gastan esperan más o menos; no mide causas. Damos dos correlaciones (Pearson y por rangos, Spearman) y solo hablamos de relación si ambas superan el umbral a partir del cual no se pueden atribuir fácilmente al azar (con 17 comunidades, ±0,48). Como se pueden mirar muchas combinaciones de espera y especialidad, alrededor del 5 % superará ese umbral solo por azar: por eso, cuando aparece, la llamamos «posible relación». Aunque la haya, no prueba que una cosa cause la otra: influyen la edad, la dispersión, las derivaciones a la concertada, el seguro privado, la organización de cada servicio y cómo se registran las listas. Además, compara comunidades, no personas, y el gasto (${ULT}) y la espera (${DATA.corteListas}) no son del mismo momento.</li>
       </ul>
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
