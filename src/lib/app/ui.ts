@@ -138,6 +138,7 @@ export function iniciar(DATA: DatosApp): void {
     yXY: "q_dias",
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
     vs: "", // comunidad con la que comparar en la ficha
+    anioC: ULT, // año del gasto que se muestra en la ficha
   };
   const NOTAS = DATA.notas; // notas del Ministerio sobre saltos en las series de gasto
   const notasDe = (id) => NOTAS.filter((n) => n.ccaa === id).sort((a, b) => a.anio - b.anio);
@@ -299,7 +300,7 @@ export function iniciar(DATA: DatosApp): void {
         if (neutro) { showTip(`<b>${esc(NOMBRE[id])}</b>`, e.clientX, e.clientY); return; }
         if (falta(id)) { showTip(`<b>${esc(NOMBRE[id])}</b><br>Sin dato en el informe`, e.clientX, e.clientY); return; }
         const orden = ordenados(vals);
-        showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)} · ${orden.indexOf(id) + 1}.ª de ${orden.length}`, e.clientX, e.clientY);
+        showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)}<br>${puestoTxt(ind, orden.indexOf(id) + 1, orden.length)}`, e.clientX, e.clientY);
       };
       t.onmouseleave = hideTip;
       t.onfocus = () => { const r = t.getBoundingClientRect(); t.onmousemove({ clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }); };
@@ -375,9 +376,18 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // Posición en palabras. En listas de espera, el puesto 1 es la peor situación.
+  // Posición en palabras, contada desde el extremo más cercano: «4.ª con menos espera» se entiende mejor
+  // que «14.ª con más espera de 17». En listas de espera, la que más espera es la peor.
+  const arriba = (pos, n) => pos <= Math.ceil(n / 2);
   function puestoTxt(ind, pos, n = 17) {
-    if (ind.grupo === "espera") return pos === 1 ? `La peor de las ${n}: la que más espera` : pos === n ? `La mejor de las ${n}: la que menos espera` : `${pos}.ª con más espera de ${n}`;
-    return pos === 1 ? `La que más de las ${n}` : pos === n ? `La que menos de las ${n}` : `${pos}.ª de ${n}, de más a menos`;
+    if (ind.grupo === "espera") {
+      if (pos === 1) return `La peor de las ${n}: la que más espera`;
+      if (pos === n) return `La mejor de las ${n}: la que menos espera`;
+      return arriba(pos, n) ? `La ${pos}.ª con más espera de ${n}` : `La ${n - pos + 1}.ª con menos espera de ${n}`;
+    }
+    if (pos === 1) return `La que más de las ${n}`;
+    if (pos === n) return `La que menos de las ${n}`;
+    return arriba(pos, n) ? `La ${pos}.ª más alta de ${n}` : `La ${n - pos + 1}.ª más baja de ${n}`;
   }
 
   // ---------- titulares automáticos ----------
@@ -449,7 +459,7 @@ export function iniciar(DATA: DatosApp): void {
     if (vals[S.com] == null) tuya = `Sin dato en el informe para esta especialidad. ${ficha}`;
     else if (enCambio) {
       const pos = mo.indexOf(S.com) + 1;
-      const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : `${pos}.ª de ${mo.length} en ${ind.unidad === "pct" ? "subida" : "crecimiento"}`;
+      const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : arriba(pos, mo.length) ? `La ${pos}.ª que más ha ${verbo} de ${mo.length}` : `La ${mo.length - pos + 1}.ª que menos ha ${verbo} de ${mo.length}`;
       tuya = `${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${S.desde} a ${anio}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
     } else {
       const ord = ordenados(vals);
@@ -477,7 +487,7 @@ export function iniciar(DATA: DatosApp): void {
       $("#p-sub").textContent = `${NOMBRE[top]} es la que más ha ${verbo} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y ${NOMBRE[bot]} la que menos (${fmt(mapa.vals[bot], mapa.ind.unidad)})${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
       $("#p-titulo").textContent = `${ind.nombre} en ${anio}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
-      $("#p-sub").textContent = `${esProv(anio) ? "Dato provisional. " : ""}Pulsa una comunidad para elegirla como la tuya.`;
+      $("#p-sub").textContent = `${esProv(anio) ? "Dato provisional. " : ""}${enEuros(ind) && anio !== ULT ? (S.real ? `En euros de ${ULT}, descontada la inflación. ` : "En euros de ese año. ") : ""}Pulsa una comunidad para elegirla como la tuya.`;
     } else {
       $("#p-titulo").textContent = `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
       $("#p-sub").textContent = `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
@@ -589,7 +599,7 @@ export function iniciar(DATA: DatosApp): void {
     o.forEach((id, i) => {
       const y = top + i * fila; const c = colorSel(id);
       const destacado = c || i === 0 || i === o.length - 1;
-      s += `<g class="barra" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: ${esc(fmt(vals[id], ind.unidad))}, ${i + 1}.ª de ${o.length}. Pulsa para ${c ? "dejar de destacar" : "destacar"}">
+      s += `<g class="barra" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: ${esc(fmt(vals[id], ind.unidad))}. ${puestoTxt(ind, i + 1, o.length)}. Pulsa para ${c ? "dejar de destacar" : "destacar"}">
         <rect x="0" y="${y}" width="${W}" height="${fila}" fill="transparent"/>
         <text x="${lab - 8}" y="${y + fila / 2 + 4}" text-anchor="end" font-size="12.5" fill="${c ? fg : muted}" font-weight="${c ? 700 : 400}">${esc(NOMBRE[id])}</text>
         ${barra(y, vals[id], `fill="${c || base}"`)}
@@ -619,7 +629,7 @@ export function iniciar(DATA: DatosApp): void {
       const enPuntos = ["pct", "pp", "var"].includes(ind.unidad);
       const dif = enPuntos ? `${vals[id] >= m ? "+" : "−"}${nf(1).format(Math.abs(vals[id] - m))} puntos frente a la media`
         : `${vals[id] >= m ? "+" : "−"}${nf(0).format(Math.abs(vals[id] / m - 1) * 100)} % frente a la media`;
-      g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)} · ${o.indexOf(id) + 1}.ª de ${o.length}<br>${dif}`, e.clientX, e.clientY);
+      g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)}<br>${puestoTxt(ind, o.indexOf(id) + 1, o.length)}<br>${dif}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
   }
@@ -851,8 +861,8 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- TU COMUNIDAD ----------
-  function filaInd(ind, id, vs = "") {
-    const anio = tieneSerie(ind) ? ULT : null;
+  function filaInd(ind, id, vs = "", anioSel = ULT) {
+    const anio = tieneSerie(ind) ? anioSel : null;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
     const pos = o.indexOf(id) + 1;
     const dif = ind.unidad === "pct" ? `${v >= m ? "+" : "−"}${nf(1).format(Math.abs(v - m))} puntos frente a la media`
@@ -877,7 +887,7 @@ export function iniciar(DATA: DatosApp): void {
       const smin = Math.min(...serie, ...(otra || [])), smax = Math.max(...serie, ...(otra || []));
       const sx = (i) => 2 + (i / (serie.length - 1)) * (sw - 8), sy = (val) => 4 + (1 - (val - smin) / (smax - smin || 1)) * (sh - 8);
       const d = serie.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("");
-      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${ANIOS[0]}-${ULT}"><path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/>${otra ? `<path d="${otra.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("")}" fill="none" stroke="${css("--s2")}" stroke-width="1.5"/>` : ""}<path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/><circle cx="${sx(serie.length - 1)}" cy="${sy(serie[serie.length - 1])}" r="3" fill="${acc}"/></svg><div class="pos">${ANIOS[0]}-${ULT}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
+      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${ANIOS[0]}-${ULT}"><path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/>${otra ? `<path d="${otra.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("")}" fill="none" stroke="${css("--s2")}" stroke-width="1.5"/>` : ""}<path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/>${(() => { const k = anioSel - ANIOS[0]; return `<line x1="${sx(k)}" x2="${sx(k)}" y1="2" y2="${sh}" stroke="${muted}" stroke-dasharray="2 2"/><circle cx="${sx(k)}" cy="${sy(serie[k])}" r="3.5" fill="${acc}" stroke="${surf}" stroke-width="1.5"/>`; })()}</svg><div class="pos">${ANIOS[0]}-${ULT}${anioSel !== ULT ? ` · marcado ${anioSel}` : ""}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
     } else {
       spark = `<div class="pos">Evolución: con más informes</div>`;
     }
@@ -892,24 +902,33 @@ export function iniciar(DATA: DatosApp): void {
   function renderComunidad() {
     const id = S.com;
     // La dirección refleja la comunidad elegida, para poder compartir el enlace (sin volver a dibujar).
-    const hash = "#comunidad-" + id.toLowerCase() + (S.vs ? "?vs=" + S.vs.toLowerCase() : "");
+    const params = new URLSearchParams();
+    if (S.vs) params.set("vs", S.vs.toLowerCase());
+    if (S.anioC !== ULT) params.set("anio", S.anioC);
+    const hash = "#comunidad-" + id.toLowerCase() + (params.toString() ? "?" + params.toString() : "");
     if (location.hash !== hash) history.replaceState(null, "", hash);
     $("#c-sel").innerHTML = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === id ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
     $("#c-sel").onchange = (e) => { S.com = e.target.value; render(); };
     tileMap($("#c-mapa"), Object.fromEntries(IDS.map((k) => [k, 1])), IND.gasto_hab, { neutro: true, selIds: [id], onClick: (k) => { S.com = k; render(); } });
     $("#c-nombre").textContent = NOMBRE[id];
-    const g = IND.gasto_hab, gv = valores(g, ULT), go = ordenados(gv);
+    const aC = S.anioC;
+    const g = IND.gasto_hab, gv = valores(g, aC), go = ordenados(gv);
     const q = IND.q_dias, qv = valores(q, null), qo = ordenados(qv);
     const gp = go.indexOf(id) + 1, qp = qo.indexOf(id) + 1;
-    const gtx = gp === 1 ? "la que más de las 17" : gp === 17 ? "la que menos de las 17" : `la ${gp}.ª de 17 que más gasta`;
-    const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : `la ${qp}.ª espera más larga de 17`;
-    $("#c-resumen").innerHTML = `En ${ULT} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública: ${gtx}. Sus pacientes llevan de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
-    $("#c-gasto-sub").textContent = `Año ${ULT}${esProv(ULT) ? " (provisional)" : ""}. Cada punto gris es otra comunidad; la raya marca la media de las 17.`;
+    const gtx = gp === 1 ? "la que más de las 17" : gp === 17 ? "la que menos de las 17" : arriba(gp, 17) ? `la ${gp}.ª que más gasta de 17` : `la ${18 - gp}.ª que menos gasta de 17`;
+    const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : arriba(qp, 17) ? `la ${qp}.ª espera más larga de 17` : `la ${18 - qp}.ª espera más corta de 17`;
+    const enQueEuros = aC !== ULT ? (S.real ? ` (en euros de ${ULT}, descontada la inflación)` : " (en euros de ese año)") : "";
+    $("#c-resumen").innerHTML = `En ${aC} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública${enQueEuros}: ${gtx}. Sus pacientes llevan de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
+    $("#c-gasto-sub").innerHTML = `<label class="periodo" for="c-anio">Año <select id="c-anio">${ANIOS.slice().reverse().map((a) => `<option value="${a}" ${a === aC ? "selected" : ""}>${a}${esProv(a) ? " (provisional)" : ""}</option>`).join("")}</select></label>
+      <span class="seg sm" role="group" aria-label="Inflación"><button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button><button type="button" data-r="0" aria-pressed="${!S.real}">Sin descontar</button></span>
+      <span class="sub-ficha">${S.real ? `Los euros de cada año están en euros de ${ULT}.` : "Cada año, en los euros de entonces."} Cada punto gris es otra comunidad; la raya marca la media de las 17. La línea de la derecha es la evolución desde ${ANIOS[0]}, con el año elegido marcado.</span>`;
+    $("#c-anio").onchange = (e) => { S.anioC = +e.target.value; render(); };
+    $("#c-gasto-sub").querySelectorAll("button[data-r]").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
     if (S.vs === id) S.vs = "";
     $("#c-vs").innerHTML = `<option value="">Nadie</option>` + IDS.filter((k) => k !== id).sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.vs ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
     $("#c-vs").onchange = (e) => { S.vs = e.target.value; render(); };
     $("#c-leyenda-vs").innerHTML = S.vs ? `<span><i style="background:${css("--accent")}"></i>${esc(NOMBRE[id])}</span><span><i style="background:${css("--s2")}"></i>${esc(NOMBRE[S.vs])}</span>` : "";
-    $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs)).join("");
+    $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs, aC)).join("");
     const nts = notasDe(id), avs = AVISOS.filter((a) => a.ccaa === id);
     $("#c-notas").innerHTML = (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
       (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "");
@@ -1016,7 +1035,9 @@ export function iniciar(DATA: DatosApp): void {
     const m = h.match(/^comunidad-([a-z]{2})$/);
     if (m && IDS.includes(m[1].toUpperCase())) {
       S.com = m[1].toUpperCase(); S.vista = "comunidad";
-      const vs = (new URLSearchParams(qs || "").get("vs") || "").toUpperCase(); S.vs = IDS.includes(vs) ? vs : "";
+      const qq = new URLSearchParams(qs || "");
+      const vs = (qq.get("vs") || "").toUpperCase(); S.vs = IDS.includes(vs) ? vs : "";
+      const an = +qq.get("anio"); S.anioC = ANIOS.includes(an) ? an : ULT;
     }
     else if (h === "comunidad") S.vista = "comunidad";
     else if (h === "metodo") S.vista = "metodo";

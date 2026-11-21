@@ -273,3 +273,5 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .tiempo .seg.modo { margin-top: 0; }
 .tiempo .anios { margin-top: 10px; }
 .anios .rango-txt { min-width: 9ch; }
+#c-gasto-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+#c-gasto-sub .sub-ficha { flex-basis: 100%; }
