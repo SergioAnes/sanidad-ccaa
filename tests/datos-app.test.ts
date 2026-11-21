@@ -21,6 +21,21 @@ describe("datos de la interfaz", () => {
     }
   });
 
+  it("los totales de espera cubren los nueve cortes semestrales para las 17 comunidades", () => {
+    expect(d.cortes.map((c) => c.id)).toEqual([
+      "2021-12", "2022-06", "2022-12", "2023-06", "2023-12", "2024-06", "2024-12", "2025-06", "2025-12",
+    ]);
+    for (const ind of d.inds.filter((i) => i.grupo === "espera")) {
+      for (const { id } of d.ccaa) {
+        expect(ind.serie[id]).toHaveLength(9);
+        expect(ind.serie[id].every((v) => typeof v === "number")).toBe(true);
+      }
+    }
+    expect(d.detalle.quirurgica.v.total.dias.AN[0]).toBe(128);
+    expect(d.detalle.quirurgica.v.total.pacientes.AN[0]).toBe(122959);
+    expect(d.detalle.quirurgica.v.dermatologia.dias.ML[0]).toBeNull();
+  });
+
   it("el IPC cubre todos los años de gasto (para descontar la inflación)", () => {
     for (const a of d.anios) expect(d.ipc[String(a)]).toBeGreaterThan(0);
     expect(d.ipc["2021"]).toBeCloseTo(100, 1);
@@ -28,17 +43,21 @@ describe("datos de la interfaz", () => {
 
   it("Ceuta y Melilla van aparte, no dentro de las 17", () => {
     const q = d.inds.find((i) => i.id === "q_dias");
-    expect(q && q.grupo === "espera" && Object.keys(q.valor)).not.toContain("CE");
-    expect(Object.keys(d.ciudades.q_dias).sort()).toEqual(["CE", "ML"]);
+    if (!q || q.grupo !== "espera") throw new Error("falta q_dias");
+    const ids = d.ccaa.map((c) => c.id);
+    expect(ids).not.toContain("CE");
+    expect(ids).not.toContain("ML");
+    expect(q.serie.CE).toHaveLength(d.cortes.length);
+    expect(q.serie.ML).toHaveLength(d.cortes.length);
   });
 
   it("el detalle por especialidad coincide con el total del indicador", () => {
     const q = d.inds.find((i) => i.id === "q_dias");
     if (!q || q.grupo !== "espera") throw new Error("falta q_dias");
-    expect(d.detalle.quirurgica.v.total.dias).toMatchObject(q.valor);
+    expect(d.detalle.quirurgica.v.total.dias).toEqual(q.serie);
     expect(d.detalle.procesos.campos.some((c) => c.id === "catarata")).toBe(true);
     // pacientes en espera (tarjeta «Pacientes en espera» y columna de la tabla): Andalucía, quirúrgica, dic. 2025
-    expect(d.detalle.quirurgica.v.total.pacientes.AN).toBe(199950);
+    expect(d.detalle.quirurgica.v.total.pacientes.AN.at(-1)).toBe(199950);
     expect(Object.keys(d.detalle.quirurgica.v.total.pacientes)).toEqual(expect.arrayContaining(["CE", "ML"]));
     expect(Object.keys(d.detalle.consultas.v.traumatologia.dias).length).toBeGreaterThanOrEqual(17);
   });

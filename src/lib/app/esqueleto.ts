@@ -22,9 +22,12 @@ export const ESQUELETO = `<div class="wrap">
       <div class="campo" id="d-campo"></div>
     </div>
     <div class="rs-barra" id="resumen" role="region" aria-label="Lo que estás viendo">
-      <div class="rs-chips" id="rs-chips"></div>
-      <button type="button" class="rs-texto" id="rs-texto" aria-haspopup="dialog"></button>
-      <button type="button" class="rs-ajustes" id="rs-ajustes" aria-haspopup="dialog" aria-label="Ajustes de la vista">⚙<span class="rs-aj-txt"> Ajustes</span></button>
+      <div class="rs-controles">
+        <div class="rs-chips" id="rs-chips"></div>
+        <button type="button" class="rs-texto" id="rs-texto" aria-haspopup="dialog"></button>
+        <button type="button" class="rs-ajustes" id="rs-ajustes" aria-haspopup="dialog" aria-label="Ajustes de la vista">⚙<span class="rs-aj-txt"> Ajustes</span></button>
+      </div>
+      <p class="rs-aviso" id="rs-aviso" hidden><span id="rs-motivo" role="status"></span> <a href="#e-nota" id="rs-notas">Ver notas del informe</a></p>
     </div>
     <div class="portada-grid">
       <div class="panel">
