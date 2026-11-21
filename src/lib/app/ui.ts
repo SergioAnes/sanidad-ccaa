@@ -846,7 +846,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${nombreY.toLowerCase()} (${DATA.corteListas}). Cambia la tarjeta o la especialidad de arriba para comparar otra espera.`;
     const cont = $("#x-chart");
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 340 : 420;
-    const L = W < 520 ? 46 : 64, R = 24, T = 16, B = 40;
+    const L = W < 520 ? 54 : 64, R = 24, T = 16, B = 40;
     const xs = ids.map((id) => vx[id]), ys = ids.map((id) => vy[id]);
     const px = (Math.max(...xs) - Math.min(...xs)) * 0.08, py = (Math.max(...ys) - Math.min(...ys)) * 0.1;
     const x0 = Math.min(...xs) - px, x1 = Math.max(...xs) + px, y0 = Math.max(0, Math.min(...ys) - py), y1 = Math.max(...ys) + py;
@@ -855,7 +855,7 @@ export function iniciar(DATA: DatosApp): void {
     const mx = media(Object.fromEntries(ids.map((k) => [k, vx[k]]))), my = media(Object.fromEntries(ids.map((k) => [k, vy[k]])));
     let sv = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gasto por habitante frente a ${esc(gy.corto)}">`;
     ticks(y0, y1, 4).forEach((v) => { sv += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${line}"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, gy.unidad)}</text>`; });
-    ticks(x0, x1, W < 520 ? 3 : 5).forEach((v) => { sv += `<text x="${X(v)}" y="${H - B + 18}" text-anchor="middle" font-size="11" fill="${muted}">${fmt(v, "eur_hab")}</text>`; });
+    ticks(x0, x1, W < 520 ? 4 : 5).forEach((v) => { sv += `<text x="${X(v)}" y="${H - B + 18}" text-anchor="middle" font-size="11" fill="${muted}">${fmt(v, "eur_hab")}</text>`; });
     sv += `<line x1="${X(mx)}" x2="${X(mx)}" y1="${T}" y2="${H - B}" stroke="${muted}" stroke-dasharray="3 3"/><line x1="${L}" x2="${W - R}" y1="${Y(my)}" y2="${Y(my)}" stroke="${muted}" stroke-dasharray="3 3"/>`;
     const esq = (txt, xx, yy, anc) => `<text x="${xx}" y="${yy}" text-anchor="${anc}" font-size="11" fill="${muted}" font-style="italic">${txt}</text>`;
     if (W >= 520) sv += esq("gasta menos, espera más", L + 6, T + 12, "start") + esq("gasta más, espera más", W - R - 4, T + 12, "end") +
@@ -903,9 +903,19 @@ export function iniciar(DATA: DatosApp): void {
     return out;
   }
 
+  // Años del eje horizontal según el espacio: siempre el primero y el último; en medio, cada 2, 4, 5 o 10 años
+  // (el menor salto que deje sitio a cada etiqueta) y sin años intermedios pegados al último.
+  function aniosEje(ancho, fuente = 11) {
+    const anchoEtiqueta = fuente * 2.6 + 10; // «2024» más un margen
+    const porAnio = ancho / (ULT - ANIOS[0]);
+    const paso = [2, 4, 5, 10].find((p) => p * porAnio >= anchoEtiqueta) || 10;
+    const out = ANIOS.filter((a) => (a - ANIOS[0]) % paso === 0 && (ULT - a) * porAnio >= anchoEtiqueta);
+    return [...out, ULT];
+  }
+
   function lineas(cont, ind) {
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 300 : 380;
-    const L = W < 520 ? 44 : 64, R = W < 520 ? 74 : 120, T = 14, B = 30;
+    const L = W < 520 ? 56 : 64, R = W < 520 ? 74 : 120, T = 14, B = 30;
     const todos = IDS.flatMap((id) => ind.serie[id]).filter((v) => v != null);
     let ymin = Math.min(...todos), ymax = Math.max(...todos);
     const pad = (ymax - ymin) * 0.06; ymin = Math.max(0, ymin - pad); ymax += pad;
@@ -919,7 +929,7 @@ export function iniciar(DATA: DatosApp): void {
     s += `<rect x="${x(DATA.prov[0]) - (x(2023) - x(2022)) / 2}" y="${T}" width="${x(ULT) - x(DATA.prov[0]) + (x(2023) - x(2022)) / 2}" height="${H - T - B}" fill="${noteBg}"/>
           <text x="${x(ULT)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
     tk.forEach((v) => { s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${line}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, ind.unidad)}</text>`; });
-    [2002, 2006, 2010, 2014, 2018, 2022, ULT].forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${a}</text>`; });
+    aniosEje(W - L - R, 11).forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${a}</text>`; });
     IDS.filter((id) => !colorSel(id)).forEach((id) => { s += `<path d="${path(ind.serie[id])}" fill="none" stroke="${grey}" stroke-width="1.2"/>`; });
     s += `<path d="${path(medias)}" fill="none" stroke="${fg}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
     // etiquetas finales sin solapar
