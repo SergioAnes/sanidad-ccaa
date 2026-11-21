@@ -76,8 +76,9 @@ button, select, input { font: inherit; color: inherit; }
 .intro-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; }
 .intro h1 { font-size: clamp(1.7rem, 3.6vw, 2.6rem); line-height: 1.08; max-width: 24ch; }
 .intro p { color: var(--muted); max-width: 62ch; margin: 8px 0 0; font-size: 1rem; }
-.tucom { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-.tucom select { font-size: 0.95rem; font-weight: 600; color: var(--fg); border-color: var(--accent); }
+.insight.tuya { border-color: var(--accent); }
+.insight.tuya label.k { display: block; }
+.insight.tuya select { margin-top: 6px; font-size: 1rem; font-weight: 700; color: var(--fg); border-color: var(--accent); max-width: 100%; }
 .portada-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; margin-top: 18px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; min-width: 0; }
 .panel h2 { font-size: 1.25rem; line-height: 1.2; }

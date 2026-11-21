@@ -432,8 +432,6 @@ export function iniciar(DATA: DatosApp): void {
     if (S.modo === "cambio" && S.anioP <= S.desde) { S.anioP = ULT; if (S.desde >= ULT) S.desde = ANIOS[0]; }
     selector($("#sel-datos"), S.indP, (id) => { pararPlay(); S.indP = id; render(); });
     selectorCampo($("#d-campo"), baseInd, "d-campo-sel");
-    $("#p-com").innerHTML = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.com ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
-    $("#p-com").onchange = (e) => { S.com = e.target.value; render(); };
 
     const anio = tieneSerie(ind) ? S.anioP : null;
     const vals = valores(ind, anio);
@@ -448,16 +446,16 @@ export function iniciar(DATA: DatosApp): void {
     // «Tu comunidad»: su valor y puesto, o su cambio y puesto en el periodo
     const ficha = `<a href="#comunidad-${S.com.toLowerCase()}">Ver su ficha completa</a>`;
     let tuya;
-    if (vals[S.com] == null) tuya = `<strong>${NOMBRE[S.com]}</strong>: sin dato en el informe para esta especialidad. ${ficha}`;
+    if (vals[S.com] == null) tuya = `Sin dato en el informe para esta especialidad. ${ficha}`;
     else if (enCambio) {
       const pos = mo.indexOf(S.com) + 1;
       const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : `${pos}.ª de ${mo.length} en ${ind.unidad === "pct" ? "subida" : "crecimiento"}`;
-      tuya = `<strong>${NOMBRE[S.com]}</strong>: ${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${S.desde} a ${anio}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
+      tuya = `${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${S.desde} a ${anio}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
     } else {
       const ord = ordenados(vals);
-      tuya = `<strong>${NOMBRE[S.com]}</strong>: ${fmt(vals[S.com], ind.unidad)}${tieneSerie(ind) ? ` en ${anio}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
+      tuya = `<strong>${fmt(vals[S.com], ind.unidad)}</strong>${tieneSerie(ind) ? ` en ${anio}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
     }
-    out.unshift({ k: "Tu comunidad", t: tuya });
+    out.unshift({ k: "Tu comunidad", t: tuya, elegir: true });
     if (enCambio) {
       // En «Cambio entre dos años» todos los cuadros hablan del cambio; el valor final queda como contexto.
       const mc = media(mapa.vals), u2 = mapa.ind.unidad;
@@ -465,7 +463,13 @@ export function iniciar(DATA: DatosApp): void {
         { k: `Media de las 17, de ${S.desde} a ${anio}`, t: `De media, las comunidades han ${verbo} <strong>${fmt(mc, u2)}</strong>${infl ? ` (${infl})` : ""}. ${mo.filter((id) => mapa.vals[id] > mc).length} están por encima.` },
         { k: `Para situarse: el valor en ${anio}`, t: `<strong>${NOMBRE[ordenados(vals)[0]]}</strong> está arriba (${fmt(vals[ordenados(vals)[0]], ind.unidad)}) y <strong>${NOMBRE[ordenados(vals).at(-1)]}</strong> abajo (${fmt(vals[ordenados(vals).at(-1)], ind.unidad)}). Para verlo en el mapa, elige «Un año».` });
     }
-    $("#p-insights").innerHTML = out.map((x) => `<div class="insight"><div class="k">${esc(x.k)}</div><p>${x.t}</p></div>`).join("");
+    // «Tu comunidad» lleva su propio desplegable (además de poder pulsarla en el mapa): sirve para las
+    // comunidades pequeñas, en el móvil y con teclado o lector de pantalla.
+    const opcionesCom = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.com ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
+    $("#p-insights").innerHTML = out.map((x) => x.elegir
+      ? `<div class="insight tuya"><label class="k" for="p-com">${esc(x.k)}</label><select id="p-com">${opcionesCom}</select><p>${x.t}</p></div>`
+      : `<div class="insight"><div class="k">${esc(x.k)}</div><p>${x.t}</p></div>`).join("");
+    $("#p-com").onchange = (e) => { S.com = e.target.value; render(); };
 
     // Título y subtítulo: dicen exactamente qué muestra el mapa
     if (enCambio) {

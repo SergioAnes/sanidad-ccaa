@@ -17,7 +17,6 @@ export const ESQUELETO = `<div class="wrap">
           <h1>¿Cuánto gasta tu comunidad en sanidad y cuánto se espera?</h1>
           <p id="p-intro">Datos oficiales del Ministerio de Sanidad.</p>
         </div>
-        <label class="tucom" for="p-com">Tu comunidad<select id="p-com"></select></label>
       </div>
       <div class="selector" id="sel-datos"></div>
       <div class="campo" id="d-campo"></div>
