@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import notas from "../src/data/notas-egsp.json";
 import listas from "../src/data/listas-espera.json";
 import ppe from "../src/data/poblacion-equivalente.json";
+import contexto from "../src/data/contexto-ccaa.json";
 import { CCAA, VALORES } from "../src/lib/datos";
 import { detectarAvisos } from "../src/lib/avisos";
 
@@ -112,3 +113,29 @@ describe("población protegida equivalente y gasto ajustado por edad", () => {
   });
 });
 
+
+describe("contexto de cada comunidad (ficha)", () => {
+  const C = contexto.ccaa as Record<string, { pct65: number; pct80: number; densidad: number; entidades: number; superficie: number; poblacion: number; cobertura_mixta: number; cobertura_ic: number[] }>;
+
+  it("están las 17 comunidades con valores razonables", () => {
+    expect(Object.keys(C).sort()).toEqual(CCAA.map((c) => c.id).sort());
+    for (const [id, d] of Object.entries(C)) {
+      expect(d.pct65, id).toBeGreaterThan(10); expect(d.pct65, id).toBeLessThan(35);
+      expect(d.pct80, id).toBeLessThan(d.pct65);
+      expect(d.densidad, id).toBeCloseTo(d.poblacion / d.superficie, 0);
+      expect(d.cobertura_ic[0], id).toBeLessThan(d.cobertura_mixta);
+      expect(d.cobertura_ic[1], id).toBeGreaterThan(d.cobertura_mixta);
+    }
+  });
+
+  it("coincide con cifras publicadas por otras fuentes o comprobadas a mano", () => {
+    // Aragón, 65 y más a 1/1/2024: 22,4 % (Instituto Aragonés de Estadística)
+    expect(C.AR.pct65).toBeCloseTo(22.4, 1);
+    // Galicia, entidades singulares a 1/1/2024: 30.486 (certificado del INE)
+    expect(C.GA.entidades).toBe(30486);
+    // Encuesta de Salud 2023, cobertura mixta: Cataluña 27,95 %, Extremadura 6,19 %; España 16,3 %
+    expect(C.CT.cobertura_mixta).toBe(27.95);
+    expect(C.EX.cobertura_mixta).toBe(6.19);
+    expect(contexto.espana_cobertura.mixta).toBe(16.3);
+  });
+});

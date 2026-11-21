@@ -1,0 +1,259 @@
+{
+ "fecha": "2024-01-01",
+ "fuentes": {
+  "poblacion": "INE, Estadística Continua de Población (tabla 56940), 1 de enero de 2024",
+  "superficie": "Instituto Geográfico Nacional, Registro Central de Cartografía (certificado en los anexos de la liquidación del sistema de financiación de 2024)",
+  "entidades": "INE, entidades singulares de población (certificado en los mismos anexos)",
+  "cobertura": "Ministerio de Sanidad e INE, Encuesta de Salud de España 2023, tabla 2.174 (cobertura mixta) y coeficientes de variación"
+ },
+ "urls": {
+  "poblacion": "https://www.ine.es/jaxiT3/Tabla.htm?t=56940",
+  "liquidacion": "https://www.hacienda.gob.es/es-ES/CDI/Paginas/SistemasFinanciacionDeuda/InformacionCCAAs/Informes%20financiacion%20comunidades%20autonomas2.aspx",
+  "encuesta": "https://www.sanidad.gob.es/estadEstudios/estadisticas/encuestaSaludEspana/home.htm"
+ },
+ "pagina_entidades": 29,
+ "espana_cobertura": {
+  "mixta": 16.3,
+  "cv": 2.63
+ },
+ "ccaa": {
+  "AN": {
+   "poblacion": 8631862,
+   "pct65": 18.69,
+   "pct80": 5.06,
+   "superficie": 87594.88,
+   "densidad": 98.5,
+   "entidades": 2824,
+   "cobertura_mixta": 11.62,
+   "cobertura_cv": 8.28,
+   "cobertura_ic": [
+    9.7,
+    13.5
+   ]
+  },
+  "AR": {
+   "poblacion": 1351591,
+   "pct65": 22.39,
+   "pct80": 7.2,
+   "superficie": 47721.43,
+   "densidad": 28.3,
+   "entidades": 1565,
+   "cobertura_mixta": 13.39,
+   "cobertura_cv": 11.36,
+   "cobertura_ic": [
+    10.4,
+    16.4
+   ]
+  },
+  "AS": {
+   "poblacion": 1009599,
+   "pct65": 27.98,
+   "pct80": 8.43,
+   "superficie": 10605.68,
+   "densidad": 95.2,
+   "entidades": 6983,
+   "cobertura_mixta": 13.64,
+   "cobertura_cv": 12.43,
+   "cobertura_ic": [
+    10.3,
+    17.0
+   ]
+  },
+  "IB": {
+   "poblacion": 1231768,
+   "pct65": 16.67,
+   "pct80": 4.42,
+   "superficie": 4991.7,
+   "densidad": 246.8,
+   "entidades": 318,
+   "cobertura_mixta": 26.37,
+   "cobertura_cv": 10.0,
+   "cobertura_ic": [
+    21.2,
+    31.5
+   ]
+  },
+  "CN": {
+   "poblacion": 2238754,
+   "pct65": 17.8,
+   "pct80": 4.54,
+   "superficie": 7445.58,
+   "densidad": 300.7,
+   "entidades": 1108,
+   "cobertura_mixta": 8.95,
+   "cobertura_cv": 11.27,
+   "cobertura_ic": [
+    7.0,
+    10.9
+   ]
+  },
+  "CB": {
+   "poblacion": 590851,
+   "pct65": 24.02,
+   "pct80": 6.99,
+   "superficie": 5330.2,
+   "densidad": 110.8,
+   "entidades": 931,
+   "cobertura_mixta": 9.14,
+   "cobertura_cv": 19.38,
+   "cobertura_ic": [
+    5.7,
+    12.6
+   ]
+  },
+  "CL": {
+   "poblacion": 2391682,
+   "pct65": 26.88,
+   "pct80": 9.24,
+   "superficie": 94218.58,
+   "densidad": 25.4,
+   "entidades": 6181,
+   "cobertura_mixta": 13.27,
+   "cobertura_cv": 10.38,
+   "cobertura_ic": [
+    10.6,
+    16.0
+   ]
+  },
+  "CM": {
+   "poblacion": 2104433,
+   "pct65": 19.73,
+   "pct80": 6.32,
+   "superficie": 79464.19,
+   "densidad": 26.5,
+   "entidades": 1708,
+   "cobertura_mixta": 12.58,
+   "cobertura_cv": 12.56,
+   "cobertura_ic": [
+    9.5,
+    15.7
+   ]
+  },
+  "CT": {
+   "poblacion": 8012231,
+   "pct65": 19.54,
+   "pct80": 5.81,
+   "superficie": 32112.07,
+   "densidad": 249.5,
+   "entidades": 3905,
+   "cobertura_mixta": 27.95,
+   "cobertura_cv": 5.77,
+   "cobertura_ic": [
+    24.8,
+    31.1
+   ]
+  },
+  "VC": {
+   "poblacion": 5319285,
+   "pct65": 20.19,
+   "pct80": 5.66,
+   "superficie": 23265.47,
+   "densidad": 228.6,
+   "entidades": 1217,
+   "cobertura_mixta": 9.37,
+   "cobertura_cv": 9.4,
+   "cobertura_ic": [
+    7.6,
+    11.1
+   ]
+  },
+  "EX": {
+   "poblacion": 1054681,
+   "pct65": 22.37,
+   "pct80": 7.08,
+   "superficie": 41633.95,
+   "densidad": 25.3,
+   "entidades": 622,
+   "cobertura_mixta": 6.19,
+   "cobertura_cv": 15.52,
+   "cobertura_ic": [
+    4.3,
+    8.1
+   ]
+  },
+  "GA": {
+   "poblacion": 2705833,
+   "pct65": 26.61,
+   "pct80": 8.92,
+   "superficie": 29583.9,
+   "densidad": 91.5,
+   "entidades": 30486,
+   "cobertura_mixta": 11.98,
+   "cobertura_cv": 12.37,
+   "cobertura_ic": [
+    9.1,
+    14.9
+   ]
+  },
+  "MD": {
+   "poblacion": 7009268,
+   "pct65": 18.62,
+   "pct80": 5.6,
+   "superficie": 8027.15,
+   "densidad": 873.2,
+   "entidades": 788,
+   "cobertura_mixta": 21.26,
+   "cobertura_cv": 6.51,
+   "cobertura_ic": [
+    18.5,
+    24.0
+   ]
+  },
+  "MC": {
+   "poblacion": 1568492,
+   "pct65": 16.67,
+   "pct80": 4.62,
+   "superficie": 11316.17,
+   "densidad": 138.6,
+   "entidades": 896,
+   "cobertura_mixta": 10.17,
+   "cobertura_cv": 11.17,
+   "cobertura_ic": [
+    7.9,
+    12.4
+   ]
+  },
+  "NC": {
+   "poblacion": 678333,
+   "pct65": 20.73,
+   "pct80": 6.32,
+   "superficie": 10391.57,
+   "densidad": 65.3,
+   "entidades": 950,
+   "cobertura_mixta": 14.35,
+   "cobertura_cv": 11.94,
+   "cobertura_ic": [
+    11.0,
+    17.7
+   ]
+  },
+  "PV": {
+   "poblacion": 2227684,
+   "pct65": 23.82,
+   "pct80": 7.31,
+   "superficie": 7233.66,
+   "densidad": 308.0,
+   "entidades": 1344,
+   "cobertura_mixta": 23.35,
+   "cobertura_cv": 7.32,
+   "cobertura_ic": [
+    20.0,
+    26.7
+   ]
+  },
+  "RI": {
+   "poblacion": 324184,
+   "pct65": 22.12,
+   "pct80": 6.95,
+   "superficie": 5045.09,
+   "densidad": 64.3,
+   "entidades": 259,
+   "cobertura_mixta": 13.09,
+   "cobertura_cv": 13.15,
+   "cobertura_ic": [
+    9.7,
+    16.5
+   ]
+  }
+ }
+}

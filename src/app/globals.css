@@ -372,3 +372,10 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 @media (max-width: 640px) { .ind .edad-ficha { grid-column: 1 / -1; order: 1; margin-top: -6px; } .ind .strip { order: 2; } .ind .spark { order: 3; } }
 .edad-ficha b { color: var(--fg); }
 .edad-ficha a { color: var(--accent); }
+
+/* Ficha: bloque «Contexto» (cuatro datos cortos) */
+.contexto { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; }
+.ctx { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 12px 14px; display: grid; gap: 3px; align-content: start; }
+.ctx-t { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+.ctx-v { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.ctx-d, .ctx .vs { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
