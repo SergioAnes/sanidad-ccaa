@@ -503,7 +503,7 @@ export function iniciar(DATA: DatosApp): void {
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
     renderDetalle(ind, mapa, anio);
-    renderXY();
+    renderXY(ind);
     guardarEnlace();
   }
 
@@ -722,16 +722,27 @@ export function iniciar(DATA: DatosApp): void {
     xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
     return sxy / Math.sqrt(sxx * syy);
   }
-  function renderXY() {
-    const gx = IND.gasto_hab, gy = IND[S.yXY];
-    $("#x-y").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => `<button type="button" data-id="${i.id}" aria-pressed="${i.id === S.yXY}">${esc(i.corto)}</button>`).join("");
-    $("#x-y").querySelectorAll("button").forEach((b) => b.onclick = () => { S.yXY = b.dataset.id; render(); });
+  // Gasto frente a espera. Solo con «Listas de espera»: compara el gasto por habitante con la espera que
+  // esté elegida arriba (tarjeta y especialidad). Con «Gasto», solo una invitación a verlo.
+  function renderXY(ind) {
+    const gx = IND.gasto_hab;
+    if (ind.grupo !== "espera") {
+      $("#x-titulo").textContent = "¿Gastar más reduce la espera?";
+      $("#x-sub").textContent = "Compara el gasto por habitante de cada comunidad con sus listas de espera.";
+      $("#x-y").innerHTML = `<button type="button" class="btn sm" id="x-ir">Verlo en Listas de espera</button>`;
+      $("#x-y").classList.remove("seg");
+      $("#x-ir").onclick = () => { S.indP = "q_dias"; render(); document.querySelector("#v-datos .xy").scrollIntoView({ behavior: "smooth" }); };
+      $("#x-chart").innerHTML = ""; $("#x-nota").textContent = "";
+      return;
+    }
+    const gy = ind, nombreY = gy.campoNombre ? `${gy.corto} en ${gy.campoNombre.toLowerCase()}` : gy.corto;
+    $("#x-y").innerHTML = ""; $("#x-y").classList.remove("seg");
     const vx = valores(gx, ULT), vy = valores(gy, null);
     const ids = IDS.filter((id) => vx[id] != null && vy[id] != null);
     const r = pearson(ids.map((id) => vx[id]), ids.map((id) => vy[id]));
     const fuerza = Math.abs(r) < 0.3 ? "apenas" : Math.abs(r) < 0.5 ? "poco" : "sí";
     $("#x-titulo").textContent = `¿Gastar más reduce la espera? ${fuerza === "apenas" ? "Apenas se nota" : fuerza === "poco" ? (r < 0 ? "Un poco" : "No: va al revés, pero débil") : (r < 0 ? "Sí, en buena medida" : "No: va al revés")}`;
-    $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${gy.corto.toLowerCase()} (${DATA.corteListas}).`;
+    $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${nombreY.toLowerCase()} (${DATA.corteListas}). Cambia la tarjeta o la especialidad de arriba para comparar otra espera.`;
     const cont = $("#x-chart");
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 340 : 420;
     const L = W < 520 ? 46 : 64, R = 24, T = 16, B = 40;
@@ -740,7 +751,7 @@ export function iniciar(DATA: DatosApp): void {
     const x0 = Math.min(...xs) - px, x1 = Math.max(...xs) + px, y0 = Math.max(0, Math.min(...ys) - py), y1 = Math.max(...ys) + py;
     const X = (v) => L + (v - x0) / (x1 - x0) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), grey = css("--grey-line"), acc = css("--accent"), surf = css("--surface");
-    const mx = media(vx), my = media(vy);
+    const mx = media(Object.fromEntries(ids.map((k) => [k, vx[k]]))), my = media(Object.fromEntries(ids.map((k) => [k, vy[k]])));
     let sv = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gasto por habitante frente a ${esc(gy.corto)}">`;
     ticks(y0, y1, 4).forEach((v) => { sv += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${line}"/><text x="${L - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, gy.unidad)}</text>`; });
     ticks(x0, x1, W < 520 ? 3 : 5).forEach((v) => { sv += `<text x="${X(v)}" y="${H - B + 18}" text-anchor="middle" font-size="11" fill="${muted}">${fmt(v, "eur_hab")}</text>`; });
@@ -761,27 +772,27 @@ export function iniciar(DATA: DatosApp): void {
       }
       return opc[0];
     };
-    const c0 = S.com, anchoNom = NOMBRE[c0].length * 7.4;
+    const c0 = S.com, anchoNom = NOMBRE[c0].length * 7.4, conTuya = ids.includes(c0);
     // El nombre de tu comunidad va a la derecha del punto, o a la izquierda si no cabe.
-    const nomDer = X(vx[c0]) + 11 + anchoNom <= W - 4;
-    cajas.push({ x: nomDer ? X(vx[c0]) + 11 : X(vx[c0]) - 11 - anchoNom, y: Y(vy[c0]) - 8, w: anchoNom, h: 14 });
+    const nomDer = conTuya && X(vx[c0]) + 11 + anchoNom <= W - 4;
+    if (conTuya) cajas.push({ x: nomDer ? X(vx[c0]) + 11 : X(vx[c0]) - 11 - anchoNom, y: Y(vy[c0]) - 8, w: anchoNom, h: 14 });
     ids.forEach((id) => cajas.push({ x: X(vx[id]) - 5, y: Y(vy[id]) - 5, w: 10, h: 10 }));
     ids.filter((id) => id !== S.com).forEach((id) => {
       const [tx, ty, an] = colocar(id, ABR[id].length * 6.8);
-      sv += `<g class="pt" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: gasto ${esc(fmt(vx[id], "eur_hab"))}, ${esc(gy.corto)} ${esc(fmt(vy[id], gy.unidad))}. Pulsa para elegirla como tu comunidad"><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="12" fill="transparent"/><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="5.5" fill="${grey}" stroke="${surf}" stroke-width="1.5"/><text x="${tx}" y="${ty}" text-anchor="${an}" font-size="11" fill="${muted}">${ABR[id]}</text></g>`;
+      sv += `<g class="pt" data-id="${id}" style="cursor:pointer" tabindex="0" role="button" aria-label="${esc(NOMBRE[id])}: gasto ${esc(fmt(vx[id], "eur_hab"))}, ${esc(nombreY)} ${esc(fmt(vy[id], gy.unidad))}. Pulsa para elegirla como tu comunidad"><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="12" fill="transparent"/><circle cx="${X(vx[id])}" cy="${Y(vy[id])}" r="5.5" fill="${grey}" stroke="${surf}" stroke-width="1.5"/><text x="${tx}" y="${ty}" text-anchor="${an}" font-size="11" fill="${muted}">${ABR[id]}</text></g>`;
     });
     const c = S.com;
-    sv += `<g class="pt" data-id="${c}"><circle cx="${X(vx[c])}" cy="${Y(vy[c])}" r="8" fill="${acc}" stroke="${surf}" stroke-width="2"/><text x="${nomDer ? X(vx[c]) + 11 : X(vx[c]) - 11}" y="${Y(vy[c]) + 4}" text-anchor="${nomDer ? "start" : "end"}" font-size="12.5" font-weight="700" fill="${fg}">${esc(NOMBRE[c])}</text></g>`;
+    if (conTuya) sv += `<g class="pt" data-id="${c}"><circle cx="${X(vx[c])}" cy="${Y(vy[c])}" r="8" fill="${acc}" stroke="${surf}" stroke-width="2"/><text x="${nomDer ? X(vx[c]) + 11 : X(vx[c]) - 11}" y="${Y(vy[c]) + 4}" text-anchor="${nomDer ? "start" : "end"}" font-size="12.5" font-weight="700" fill="${fg}">${esc(NOMBRE[c])}</text></g>`;
     sv += `<text x="${W - R}" y="${H - 4}" text-anchor="end" font-size="11" fill="${muted}">Gasto por habitante →</text></svg>`;
     cont.innerHTML = sv;
     cont.querySelectorAll(".pt").forEach((g) => {
       const id = g.dataset.id;
       g.onclick = () => { S.com = id; render(); };
       g.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); S.com = id; render(); } };
-      g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>Gasto: ${fmt(vx[id], "eur_hab")}<br>${esc(gy.corto)}: ${fmt(vy[id], gy.unidad)}`, e.clientX, e.clientY);
+      g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>Gasto: ${fmt(vx[id], "eur_hab")}<br>${esc(nombreY)}: ${fmt(vy[id], gy.unidad)}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
-    $("#x-nota").textContent = `Sin Ceuta y Melilla (no hay gasto comparable). Correlación: ${nf(2).format(r)} (de −1 a 1; cerca de 0 = sin relación). Que dos datos vayan juntos no prueba que uno cause el otro: también influyen la edad de la población, la dispersión geográfica o cómo se organiza cada servicio. Las líneas discontinuas marcan la media de las 17.`;
+    $("#x-nota").textContent = `${conTuya ? "" : `${NOMBRE[c0]} no aparece: el informe no trae ese dato. `}${ids.length < IDS.length ? `Hay ${ids.length} comunidades con dato. ` : ""}Sin Ceuta y Melilla (no hay gasto comparable). Correlación: ${nf(2).format(r)} (de −1 a 1; cerca de 0 = sin relación). Que dos datos vayan juntos no prueba que uno cause el otro: también influyen la edad de la población, la dispersión geográfica o cómo se organiza cada servicio. Las líneas discontinuas marcan la media de las ${ids.length}.`;
   }
 
   function ticks(min, max, n = 5) {
