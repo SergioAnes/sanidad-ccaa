@@ -502,7 +502,7 @@ export function iniciar(DATA: DatosApp): void {
     if (enCambio) barraPeriodo($("#p-anios"), () => { pararPlay(); render(); });
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
-    renderBarraDato(baseInd);
+    renderResumen(baseInd);
     renderDetalle(ind, mapa, anio);
     renderXY(ind);
     guardarEnlace();
@@ -519,18 +519,93 @@ export function iniciar(DATA: DatosApp): void {
     accion();
     if (ancla && antes != null) scrollBy(0, ancla.getBoundingClientRect().top - antes);
   }
-  function renderBarraDato(base) {
-    const grupo = (g, titulo) => `<optgroup label="${titulo}">${DATA.inds.filter((i) => i.grupo === g).map((i) => `<option value="${i.id}" ${i.id === S.indP ? "selected" : ""}>${esc(i.corto)}</option>`).join("")}</optgroup>`;
-    $("#bd-dato").innerHTML = grupo("gasto", "Gasto sanitario") + grupo("espera", "Listas de espera");
-    $("#bd-dato").onchange = (e) => sinMover(() => { pararPlay(); S.indP = e.target.value; render(); });
-    const campo = $("#bd-campo");
-    if (base.grupo === "espera") {
-      campo.hidden = false;
-      campo.innerHTML = `<option value="total">Todas (total)</option>` + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => `<option value="${tipo}:${c.id}" ${S.campoE === `${tipo}:${c.id}` ? "selected" : ""}>${esc(c.nombre)}</option>`).join("")}</optgroup>`).join("");
-      campo.value = S.campoE;
-      campo.onchange = (e) => sinMover(() => { S.campoE = e.target.value; render(); });
-    } else { campo.hidden = true; campo.innerHTML = ""; }
-    $("#bd-arriba").onclick = () => $("#sel-datos").scrollIntoView({ behavior: "smooth", block: "start" });
+  // ---------- Resumen de lo que estás viendo + panel «Ajustes» ----------
+  // Una etiqueta por cada elección (dato, especialidad, años, inflación, tu comunidad, gráfico). El resumen va
+  // encima del mapa y se queda fijo arriba al bajar. Las etiquetas que no están como al principio se resaltan.
+  const POR_DEFECTO = { indP: "gasto_hab", campoE: "total", modo: "valor", desde: ANIOS[0], real: true, vistaE: "ranking" };
+  const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
+  const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
+  const opcionesDato = () => ["gasto", "espera"].map((g) => `<optgroup label="${g === "gasto" ? "Gasto sanitario" : "Listas de espera"}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
+  const opcionesCampo = (base) => opt("total", "Todas (total)", S.campoE === "total") + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => opt(`${tipo}:${c.id}`, c.nombre, S.campoE === `${tipo}:${c.id}`)).join("")}</optgroup>`).join("");
+  const opcionesAnio = (lista, sel) => lista.map((a) => opt(a, `${a}${esProv(a) ? " (prov.)" : ""}`, a === sel)).join("");
+  const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
+  const opcionesGraf = (base) => [["ranking", "Ranking"], ["evolucion", "Evolución"], ["tabla", "Tabla"]].map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
+
+  // «31 de diciembre de 2025» -> «dic. 2025» (para que quepa en una etiqueta)
+  const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
+  function renderResumen(base) {
+    const serie = tieneSerie(base);
+    const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}><span class="et">${et}</span>${dentro}</span>`;
+    let h = chip("Dato", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`);
+    if (base.grupo === "espera") h += chip("Especialidad", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total");
+    if (serie) {
+      h += chip("Ver", `<select id="rs-modo" aria-label="Qué quieres ver">${opt("valor", "Un año", S.modo === "valor")}${opt("cambio", "Cambio entre dos años", S.modo === "cambio")}</select>`, S.modo !== POR_DEFECTO.modo);
+      h += S.modo === "cambio"
+        ? chip("Años", `<select id="rs-desde" aria-label="Año de inicio">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select><span aria-hidden="true">→</span><select id="rs-hasta" aria-label="Año final">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select>`, true)
+        : chip("Año", `<select id="rs-anio" aria-label="Año">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>`, S.anioP !== ULT);
+    } else h += chip("Fecha", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
+    if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
+    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`);
+    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`);
+    $("#rs-chips").innerHTML = h;
+    // En el móvil, una sola línea con el resumen (lo que no está como al principio, resaltado); al tocarla, Ajustes.
+    const parte = (txt, cambiado = false) => `<span class="${cambiado ? "cambiado" : ""}">${esc(txt)}</span>`;
+    const partes = [parte(base.corto)];
+    if (base.grupo === "espera" && S.campoE !== "total") partes.push(parte(indDetalle(base, S.campoE).campoNombre || "", true));
+    if (serie) partes.push(S.modo === "cambio" ? parte(`${S.desde} → ${S.anioP}`, true) : parte(String(S.anioP), S.anioP !== ULT));
+    else partes.push(parte(corteCorto()));
+    if (enEuros(base)) partes.push(parte(S.real ? "sin inflación" : "con inflación", !S.real));
+    partes.push(parte(NOMBRE[S.com]));
+    $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas" aria-hidden="true">▾</span>`;
+    $("#rs-texto").setAttribute("aria-label", `Estás viendo: ${$("#rs-texto").textContent.replace("▾", "")}. Pulsa para cambiarlo`);
+    $("#rs-texto").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
+    const on = (id, fn) => { const el = $("#" + id); if (el) el.onchange = (e) => aplicar(() => fn(e.target.value)); };
+    on("rs-dato", (v) => { S.indP = v; });
+    on("rs-campo", (v) => { S.campoE = v; });
+    on("rs-modo", (v) => { S.modo = v; });
+    on("rs-anio", (v) => { S.anioP = +v; });
+    on("rs-desde", (v) => { S.desde = +v; });
+    on("rs-hasta", (v) => { S.anioP = +v; });
+    on("rs-com", (v) => { S.com = v; });
+    on("rs-graf", (v) => { S.vistaE = v; });
+    if ($("#rs-infl")) $("#rs-infl").onclick = () => aplicar(() => { S.real = !S.real; });
+    $("#rs-ajustes").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
+    if ($("#ajustes").open) renderAjustes();
+  }
+
+  // Panel con todas las opciones juntas y explicadas (en el móvil sale desde abajo).
+  function renderAjustes() {
+    const base = IND[S.indP], serie = tieneSerie(base);
+    const radios = (nombre, valor, ops) => `<div class="aj-radios" role="radiogroup" aria-label="${nombre}">${ops.map(([v, t, nota, dis]) => `<label class="aj-radio${dis ? " dis" : ""}"><input type="radio" name="aj-${nombre}" id="aj-${nombre}-${v}" value="${v}" ${String(valor) === String(v) ? "checked" : ""} ${dis ? "disabled" : ""}><span>${t}${nota ? ` <small>${nota}</small>` : ""}</span></label>`).join("")}</div>`;
+    const fila = (titulo, control, ayuda = "") => `<div class="aj-fila"><div class="aj-t">${titulo}</div><div>${control}${ayuda ? `<p class="aj-ayuda">${ayuda}</p>` : ""}</div></div>`;
+    let h = `<div class="aj-cab"><h2 id="aj-titulo">Ajustes de la vista</h2><button type="button" class="aj-cerrar" id="aj-cerrar" aria-label="Cerrar">×</button></div>`;
+    h += fila("Dato", `<select id="aj-dato">${opcionesDato()}</select>`);
+    if (base.grupo === "espera") h += fila("Especialidad", `<select id="aj-campo">${opcionesCampo(base)}</select>`, "Las tarjetas siguen mostrando el total.");
+    if (serie) {
+      h += fila("¿Qué ver?", radios("modo", S.modo, [["valor", "Un año"], ["cambio", "Cambio entre dos años"]]), "El mapa y el ranking muestran el valor de un año o cuánto ha cambiado entre dos.");
+      h += S.modo === "cambio"
+        ? fila("Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select></span>`)
+        : fila("Año", `<select id="aj-anio">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>`);
+    } else h += fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
+    if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
+    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, "Se resalta en el mapa y en los gráficos.");
+    h += fila("Gráfico", radios("graf", S.vistaE, [["ranking", "Ranking"], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]), "El gráfico que aparece debajo del mapa.");
+    h += `<div class="aj-pie"><button type="button" class="btn" id="aj-reset">Restablecer</button><button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
+    $("#aj-cuerpo").innerHTML = h;
+    const on = (sel, fn) => $("#aj-cuerpo").querySelectorAll(sel).forEach((el) => el.onchange = (e) => { pararPlay(); fn(e.target.value); render(); });
+    on("#aj-dato", (v) => { S.indP = v; });
+    on("#aj-campo", (v) => { S.campoE = v; });
+    on('input[name="aj-modo"]', (v) => { S.modo = v; });
+    on("#aj-anio", (v) => { S.anioP = +v; });
+    on("#aj-desde", (v) => { S.desde = +v; });
+    on("#aj-hasta", (v) => { S.anioP = +v; });
+    on('input[name="aj-infl"]', (v) => { S.real = v === "1"; });
+    on("#aj-com", (v) => { S.com = v; });
+    on('input[name="aj-graf"]', (v) => { S.vistaE = v; });
+    const cerrar = () => $("#ajustes").close();
+    $("#aj-cerrar").onclick = cerrar;
+    $("#aj-ver").onclick = () => { cerrar(); document.querySelector("#v-datos .portada-grid").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    $("#aj-reset").onclick = () => { pararPlay(); Object.assign(S, POR_DEFECTO, { anioP: ULT }); render(); };
   }
 
   // Pestañas bajo el mapa. El ranking sigue al mapa (valor o cambio); la tabla trae los dos.
@@ -1080,18 +1155,12 @@ export function iniciar(DATA: DatosApp): void {
     else if (h === "metodo") S.vista = "metodo";
     else if (h.startsWith("metodo-")) { S.vista = "metodo"; render(); const e = document.getElementById(h); if (e) e.scrollIntoView(); return; }
     else { S.vista = "datos"; if (qs) leerEnlace(qs); } // #portada y #explorar (enlaces antiguos) llevan aquí
-    pararPlay(); render(); window.scrollTo(0, 0);
+    pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera a ${DATA.corteListas}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
-  // Mostrar la barra fija solo cuando las tarjetas han quedado por encima de la pantalla.
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(([e]) => {
-      $("#barra-dato").hidden = e.isIntersecting || e.boundingClientRect.top > 0;
-    }).observe($("#sel-datos"));
-  }
   addEventListener("hashchange", leerHash);
   let rz, anchoPrevio = innerWidth;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== anchoPrevio) { anchoPrevio = innerWidth; render(); } }, 150); });

@@ -11,11 +11,6 @@ export const ESQUELETO = `<div class="wrap">
     </nav>
   </header>
   <section id="v-datos" hidden>
-    <div class="barra-dato" id="barra-dato" hidden>
-      <label class="sr" for="bd-dato">Dato que estás viendo</label><select id="bd-dato"></select>
-      <label class="sr" for="bd-campo">Especialidad o proceso</label><select id="bd-campo"></select>
-      <button type="button" class="bd-arriba" id="bd-arriba" aria-label="Volver a las tarjetas">↑</button>
-    </div>
     <div class="intro">
       <div class="intro-cab">
         <div>
@@ -25,6 +20,11 @@ export const ESQUELETO = `<div class="wrap">
       </div>
       <div class="selector" id="sel-datos"></div>
       <div class="campo" id="d-campo"></div>
+    </div>
+    <div class="resumen" id="resumen" role="region" aria-label="Lo que estás viendo">
+      <div class="rs-chips" id="rs-chips"></div>
+      <button type="button" class="rs-texto" id="rs-texto" aria-haspopup="dialog"></button>
+      <button type="button" class="rs-ajustes" id="rs-ajustes" aria-haspopup="dialog" aria-label="Ajustes de la vista">⚙<span class="rs-aj-txt"> Ajustes</span></button>
     </div>
     <div class="portada-grid">
       <div class="panel">
@@ -109,4 +109,5 @@ export const ESQUELETO = `<div class="wrap">
   </footer>
 </div>
 <div class="tip" id="tip" hidden></div>
+<dialog class="ajustes" id="ajustes" aria-labelledby="aj-titulo"><div id="aj-cuerpo"></div></dialog>
 <p class="sr" aria-live="polite" id="anuncio"></p>`;

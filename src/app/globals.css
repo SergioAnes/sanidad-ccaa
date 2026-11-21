@@ -276,12 +276,57 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 #c-gasto-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 #c-gasto-sub .sub-ficha { flex-basis: 100%; }
 
-/* Barra fija con el dato actual (aparece al bajar) */
-.barra-dato { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; gap: 8px; align-items: center;
-  padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px));
-  background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: 0 2px 10px rgb(0 0 0 / 0.08); }
-.barra-dato[hidden], .barra-dato select[hidden] { display: none; }
-.barra-dato select { flex: 1 1 0; min-width: 0; font-weight: 600; color: var(--fg); border-color: var(--accent); }
-.bd-arriba { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); cursor: pointer; font-size: 1rem; }
-@media (min-width: 861px) { .barra-dato { left: 50%; right: auto; transform: translateX(-50%); width: min(1120px, calc(100% - 32px)); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 14px 14px; } .barra-dato select { flex: 0 1 320px; } }
-.barra-dato #bd-dato { flex: 1.4 1 0; } .barra-dato #bd-campo { flex: 1 1 0; }
+
+/* Resumen de lo que estás viendo: encima del mapa y fijo arriba al bajar */
+.resumen { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; margin-top: 18px;
+  padding: 8px 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.rs-chips { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.chip-s { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 4px 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); white-space: nowrap; font-size: 0.85rem; color: var(--fg); }
+.chip-s .et { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.chip-s select { border: 0; background: transparent; font-weight: 600; color: var(--fg); padding: 6px 4px; max-width: 220px; }
+.chip-s .fijo { font-weight: 600; padding: 0 8px 0 2px; }
+.chip-s.boton { cursor: pointer; padding-right: 12px; font-weight: 600; }
+.chip-s.cambiado { border-color: var(--note); background: var(--note-bg); }
+.rs-ajustes { flex: none; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer; white-space: nowrap; }
+/* Panel «Ajustes» */
+dialog.ajustes { border: 0; border-radius: 18px; padding: 18px 20px; width: min(560px, calc(100% - 32px)); max-height: 88vh; overflow: auto; background: var(--surface); color: var(--fg); box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); }
+dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
+.aj-cab { display: flex; justify-content: space-between; align-items: center; }
+.aj-cab h2 { font-size: 1.2rem; }
+.aj-cerrar { border: 0; background: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--muted); }
+.aj-fila { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 6px 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.aj-t { font-weight: 700; font-size: 0.9rem; padding-top: 6px; }
+.aj-fila select { max-width: 100%; font-weight: 600; }
+.aj-radios { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.aj-radio { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0; }
+.aj-radio.dis { opacity: 0.45; cursor: not-allowed; }
+.aj-radio small { color: var(--muted); }
+.aj-ayuda { margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); }
+.aj-anios { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.aj-pie { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
+@media (max-width: 640px) {
+  .rs-ajustes { padding: 0 10px; }
+  dialog.ajustes { margin: auto 0 0; width: 100%; max-width: none; border-radius: 18px 18px 0 0; max-height: 85vh; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+  .aj-fila { grid-template-columns: 1fr; }
+  .aj-t { padding-top: 0; }
+}
+
+/* Cada etiqueta mide lo que su texto (donde el navegador lo admite); si no caben, segunda fila */
+.chip-s select { field-sizing: content; }
+@media (min-width: 641px) { .rs-chips { flex-wrap: wrap; overflow: visible; } }
+.rs-texto { display: none; }
+@media (max-width: 640px) {
+  .rs-chips { display: none; }
+  .rs-texto { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font-weight: 600; font-size: 0.86rem; text-align: left; cursor: pointer; }
+  .rs-linea { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rs-linea .cambiado { color: var(--note); }
+  .rs-linea .sep { color: var(--muted); font-weight: 400; }
+  .rs-mas { flex: none; color: var(--muted); }
+}
+
+@media (max-width: 640px) {
+  .rs-texto { height: auto; min-height: 40px; padding: 6px 12px; }
+  .rs-linea { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
+  .rs-aj-txt { display: none; }
+  .rs-ajustes { width: 42px; height: 42px; padding: 0; font-size: 1.1rem; }
+}
