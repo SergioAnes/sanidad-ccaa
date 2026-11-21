@@ -22,8 +22,18 @@
     "id": "pct_conciertos",
     "nombre": "Gasto en conciertos (% del gasto sanitario)",
     "unidad": "pct",
-    "descripcion": "Peso de los conciertos (asistencia que la comunidad contrata con centros ajenos, sobre todo privados) en el gasto sanitario consolidado de la comunidad. Clasificación económico-presupuestaria.",
+    "descripcion": "Peso de los conciertos en el gasto sanitario consolidado de la comunidad (clasificación económico-presupuestaria). Conciertos: asistencia que la comunidad financia y presta otra entidad «con recursos patrimoniales ajenos a aquella entidad que financia la asistencia»; pueden estar suscritos «con profesionales, instituciones o empresas que sean de titularidad pública o privada» (Metodología de la EGSP).",
     "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4.01 a 3.4.17",
+    "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
+    "estado": "oficial",
+    "neutral": true
+  },
+  {
+    "id": "conciertos_hab",
+    "nombre": "Gasto en conciertos por habitante",
+    "unidad": "eur_hab",
+    "descripcion": "Importe de los conciertos de la comunidad (clasificación económico-presupuestaria) dividido entre la misma población que usa el Ministerio en el Anexo I.2. Conciertos: asistencia que la comunidad financia y presta otra entidad «con recursos patrimoniales ajenos a aquella entidad que financia la asistencia»; pueden estar suscritos «con profesionales, instituciones o empresas que sean de titularidad pública o privada» (Metodología de la EGSP).",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público 2002-2024, Tablas 3.4 y Anexo I.2 (cálculo propio)",
     "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm",
     "estado": "oficial",
     "neutral": true

@@ -149,7 +149,33 @@ export function iniciar(DATA: DatosApp): void {
   const firmado = (x, d) => (x > 0 ? "+" : x < 0 ? "−" : "") + nf(d).format(Math.abs(x));
   function textoAviso(a, conNombre = true) {
     const u = a.unidad === "%" ? " %" : " puntos", d = a.unidad === "%" ? 0 : 1;
-    return `${conNombre ? `${NOMBRE[a.ccaa]}, ${a.anio}: ` : ""}${firmado(a.cambio, d)}${u} respecto a ${a.anio - 1}${a.unidad === "%" ? " (en euros de cada año)" : ""}, cuando la mediana de las comunidades fue ${firmado(a.mediana, d)}${u}. Es la cifra oficial, pero el Ministerio no explica el motivo.`;
+    return `${conNombre ? `${NOMBRE[a.ccaa]}, ${a.anio}: ` : ""}${firmado(a.cambio, d)}${u} respecto a ${a.anio - 1}${a.unidad === "%" ? " (en euros de cada año)" : ""}, cuando la mediana de las comunidades fue ${firmado(a.mediana, d)}${u}. Es la cifra oficial, pero el Ministerio no explica el motivo.` +
+      (entidadesDe(a.ccaa).some((e) => e.anio === a.anio) ? " Ese año también cambió la lista de entidades que cuenta la estadística." : "");
+  }
+
+  // ---------- entidades que cuenta la estadística (src/data/perimetro-egsp.json) ----------
+  // Solo hechos: qué entidades aparecen o dejan de aparecer en la lista del Ministerio, cuánto pesaban y cuándo.
+  // La fuente no dice por qué; no lo interpretamos.
+  const ENTIDADES = DATA.entidades;
+  const UMBRAL_ENT = DATA.umbralEntidades;
+  const entidadesDe = (id) => ENTIDADES.filter((e) => e.ccaa === id);
+  const millones = (x) => `${nf(x >= 10 ? 0 : 1).format(x)} M€`;
+  const pctTxt = (x) => `${nf(1).format(x)} %`;
+  const AVISO_ENTIDADES = "La estadística no explica el motivo: puede ser una entidad nueva, una reorganización entre organismos públicos o una entidad que antes no se clasificaba como pública. No siempre mueve las cifras.";
+  function textoEntidades(e, conNombre = true) {
+    const grandes = e.entidades.filter((x) => x.peso >= 0.5), resto = e.entidades.filter((x) => x.peso < 0.5);
+    const lista = grandes.map((x) => `${x.nombre} (${millones(x.millones)}, ${pctTxt(x.peso)})`);
+    const pesoResto = pctTxt(resto.reduce((s, x) => s + x.peso, 0));
+    if (resto.length && grandes.length) lista.push(`${resto.length === 1 ? "otra" : `otras ${resto.length}`} más pequeña${resto.length === 1 ? "" : "s"} (${pesoResto} en total)`);
+    else if (resto.length) lista.push(`${resto.length} entidades que no llegan al 0,5 % cada una`);
+    const juntas = lista.length > 1 ? `${lista.slice(0, -1).join("; ")} y ${lista[lista.length - 1]}` : lista[0];
+    const n = e.entidades.length;
+    const que = e.cambio === "entra"
+      ? `${n === 1 ? "Aparece" : "Aparecen"} en la lista`
+      : `${n === 1 ? "Deja" : "Dejan"} de aparecer en la lista`;
+    const peso = e.cambio === "entra" ? `${pctTxt(e.peso)} del gasto de ese año` : `${pctTxt(e.peso)} del gasto en ${e.anio - 1}, su último año en la lista`;
+    const nota = NOTAS.some((x) => x.ccaa === e.ccaa && x.anio === e.anio) ? " Ver también la nota del Ministerio de ese año." : "";
+    return `${conNombre ? `${NOMBRE[e.ccaa]}, ${e.anio}: ` : ""}${que}: ${juntas}.${n > 1 ? ` En conjunto, ${peso}.` : e.cambio === "sale" ? ` Importe y peso de ${e.anio - 1}, su último año en la lista.` : ""}${nota}`;
   }
 
   // ---------- especialidades y procesos (listas de espera) ----------
@@ -661,6 +687,12 @@ export function iniciar(DATA: DatosApp): void {
         if (!lista.length) return "";
         return `<div class="notas-oficiales"><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b><ul>${lista.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul> <a href="#metodo-calidad">Cómo las detectamos</a>.</div>`;
       })() : "") +
+      // Al comparar un periodo, avisa si en él cambió la lista de entidades de alguna comunidad.
+      (tieneSerie(ind) && S.vistaE !== "evolucion" && S.modo === "cambio" ? (() => {
+        const cc = [...new Set(ENTIDADES.filter((e) => e.anio > S.desde && e.anio <= anio).map((e) => e.ccaa))];
+        if (!cc.length) return "";
+        return `<div class="notas-oficiales"><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${cc.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</div>`;
+      })() : "") +
       (S.vistaE !== "evolucion" ? `<div class="aviso"><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</div>` : "");
   }
 
@@ -968,21 +1000,35 @@ export function iniciar(DATA: DatosApp): void {
     const marcas = S.sel.flatMap((sl) => [
       ...notasDe(sl.id).map((n) => ({ ccaa: n.ccaa, anio: n.anio, tipo: "nota", texto: n.texto, c: css(SLOTS[sl.slot]) })),
       ...avisosDe(ind.id, sl.id).map((a) => ({ ccaa: a.ccaa, anio: a.anio, tipo: "aviso", texto: textoAviso(a, false), c: css(SLOTS[sl.slot]) })),
+      ...entidadesDe(sl.id).map((e) => ({ ccaa: e.ccaa, anio: e.anio, tipo: "entidades", texto: textoEntidades(e, false), c: css(SLOTS[sl.slot]) })),
     ]).sort((a, b) => a.ccaa.localeCompare(b.ccaa) || a.anio - b.anio);
+    // Si varias marcas caen en el mismo punto, se apilan hacia arriba para que se lean todas.
+    const apiladas = {};
     marcas.forEach((n, k) => {
       const v = ind.serie[n.ccaa][n.anio - ANIOS[0]];
       if (v == null) return;
-      s += `<g aria-hidden="true"><circle cx="${x(n.anio)}" cy="${y(v)}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2" ${n.tipo === "aviso" ? 'stroke-dasharray="2 2"' : ""}/><text x="${x(n.anio)}" y="${y(v) + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
+      const clave = `${n.ccaa}|${n.anio}`, nivel = apiladas[clave] = (apiladas[clave] ?? -1) + 1;
+      const cx = x(n.anio), cy = y(v) - nivel * 18;
+      // Nota del Ministerio: círculo continuo; variación inusual: círculo discontinuo; cambio de entidades: cuadrado.
+      const forma = n.tipo === "entidades"
+        ? `<rect x="${cx - 8}" y="${cy - 8}" width="16" height="16" rx="3" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2"/>`
+        : `<circle cx="${cx}" cy="${cy}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2" ${n.tipo === "aviso" ? 'stroke-dasharray="2 2"' : ""}/>`;
+      s += `<g aria-hidden="true">${forma}<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
     });
     s += `</svg>`;
-    const otrasNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
-    const otrosAvisos = [...new Set(avisosDe(ind.id).map((a) => a.ccaa))].filter((k) => !S.sel.some((sl) => sl.id === k));
+    const fuera = (k) => !S.sel.some((sl) => sl.id === k);
+    const otrasNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter(fuera);
+    const otrosAvisos = [...new Set(avisosDe(ind.id).map((a) => a.ccaa))].filter(fuera);
+    const otrasEntidades = [...new Set(ENTIDADES.map((e) => e.ccaa))].filter(fuera);
+    const TIPO = { nota: "Nota del Ministerio", aviso: "Variación inusual", entidades: "Cambio en las entidades" };
     s += `<div class="notas-oficiales">` + (marcas.length
-      ? `<b>Sobre las comunidades destacadas:</b><ol>${marcas.map((n) => `<li><b>${n.tipo === "nota" ? "Nota del Ministerio" : "Variación inusual"} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>`
+      ? `<b>Sobre las comunidades destacadas</b>${marcas.some((n) => n.tipo === "entidades") ? " (en el gráfico, círculo: nota del Ministerio; círculo discontinuo: variación inusual; cuadrado: cambio en las entidades que cuenta la estadística)" : ""}:<ol>${marcas.map((n) => `<li><b>${TIPO[n.tipo]} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>` +
+        (marcas.some((n) => n.tipo === "entidades") ? `<p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a>.</p>` : "")
       : "") +
       (otrasNotas.length ? `<p>El Ministerio explica saltos en las series de ${otrasNotas.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
       (otrosAvisos.length ? `<p>Hay variaciones inusuales sin explicación oficial en este dato en ${otrosAvisos.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
-      (otrasNotas.length || otrosAvisos.length ? `<p>Destaca una comunidad para verlo en el gráfico. <a href="#metodo-calidad">Cómo los detectamos</a>.</p>` : "") + `</div>`;
+      (otrasEntidades.length ? `<p>Cambia la lista de entidades que cuenta la estadística en ${otrasEntidades.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
+      (otrasNotas.length || otrosAvisos.length || otrasEntidades.length ? `<p>Destaca una comunidad para verlo en el gráfico. <a href="#metodo-calidad">Cómo los detectamos</a>.</p>` : "") + `</div>`;
     cont.innerHTML = s;
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
@@ -1066,9 +1112,10 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-vs").onchange = (e) => { S.vs = e.target.value; render(); };
     $("#c-leyenda-vs").innerHTML = S.vs ? `<span><i style="background:${css("--accent")}"></i>${esc(NOMBRE[id])}</span><span><i style="background:${css("--s2")}"></i>${esc(NOMBRE[S.vs])}</span>` : "";
     $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs, aC)).join("");
-    const nts = notasDe(id), avs = AVISOS.filter((a) => a.ccaa === id);
+    const nts = notasDe(id), avs = AVISOS.filter((a) => a.ccaa === id), ents = entidadesDe(id);
     $("#c-notas").innerHTML = (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
-      (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "");
+      (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "") +
+      (ents.length ? `<p><b>Entidades que cuenta la estadística en ${esc(NOMBRE[id])}.</b> La estadística suma el gasto de las entidades públicas que gestionan la sanidad de cada comunidad, y esa lista cambia con los años. Cambios que pesan al menos un ${UMBRAL_ENT} % del gasto:</p><ul>${ents.map((e) => `<li><b>${e.anio}.</b> ${esc(textoEntidades(e, false))}</li>`).join("")}</ul><p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a></p>` : "");
     $("#c-espera-sub").textContent = `Situación a ${DATA.corteListas}. Un valor más alto significa más espera.`;
     $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs)).join("");
     const esp = Object.entries(DATA.especQuir).map(([n, o]) => [n, o[id]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
@@ -1082,10 +1129,12 @@ export function iniciar(DATA: DatosApp): void {
     const lista = (grupo) => DATA.inds.filter((i) => i.grupo === grupo).map((i) => `<dt>${esc(i.nombre)}</dt><dd>${esc(i.desc)}</dd>`).join("");
     const subida = nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100);
     const CRIT_TXT = "10 puntos de crecimiento en los datos en euros, o 3 puntos en los porcentajes";
+    const MET_EGSP = "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/gastoSanitario2005/tablasEstEGSP/Metodologia_general.pdf";
+    const INV_IGAE = "https://www.igae.pap.hacienda.gob.es/sitios/igae/es-ES/Contabilidad/ContabilidadNacional/InformacionGeneral/Documents/Entidades_incluidas_en_el_sector_de_las_Administraciones_P%C3%BAblicas.pdf";
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -1108,6 +1157,21 @@ export function iniciar(DATA: DatosApp): void {
         <li><b>Ceuta y Melilla</b> aparecen aparte en listas de espera: su sanidad la gestiona el Ministerio (INGESA) y su población es muy pequeña. No cuentan para medias, puestos ni colores. En gasto no aparecen, porque el Excel solo recoge la parte del INGESA.</li>
         <li><b>Gasto frente a espera:</b> el gráfico describe si las comunidades que más gastan esperan más o menos; no mide causas. Damos dos correlaciones (Pearson y por rangos, Spearman) y solo hablamos de relación si ambas superan el umbral a partir del cual no se pueden atribuir fácilmente al azar (con 17 comunidades, ±0,48). Como se pueden mirar muchas combinaciones de espera y especialidad, alrededor del 5 % superará ese umbral solo por azar: por eso, cuando aparece, la llamamos «posible relación». Aunque la haya, no prueba que una cosa cause la otra: influyen la edad, la dispersión, las derivaciones a la concertada, el seguro privado, la organización de cada servicio y cómo se registran las listas. Además, compara comunidades, no personas, y el gasto (${ULT}) y la espera (${DATA.corteListas}) no son del mismo momento.</li>
       </ul>
+
+      <h2 id="metodo-entidades">Conciertos y entidades que cuenta la estadística</h2>
+      <p><b>Qué es un concierto.</b> La <a href="${MET_EGSP}">metodología de la EGSP</a> llama conciertos a la asistencia prestada «con recursos patrimoniales ajenos a aquella entidad que financia la asistencia», y añade que «pueden estar suscritos con profesionales, instituciones o empresas que sean de titularidad pública o privada» (pág. 15). En otro apartado, el mismo documento se refiere a ellos como «producción privada» (pág. 6). Recogemos las dos formulaciones; la definición formal incluye centros públicos y privados.</p>
+      <p>De esa definición se deduce que cuánto se clasifica como concierto depende de cómo organiza cada comunidad sus servicios: lo que presta con medios propios o con entidades de su sector público no es concierto; lo que contrata con centros ajenos, sí. Por eso el peso de los conciertos no mide por sí solo cuánta asistencia pública prestan centros privados. Lo mostramos en porcentaje del gasto y en euros por habitante.</p>
+      <p><b>Qué entidades cuenta la estadística.</b> La EGSP recoge el gasto de las unidades del sector Administraciones Públicas según el Sistema Europeo de Cuentas, incluidas las instituciones sin fines de lucro «controladas y financiadas principalmente por las AAPP» y las empresas públicas sanitarias con «financiación mayoritaria» de las administraciones (pág. 6). Al sumar, elimina los pagos entre administraciones públicas para no contar dos veces el mismo dinero: el gasto se anota en la entidad que presta el servicio (pág. 13).</p>
+      <p>Ejemplo: según el <a href="${INV_IGAE}">inventario de entidades del sector público de la IGAE</a> (Ministerio de Hacienda, actualizado el 17/09/2025), el Hospital Clínic de Barcelona, el Consorci Mar Parc de Salut de Barcelona, el Consorci Corporació Sanitària Parc Taulí o la Fundació de Gestió Sanitària de l'Hospital de la Santa Creu i Sant Pau están clasificados en el sector público de la Generalitat de Cataluña. En la EGSP aparecen en la lista de entidades de Cataluña entre 2006 y 2011. Desde entonces, su gasto propio (personal, compras…) se suma al de la comunidad.</p>
+      <p><b>Cambios en la lista.</b> La lista de entidades de cada comunidad cambia con los años. Señalamos los años en que las entidades que aparecen, o las que dejan de aparecer, pesan juntas al menos un ${UMBRAL_ENT} % del gasto de la comunidad. Es un umbral nuestro: por debajo casi todo son fundaciones de investigación pequeñas. ${esc(AVISO_ENTIDADES)} Dos ejemplos de lo que se ve en las cifras:</p>
+      <ul>
+        <li>Baleares, 2013: dejan de aparecer cuatro fundaciones y empresas públicas que en 2012 sumaban 321 M€ (el 25 % del gasto). El gasto total de la comunidad pasa de 1.293 a 1.278 M€ y el del Servei de Salut, de 950 a 1.258 M€.</li>
+        <li>Cataluña, 2006: aparecen once entidades, casi todas consorcios sanitarios, que suman el 8 % del gasto de ese año. Los conciertos pasan de 2.565 a 2.522 M€, pero su peso baja del 35,5 % al 30,9 % porque el gasto total pasa de 7.227 a 8.152 M€.</li>
+      </ul>
+      <p>Al comparar un periodo en el que cambió la lista, parte de la diferencia puede deberse a ese cambio. No se puede rehacer la serie con las mismas entidades todos los años: la estadística no trae las cuentas de una entidad antes de que entre en la lista, ni dice qué parte de lo que se le pagaba antes contaba como concierto. Estos son todos los cambios que señalamos (${ENTIDADES.length}); los verás también en la evolución (al destacar la comunidad) y en su ficha:</p>
+      <div class="tabla-wrap"><table class="tabla"><thead><tr><th>Comunidad</th><th>Año</th><th>Cambio</th><th>Peso</th><th>Entidades</th></tr></thead><tbody>
+        ${ENTIDADES.map((e) => `<tr><td>${esc(NOMBRE[e.ccaa])}</td><td>${e.anio}</td><td>${e.cambio === "entra" ? "Aparecen" : "Dejan de aparecer"}</td><td>${pctTxt(e.peso)}</td><td>${esc(e.entidades.filter((x) => x.peso >= 0.5).map((x) => x.nombre).join("; ") || "Varias pequeñas")}${e.entidades.some((x) => x.peso < 0.5) && e.entidades.some((x) => x.peso >= 0.5) ? " y otras más pequeñas" : ""}</td></tr>`).join("")}
+      </tbody></table></div>
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
       <p>El Ministerio explica algunos saltos en las series de gasto de cada comunidad. Aparecen también en el gráfico de evolución (al destacar la comunidad) y en su ficha.</p>

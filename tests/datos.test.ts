@@ -70,6 +70,8 @@ describe("datos oficiales", () => {
     const v = (ind: string) => VALORES.find((f) => f.indicador === ind && f.ccaa === "AN" && f.anio === 2024)?.valor;
     expect(v("gasto_hab")).toBeCloseTo(1657.79, 2);
     expect(v("pct_conciertos")).toBeCloseTo(4.35, 2);
+    // 625.011,77 miles de € de conciertos / 8.648.311 habitantes (aportación total / gasto por habitante)
+    expect(v("conciertos_hab")).toBeCloseTo(72.27, 2);
     expect(v("pct_primaria")).toBeCloseTo(16.32, 2);
     expect(v("pct_pib")).toBeCloseTo(6.75, 2);
   });

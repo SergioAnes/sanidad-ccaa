@@ -24,6 +24,13 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   en `datos-originales/`. No editarlo a mano. La compilación falla si algún indicador no tiene `"estado": "oficial"`.
 - `src/data/notas-egsp.json` (notas metodológicas del Ministerio por comunidad y año) también lo genera
   `extraer_egsp.py`; la web las muestra en la evolución, la ficha y «Cómo leer los datos». No editarlo a mano.
+- `src/data/perimetro-egsp.json` (entidades o «agentes de gasto» que la EGSP empieza o deja de contar en cada
+  comunidad, con importe y peso) también lo genera `extraer_egsp.py`, que comprueba que la suma de entidades da el total.
+  La web señala los años en que lo que entra (o sale) pesa ≥ 1 % (`UMBRAL_ENTIDADES` en `datos-app.ts`) como
+  «Cambio en las entidades» (tercer tipo, junto a «Nota del Ministerio» y «Variación inusual»). Solo hechos: la fuente
+  no dice si es entidad nueva, reorganización o reclasificación; no interpretarlo ni afirmar efectos.
+- Conciertos: usar la definición literal de la metodología EGSP (pág. 15: centros «de titularidad pública o privada»);
+  no describirlos como «privados». `conciertos_hab` = importe / población implícita del Anexo I.2 (cálculo propio).
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

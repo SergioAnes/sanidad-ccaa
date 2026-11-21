@@ -16,12 +16,18 @@ Hojas que usa:
       clasificación funcional, fila "Farmacia"                         -> farmacia_hab
         (farmacia_hab = gasto_hab * % farmacia / 100, es decir, con la misma
          población que usa el Ministerio en el Anexo I.2)
+      clasificación económico-presupuestaria, importe de "Conciertos"   -> conciertos_hab
+        (conciertos_hab = importe de conciertos / población, con la población implícita del
+         Anexo I.2: aportación total de la comunidad / gasto por habitante)
 
 Los años marcados con (*) en el Excel son provisionales y se guardan con
 "provisional": true.
 
 También extrae las notas metodológicas de cada comunidad (años marcados con letra, p. ej. "2012b",
 y su texto en el bloque "Notas:" de la hoja) a src/data/notas-egsp.json.
+
+Y la lista de entidades («agentes de gasto») que la estadística cuenta en cada comunidad: cuándo empieza o deja
+de contar cada una, con su importe y su peso, a src/data/perimetro-egsp.json. La fuente no explica estos cambios.
 """
 
 from __future__ import annotations
@@ -38,6 +44,7 @@ RAIZ = Path(__file__).resolve().parent.parent
 EXCEL_DEFECTO = RAIZ / "datos-originales" / "egsp-gasto-real-2002-2024.xls"
 SALIDA = RAIZ / "src" / "data" / "valores.json"
 SALIDA_NOTAS = RAIZ / "src" / "data" / "notas-egsp.json"
+SALIDA_PERIMETRO = RAIZ / "src" / "data" / "perimetro-egsp.json"
 
 # Nombre oficial en el Excel -> id de src/data/ccaa.json
 NOMBRES = {
@@ -175,6 +182,43 @@ def notas_hoja(s: xlrd.sheet.Sheet) -> dict[int, str]:
     return out
 
 
+def agentes_hoja(s: xlrd.sheet.Sheet) -> dict[str, dict[int, float]]:
+    """Entidades («agentes de gasto») que la estadística cuenta en esta comunidad, con su aportación al gasto
+    total consolidado por año (miles de euros). Cada entidad tiene su bloque: una fila con su nombre y los años
+    en que cuenta, y más abajo la fila «Aportación al gasto total consolidado»."""
+    agentes: dict[str, dict[int, float]] = {}
+    actual, cab = None, {}
+    for r in range(s.nrows):
+        fila = s.row_values(r)
+        textos = [v for v in fila if isinstance(v, str) and v.strip() and not re.match(r"^\s*\d{4}", v)]
+        anios = columnas_anio(fila)
+        if len(textos) == 1 and anios and all(2000 <= a <= 2030 for a, _ in anios.values()):
+            nombre = re.sub(r"\s+", " ", textos[0]).strip()
+            if not re.match(r"(?i)(gasto|aportaci|concepto|clasificaci|miles|total|cuentas|comunidad|ciudad)", nombre):
+                actual, cab = nombre, anios
+                continue
+        if actual and etiqueta(fila).startswith("aportacion al gasto total consolidado"):
+            agentes[actual] = {a: numero(fila[c]) or 0.0 for c, (a, _) in cab.items()}
+            actual = None
+    return agentes
+
+
+def cambios_perimetro(ccaa: str, agentes: dict[str, dict[int, float]], primero: int, ultimo: int) -> list[dict]:
+    """Entradas y salidas de entidades en el perímetro de la comunidad, con su peso en el gasto de ese año
+    (entrada: peso en el primer año en que cuenta; salida: peso en el último)."""
+    total = {a: sum(v.get(a, 0.0) for v in agentes.values()) for a in range(primero, ultimo + 1)}
+    out = []
+    for nombre, v in agentes.items():
+        anios = sorted(v)
+        if anios[0] > primero:
+            out.append({"ccaa": ccaa, "anio": anios[0], "cambio": "entra", "entidad": nombre,
+                        "miles_eur": round(v[anios[0]]), "peso_pct": round(v[anios[0]] / total[anios[0]] * 100, 2)})
+        if anios[-1] < ultimo:
+            out.append({"ccaa": ccaa, "anio": anios[-1] + 1, "cambio": "sale", "entidad": nombre,
+                        "miles_eur": round(v[anios[-1]]), "peso_pct": round(v[anios[-1]] / total[anios[-1]] * 100, 2)})
+    return out
+
+
 def main() -> None:
     excel = Path(sys.argv[1]) if len(sys.argv) > 1 else EXCEL_DEFECTO
     libro = xlrd.open_workbook(str(excel))
@@ -197,6 +241,7 @@ def main() -> None:
 
     vistos = set()
     notas: list[dict] = []
+    perimetro: list[dict] = []
     for s in libro.sheets():
         if not re.fullmatch(r"Tabla 3\.4\.\d\d", s.name):
             continue
@@ -208,6 +253,7 @@ def main() -> None:
             notas.append({"ccaa": ccaa, "anio": anio, "texto": texto, "hoja": s.name})
 
         ini, fin, cab = bloque(s, "clasificacion economico-presupuestaria")
+        aportacion = {a: numero(s.row_values(fin)[c]) for c, (a, _) in cab.items()}
         # En esta tabla el % se calcula sobre el gasto consolidado del subsector
         # (antes de restar transferencias intersectoriales).
         r_sub = next(x for x in range(ini, fin) if etiqueta(s.row_values(x)).startswith("gasto publico en sanidad"))
@@ -216,6 +262,15 @@ def main() -> None:
             # comprobación: el % del Excel cuadra con importe / total
             assert abs(imp / total_eco[anio] * 100 - pct) < 0.01, (s.name, anio)
             add("pct_conciertos", ccaa, anio, pct, prov, 2)
+            # Por habitante, con la misma población que el Ministerio: importe × (gasto por habitante / aportación total).
+            add("conciertos_hab", ccaa, anio, imp * gasto_hab[(ccaa, anio)][0] / aportacion[anio], prov, 2)
+
+        # Entidades que cuenta la estadística: su suma debe dar el total de la comunidad cada año.
+        agentes = agentes_hoja(s)
+        for anio, tot_a in aportacion.items():
+            suma = sum(v.get(anio, 0.0) for v in agentes.values())
+            assert abs(suma - tot_a) <= abs(tot_a) * 1e-4, (s.name, anio, "la suma de entidades no da el total", suma, tot_a)
+        perimetro += cambios_perimetro(ccaa, agentes, min(aportacion), max(aportacion))
 
         ini, fin, cab = bloque(s, "clasificacion funcional")
         for anio, (_, pct, prov) in fila_pct(s, ini, fin, cab, "servicios primarios de salud").items():
@@ -249,6 +304,12 @@ def main() -> None:
 
     SALIDA_NOTAS.write_text(json.dumps(notas, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"Escrito {SALIDA_NOTAS.relative_to(RAIZ)}: {len(notas)} notas")
+
+    perimetro.sort(key=lambda x: (x["ccaa"], x["anio"], x["cambio"], -x["peso_pct"]))
+    cuerpo = ",\n".join("  " + json.dumps(x, ensure_ascii=False) for x in perimetro)
+    SALIDA_PERIMETRO.write_text("[\n" + cuerpo + "\n]\n", encoding="utf-8")
+    print(f"Escrito {SALIDA_PERIMETRO.relative_to(RAIZ)}: {len(perimetro)} entradas y salidas de entidades "
+          f"({sum(x['peso_pct'] >= 1 for x in perimetro)} de al menos un 1 % del gasto)")
 
     resumen: dict[str, int] = {}
     for f in filas:

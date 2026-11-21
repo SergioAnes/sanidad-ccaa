@@ -27,6 +27,19 @@ describe("coherencia de los datos de gasto", () => {
     for (const c of CCAA) for (const a of anios) expect(val("farmacia_hab", c.id, a)!).toBeLessThan(val("gasto_hab", c.id, a)!);
   });
 
+  it("los conciertos por habitante son menores que el gasto por habitante y cuadran con su porcentaje", () => {
+    for (const c of CCAA) for (const a of anios) {
+      const ch = val("conciertos_hab", c.id, a)!, gh = val("gasto_hab", c.id, a)!, pc = val("pct_conciertos", c.id, a)!;
+      expect(ch).toBeLessThan(gh);
+      // El % va sobre el gasto del subsector ANTES de restar las transferencias intersectoriales; por habitante se
+      // divide el importe entre la población del Ministerio (aportación total / gasto por habitante). Así que
+      // gasto_hab × % = conciertos_hab × (aportación / subsector): algo menor, como mucho un 2,5 % (Extremadura 2002).
+      const r = (gh * pc) / 100 / ch;
+      expect(r, `${c.id} ${a}`).toBeLessThanOrEqual(1.0012); // ≤ 1 salvo redondeo a dos decimales
+      expect(r, `${c.id} ${a}`).toBeGreaterThan(0.97);
+    }
+  });
+
   it("solo los últimos años son provisionales", () => {
     const prov = [...new Set(VALORES.filter((v) => v.provisional).map((v) => v.anio))].sort();
     expect(prov.every((a) => a >= anios[anios.length - 3])).toBe(true);
