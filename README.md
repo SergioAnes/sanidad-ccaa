@@ -48,6 +48,7 @@ npm test
 | `src/data/indicadores.json` | Qué se mide, unidad, fuente, URL y estado (`ejemplo` / `oficial`) |
 | `src/data/valores.json` | Formato largo: una fila por `indicador` + `ccaa` + `anio` + `valor` |
 | `src/data/perimetro-egsp.json` | Entidades que la EGSP empieza o deja de contar en cada comunidad, con importe y peso (generado) |
+| `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
@@ -71,7 +72,7 @@ python scripts/extraer_egsp.py [ruta_al_excel]
 npm test
 ```
 
-El script regenera `src/data/valores.json`, las notas metodológicas (`src/data/notas-egsp.json`) y los cambios en la lista de entidades de cada comunidad (`src/data/perimetro-egsp.json`). Comprueba que los porcentajes cuadran con los importes y que la suma de las entidades da el total de cada comunidad.
+Antes, `python scripts/extraer_ppe.py` (población protegida equivalente; necesita los anexos de las liquidaciones del sistema de financiación en `datos-originales/`). El script regenera `src/data/valores.json`, las notas metodológicas (`src/data/notas-egsp.json`) y los cambios en la lista de entidades de cada comunidad (`src/data/perimetro-egsp.json`). Comprueba que los porcentajes cuadran con los importes y que la suma de las entidades da el total de cada comunidad.
 
 ## Actualizar las listas de espera (SISLE-SNS)
 

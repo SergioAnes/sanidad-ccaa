@@ -45,6 +45,7 @@ EXCEL_DEFECTO = RAIZ / "datos-originales" / "egsp-gasto-real-2002-2024.xls"
 SALIDA = RAIZ / "src" / "data" / "valores.json"
 SALIDA_NOTAS = RAIZ / "src" / "data" / "notas-egsp.json"
 SALIDA_PERIMETRO = RAIZ / "src" / "data" / "perimetro-egsp.json"
+PPE = RAIZ / "src" / "data" / "poblacion-equivalente.json"  # lo genera scripts/extraer_ppe.py
 
 # Nombre oficial en el Excel -> id de src/data/ccaa.json
 NOMBRES = {
@@ -242,6 +243,7 @@ def main() -> None:
     vistos = set()
     notas: list[dict] = []
     perimetro: list[dict] = []
+    aportaciones: dict[tuple[str, int], float] = {}
     for s in libro.sheets():
         if not re.fullmatch(r"Tabla 3\.4\.\d\d", s.name):
             continue
@@ -254,6 +256,7 @@ def main() -> None:
 
         ini, fin, cab = bloque(s, "clasificacion economico-presupuestaria")
         aportacion = {a: numero(s.row_values(fin)[c]) for c, (a, _) in cab.items()}
+        aportaciones.update({(ccaa, a): v for a, v in aportacion.items()})
         # En esta tabla el % se calcula sobre el gasto consolidado del subsector
         # (antes de restar transferencias intersectoriales).
         r_sub = next(x for x in range(ini, fin) if etiqueta(s.row_values(x)).startswith("gasto publico en sanidad"))
@@ -292,6 +295,30 @@ def main() -> None:
             var = pob[anio] / pob[anio - 1] - 1
             assert abs(var) < 0.06, (s.name, anio, f"población implícita {var:+.1%}")
         print(f"  {ccaa}: población implícita {pob[min(pob)]:,.0f} ({min(pob)}) -> {pob[max(pob)]:,.0f} ({max(pob)}), sin saltos")
+
+    # Gasto por habitante ajustado por edad (cálculo propio con datos oficiales): gasto de la comunidad dividido entre
+    # su población protegida equivalente (certificado de Sanidad, scripts/extraer_ppe.py), reescalado para que el
+    # conjunto de las 17 quede igual que sin ajustar: gasto_hab / factor, con
+    #   factor = (PPE de la comunidad / su población) / (PPE de las 17 / población de las 17),
+    # donde la población es la del Ministerio (aportación / gasto por habitante). Solo desde el primer año comparable
+    # (2013: desde entonces la población protegida sale de la base de datos de tarjeta sanitaria).
+    if PPE.exists():
+        ppe_datos = json.loads(PPE.read_text(encoding="utf-8"))
+        ppe = {(v["ccaa"], v["anio"]): v["ppe"] for v in ppe_datos["valores"]}
+        ids = sorted(NOMBRES.values())
+        anios_ppe = sorted({a for _, a in ppe if a >= ppe_datos["primer_anio_comparable"]})
+        for anio in anios_ppe:
+            if any((c, anio) not in gasto_hab or (c, anio) not in aportaciones for c in ids):
+                continue
+            pob = {c: aportaciones[(c, anio)] * 1000 / gasto_hab[(c, anio)][0] for c in ids}
+            k = sum(ppe[(c, anio)] for c in ids) / sum(pob.values())
+            for c in ids:
+                factor = ppe[(c, anio)] / pob[c] / k
+                gh, prov = gasto_hab[(c, anio)]
+                add("gasto_hab_edad", c, anio, gh / factor, prov, 2)
+        print(f"  gasto ajustado por edad: {anios_ppe[0]}-{anios_ppe[-1]}")
+    else:
+        print("  (sin src/data/poblacion-equivalente.json: ejecuta antes scripts/extraer_ppe.py)")
 
     faltan = set(NOMBRES.values()) - vistos
     if faltan:

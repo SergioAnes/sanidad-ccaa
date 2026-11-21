@@ -98,4 +98,14 @@ describe("datos de la interfaz", () => {
     expect(d.entidades.some((e) => e.ccaa === "GA" && e.anio === 2009)).toBe(true);
     expect(cambiosEntidades(undefined, 3).some((e) => e.ccaa === "GA")).toBe(false);
   });
+
+  it("el gasto ajustado por edad es una variante de gasto_hab, sin tarjeta propia y desde 2013", () => {
+    expect(d.inds.some((i) => i.id === "gasto_hab_edad")).toBe(false);
+    expect(d.edad?.anios[0]).toBe(2013);
+    expect(d.edad?.anios.at(-1)).toBe(d.anios.at(-1));
+    for (const s of Object.values(d.edad!.serie)) expect(s.every((v) => typeof v === "number")).toBe(true);
+    expect(d.edad?.coeficientes["75+"]).toBe(2.759);
+    expect(d.avisos.some((a) => a.indicador === "gasto_hab_edad")).toBe(false);
+  });
 });
+

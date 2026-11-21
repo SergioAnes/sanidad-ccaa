@@ -362,3 +362,8 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .tip-ayuda { opacity: 0.75; font-size: 0.9em; }
 .pliegue a { color: var(--accent); }
 .campo .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+/* Ajuste por edad: el «¿Cómo se calcula?» ocupa toda la fila y usa la letra pequeña de la zona */
+.real.edad { margin-top: 8px; }
+.real.edad .pliegue { flex-basis: 100%; margin-top: 0; font-size: 0.82rem; }
+.real.edad .pliegue-c { max-width: 70ch; color: var(--fg); }
+.real.edad .pliegue-c p { font-size: inherit; line-height: 1.5; }
