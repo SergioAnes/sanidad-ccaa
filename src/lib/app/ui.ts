@@ -236,7 +236,7 @@ export function iniciar(DATA: DatosApp): void {
         </div><span>${S.real
           ? `Cada año se expresa en euros de ${ULT}: así se ve cuánto ha crecido el gasto de verdad. Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE).`
           : `Cada año, en los euros de entonces: parte de la subida es solo inflación (los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]}).`}
-          Solo afecta a los datos en euros y a los años anteriores a ${ULT}: lo verás en la tendencia, al mover la barra de años y en el modo «Crecimiento» del mapa. Los porcentajes no cambian.</span></div>` : "");
+          Solo afecta a los datos en euros y a los años anteriores a ${ULT}: lo verás en la tendencia, al mover la barra de años y en «Cambio entre dos años». Los porcentajes no cambian.</span></div>` : "");
     cont.querySelectorAll(".real button").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
     // Solo los botones de tema: los de inflación (.real) también son .seg y tienen su propia acción.
     cont.querySelectorAll('.seg[aria-label="Tema"] button').forEach((b) => b.onclick = () => {
@@ -325,7 +325,8 @@ export function iniciar(DATA: DatosApp): void {
     if (cont.dataset.tipo !== "anio") {
       cont.dataset.tipo = "anio";
       cont.innerHTML = `<button type="button" class="play"></button><span class="anio"></span><span class="prov">provisional</span>
-        <div class="linea"><input type="range" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año">${marcasAnios()}</div>`;
+        <div class="linea"><input type="range" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año">${marcasAnios()}</div>
+        <span class="ayuda-rango">Mueve el punto para elegir el año. Con ▶ verás cómo cambia año a año.</span>`;
     }
     const inp = cont.querySelector("input"), play = cont.querySelector(".play");
     if (+inp.value !== anio) inp.value = anio;
@@ -353,13 +354,13 @@ export function iniciar(DATA: DatosApp): void {
         <div class="linea rango"><div class="pista"></div><div class="tramo"></div>
           <input type="range" class="r-desde" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año de inicio del periodo">
           <input type="range" class="r-hasta" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año final del periodo">${marcasAnios()}</div>
-        <span class="ayuda-rango">Arrastra los dos extremos para elegir el periodo</span>`;
+        <span class="ayuda-rango">Arrastra los dos puntos: el de la izquierda es el año de inicio y el de la derecha, el final.</span>`;
     }
     const d = cont.querySelector(".r-desde"), h = cont.querySelector(".r-hasta");
     const pintar = () => {
       if (+d.value !== S.desde) d.value = S.desde;
       if (+h.value !== S.anioP) h.value = S.anioP;
-      cont.querySelector(".rango-txt").textContent = `${S.desde} → ${S.anioP}`;
+      cont.querySelector(".rango-txt").textContent = `De ${S.desde} a ${S.anioP}`;
       cont.querySelector(".prov").hidden = !esProv(S.anioP) && !esProv(S.desde);
       const t = cont.querySelector(".tramo");
       t.style.left = `calc(10px + (100% - 20px) * ${pctAnio(S.desde) / 100})`;
@@ -399,7 +400,7 @@ export function iniciar(DATA: DatosApp): void {
       for (const id of IDS) cambio[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
       const oc = ordenados(cambio); const a = oc[0], b = oc[oc.length - 1];
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
-      out.push({ k: `Cambio ${base0()}-${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
+      out.push({ k: `Cambio de ${base0()} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
     } else if (!tieneSerie(ind)) {
       out.push({ k: "Dato del informe", t: `Datos del SISLE-SNS a ${DATA.corteListas}. ${ind.desc}` });
     }
@@ -419,8 +420,8 @@ export function iniciar(DATA: DatosApp): void {
     const out = {};
     for (const id of IDS) if (vals[id] != null && base[id] != null) out[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
     const nombre = u === "pct"
-      ? `${ind.nombre}: cambio ${S.desde}-${anio}, en puntos`
-      : `${ind.nombre}: crecimiento ${S.desde}-${anio}${enEuros(ind) ? (S.real ? ", descontando la inflación" : ", sin descontar la inflación") : ""}`;
+      ? `${ind.nombre}: cambio de ${S.desde} a ${anio}, en puntos`
+      : `${ind.nombre}: cambio de ${S.desde} a ${anio}, en %${enEuros(ind) ? (S.real ? ", descontada la inflación" : ", sin descontar la inflación") : ""}`;
     return { ind: { ...ind, id: `${ind.id}~cambio`, unidad: u === "pct" ? "pp" : "var", nombre }, vals: out };
   }
 
@@ -437,27 +438,54 @@ export function iniciar(DATA: DatosApp): void {
     const anio = tieneSerie(ind) ? S.anioP : null;
     const vals = valores(ind, anio);
     const { out } = titulares(ind, anio);
-    const ord = ordenados(vals);
+    const enCambio = S.modo === "cambio";
+    // Mapa: el valor de un año, o cuánto ha cambiado entre dos años
+    const mapa = enCambio ? cambioInd(ind, anio) : { ind, vals };
+    const mo = ordenados(mapa.vals), top = mo[0], bot = mo[mo.length - 1];
+    const infl = enEuros(ind) ? (S.real ? "descontada la inflación" : "sin descontar la inflación") : "";
+    const verbo = ind.unidad === "pct" ? "subido" : "crecido";
+
+    // «Tu comunidad»: su valor y puesto, o su cambio y puesto en el periodo
     const ficha = `<a href="#comunidad-${S.com.toLowerCase()}">Ver su ficha completa</a>`;
-    out.unshift({ k: "Tu comunidad", t: vals[S.com] == null
-      ? `<strong>${NOMBRE[S.com]}</strong>: sin dato en el informe para esta especialidad. ${ficha}`
-      : `<strong>${NOMBRE[S.com]}</strong>: ${fmt(vals[S.com], ind.unidad)}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}` });
+    let tuya;
+    if (vals[S.com] == null) tuya = `<strong>${NOMBRE[S.com]}</strong>: sin dato en el informe para esta especialidad. ${ficha}`;
+    else if (enCambio) {
+      const pos = mo.indexOf(S.com) + 1;
+      const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : `${pos}.ª de ${mo.length} en ${ind.unidad === "pct" ? "subida" : "crecimiento"}`;
+      tuya = `<strong>${NOMBRE[S.com]}</strong>: ${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${S.desde} a ${anio}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
+    } else {
+      const ord = ordenados(vals);
+      tuya = `<strong>${NOMBRE[S.com]}</strong>: ${fmt(vals[S.com], ind.unidad)}${tieneSerie(ind) ? ` en ${anio}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
+    }
+    out.unshift({ k: "Tu comunidad", t: tuya });
+    if (enCambio) {
+      // En «Cambio entre dos años» todos los cuadros hablan del cambio; el valor final queda como contexto.
+      const mc = media(mapa.vals), u2 = mapa.ind.unidad;
+      out.splice(1, out.length - 1,
+        { k: `Media de las 17, de ${S.desde} a ${anio}`, t: `De media, las comunidades han ${verbo} <strong>${fmt(mc, u2)}</strong>${infl ? ` (${infl})` : ""}. ${mo.filter((id) => mapa.vals[id] > mc).length} están por encima.` },
+        { k: `Para situarse: el valor en ${anio}`, t: `<strong>${NOMBRE[ordenados(vals)[0]]}</strong> está arriba (${fmt(vals[ordenados(vals)[0]], ind.unidad)}) y <strong>${NOMBRE[ordenados(vals).at(-1)]}</strong> abajo (${fmt(vals[ordenados(vals).at(-1)], ind.unidad)}). Para verlo en el mapa, elige «Un año».` });
+    }
     $("#p-insights").innerHTML = out.map((x) => `<div class="insight"><div class="k">${esc(x.k)}</div><p>${x.t}</p></div>`).join("");
 
-    // Mapa: valor del año o cambio desde el primer año
-    const mapa = S.modo === "cambio" ? cambioInd(ind, anio) : { ind, vals };
-    const mo = ordenados(mapa.vals);
-    $("#p-titulo").textContent = S.modo === "cambio"
-      ? `${mapa.ind.nombre}: ${NOMBRE[mo[0]]} es la que más ${ind.unidad === "pct" ? "sube" : "crece"}`
-      : `${ind.nombre}: ${NOMBRE[mo[0]]} arriba, ${NOMBRE[mo[mo.length - 1]]} abajo`;
-    const fecha = tieneSerie(ind) ? `${anio}${esProv(anio) ? " (provisional)" : ""}` : DATA.corteListas;
-    $("#p-sub").textContent = `${S.modo === "cambio" ? `De ${S.desde} a ${fecha}` : fecha} · pulsa una comunidad para elegirla como la tuya`;
-    $("#p-modo").innerHTML = tieneSerie(ind) ? `<button type="button" data-m="valor" aria-pressed="${S.modo === "valor"}">Valor en ${anio}</button>
-      <button type="button" data-m="cambio" aria-pressed="${S.modo === "cambio"}">${ind.unidad === "pct" ? "Cambio" : "Crecimiento"}</button>` : "";
-    $("#p-modo").querySelectorAll("button").forEach((b) => b.onclick = () => { S.modo = b.dataset.m; render(); });
+    // Título y subtítulo: dicen exactamente qué muestra el mapa
+    if (enCambio) {
+      $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${S.desde} a ${anio}`;
+      $("#p-sub").textContent = `${NOMBRE[top]} es la que más ha ${verbo} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y ${NOMBRE[bot]} la que menos (${fmt(mapa.vals[bot], mapa.ind.unidad)})${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
+    } else if (tieneSerie(ind)) {
+      $("#p-titulo").textContent = `${ind.nombre} en ${anio}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
+      $("#p-sub").textContent = `${esProv(anio) ? "Dato provisional. " : ""}Pulsa una comunidad para elegirla como la tuya.`;
+    } else {
+      $("#p-titulo").textContent = `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
+      $("#p-sub").textContent = `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
+    }
+    $("#p-tiempo-cab").hidden = !tieneSerie(ind);
+    $("#p-modo").innerHTML = tieneSerie(ind) ? `<button type="button" data-m="valor" aria-pressed="${!enCambio}">Un año</button>
+      <button type="button" data-m="cambio" aria-pressed="${enCambio}">Cambio entre dos años</button>` : "";
+    $("#p-modo").querySelectorAll("button").forEach((b) => b.onclick = () => { pararPlay(); S.modo = b.dataset.m; render(); });
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); } }));
-    botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, `${$("#p-titulo").textContent}. ${$("#p-sub").textContent.split(" · ")[0]}`, $("#p-leyenda")));
-    if (S.modo === "cambio") barraPeriodo($("#p-anios"), () => { pararPlay(); render(); });
+    botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, $("#p-titulo").textContent, $("#p-leyenda"),
+      [$("#p-sub").textContent.replace(" Pulsa una comunidad para elegirla como la tuya.", "")]));
+    if (enCambio) barraPeriodo($("#p-anios"), () => { pararPlay(); render(); });
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
     renderDetalle(ind, mapa, anio);

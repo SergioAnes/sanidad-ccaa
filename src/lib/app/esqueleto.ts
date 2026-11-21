@@ -26,10 +26,13 @@ export const ESQUELETO = `<div class="wrap">
       <div class="panel">
         <h2 id="p-titulo"></h2>
         <p class="sub" id="p-sub"></p>
-        <div class="seg sm modo" id="p-modo" role="group" aria-label="Qué muestra el mapa"></div>
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
-        <div class="anios" id="p-anios"></div>
+        <div class="tiempo">
+          <div class="tiempo-cab" id="p-tiempo-cab"><span class="tiempo-q">¿Qué quieres ver?</span>
+            <div class="seg sm modo" id="p-modo" role="group" aria-label="Qué quieres ver"></div></div>
+          <div class="anios" id="p-anios"></div>
+        </div>
         <div class="descargas" id="p-desc"></div>
       </div>
       <div class="insights" id="p-insights"></div>

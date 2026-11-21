@@ -263,3 +263,12 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .anios .rango-txt { min-width: 7.5ch; }
 .anios .ayuda-rango { flex-basis: 100%; font-size: 0.78rem; color: var(--muted); }
 .anios .prov[hidden] { display: none; }
+
+/* Selector «¿Qué quieres ver?» junto a la línea de tiempo */
+.tiempo { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.tiempo-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.tiempo-cab[hidden] { display: none; }
+.tiempo-q { font-weight: 700; font-size: 0.9rem; }
+.tiempo .seg.modo { margin-top: 0; }
+.tiempo .anios { margin-top: 10px; }
+.anios .rango-txt { min-width: 9ch; }
