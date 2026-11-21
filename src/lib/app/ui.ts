@@ -60,12 +60,16 @@ export function iniciar(DATA: DatosApp): void {
   const periodoActual = () => IND[S.indP];
   const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
   const dato = (ind, id, a) => ind.serie[id]?.[indice(ind, a)] ?? null;
-  const comparar = (ind, desde, hasta) => {
-    if (ind.tipo !== "consultas") return true;
+  function motivoComparacion(ind, desde, hasta, medida = ind.medida) {
+    if (ind.tipo !== "consultas") return "";
     const a = CORTES[desde].id, b = CORTES[hasta].id;
-    if (a === "2023-06" || b === "2023-06") return false;
-    return ind.medida !== "pct_largo" || (a < "2024-12") === (b < "2024-12");
-  };
+    if (a === "2023-06" || b === "2023-06") return "El informe de consultas de junio de 2023 repite cifras de diciembre de 2022.";
+    if (medida === "pct_largo" && (a < "2024-12") !== (b < "2024-12")) {
+      return "En diciembre de 2024 cambió la definición del porcentaje de consultas de más de 60 días.";
+    }
+    return "";
+  }
+  const comparar = (ind, desde, hasta) => !motivoComparacion(ind, desde, hasta);
   const diferencia = (ind, a, b) => a == null || b == null || (ind.unidad !== "pct" && a === 0)
     ? null : ind.unidad === "pct" ? b - a : (b / a - 1) * 100;
   function valores(ind, anio) {
@@ -501,7 +505,7 @@ export function iniciar(DATA: DatosApp): void {
       const ahora = pacientesDe(ind, anio) || {};
       const antes = pacientesDe(ind, anterior) || {};
       const ids = IDS.filter((id) => ahora[id] != null && antes[id] != null);
-      const comparable = ind.tipo !== "consultas" || ![CORTES[anio].id, CORTES[anterior].id].includes("2023-06");
+      const comparable = !motivoComparacion(ind, anterior, anio, "pacientes");
       const cambio = ids.reduce((s, id) => s + ahora[id] - antes[id], 0);
       out.push({ k: "Cambio respecto al corte anterior", t: comparable && ids.length
         ? `<strong>${firmado(cambio, 0)} pacientes</strong> desde ${periodo(ind, anterior)} (${ids.length} comunidades con datos en ambos cortes).`
@@ -632,7 +636,7 @@ export function iniciar(DATA: DatosApp): void {
     if (enCambio) barraPeriodo($("#p-anios"), ind, () => { pararPlay(); render(); });
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
-    renderResumen(baseInd);
+    renderResumen(baseInd, ind);
     renderDetalle(ind, mapa, anio);
     renderXY(ind);
     guardarEnlace();
@@ -675,7 +679,11 @@ export function iniciar(DATA: DatosApp): void {
 
   // «31 de diciembre de 2025» -> «dic. 2025» (para que quepa en una etiqueta)
   const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
-  function renderResumen(base) {
+  const avisoComparacion = (ind) => {
+    const motivo = S.modo === "cambio" ? motivoComparacion(ind, S.desde, S.anioP) : "";
+    return motivo ? `Cambio sin calcular. ${motivo}` : "";
+  };
+  function renderResumen(base, ind) {
     const serie = tieneSerie(base), fecha = base.grupo === "espera" ? "Corte" : "Año";
     const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}>${et ? `<span class="et">${et}</span>` : ""}${dentro}</span>`;
     const ayuda = (txt) => `title="${esc(txt)}"`;
@@ -695,6 +703,17 @@ export function iniciar(DATA: DatosApp): void {
     const cambiado = filtrosModificados(base);
     if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
     $("#rs-chips").innerHTML = h;
+    const aviso = avisoComparacion(ind);
+    $("#rs-aviso").hidden = !aviso;
+    if ($("#rs-motivo").textContent !== aviso) $("#rs-motivo").textContent = aviso;
+    $("#rs-notas").onclick = (e) => {
+      e.preventDefault();
+      const notas = $("#e-nota details");
+      if (!notas) return;
+      notas.open = true;
+      notas.querySelector("summary").focus({ preventScroll: true });
+      notas.scrollIntoView({ block: "center" });
+    };
     if (cambiado) $("#rs-reset").onclick = () => {
       const teniaFoco = document.activeElement === $("#rs-reset");
       aplicar(restablecer);
@@ -728,6 +747,7 @@ export function iniciar(DATA: DatosApp): void {
   // Panel con todas las opciones juntas y explicadas (en el móvil sale desde abajo).
   function renderAjustes() {
     const base = IND[S.indP], serie = tieneSerie(base);
+    const aviso = avisoComparacion(indDetalle(base, S.campoE));
     const radios = (nombre, valor, ops) => `<div class="aj-radios" role="radiogroup" aria-label="${nombre}">${ops.map(([v, t, nota, dis]) => `<label class="aj-radio${dis ? " dis" : ""}"><input type="radio" name="aj-${nombre}" id="aj-${nombre}-${v}" value="${v}" ${String(valor) === String(v) ? "checked" : ""} ${dis ? "disabled" : ""}><span>${t}${nota ? ` <small>${nota}</small>` : ""}</span></label>`).join("")}</div>`;
     const fila = (titulo, control, ayuda = "") => `<div class="aj-fila"><div class="aj-t">${titulo}</div><div>${control}${ayuda ? `<p class="aj-ayuda">${ayuda}</p>` : ""}</div></div>`;
     let h = `<div class="aj-cab"><h2 id="aj-titulo">Ajustes de la vista</h2><button type="button" class="aj-cerrar" id="aj-cerrar" aria-label="Cerrar">×</button></div>`;
@@ -736,7 +756,7 @@ export function iniciar(DATA: DatosApp): void {
     if (serie) {
       h += fila("¿Qué ver?", radios("modo", S.modo, [["valor", base.grupo === "espera" ? "Un corte" : "Un año"], ["cambio", "Comparar años"]]), "El mapa y el ranking muestran el valor en una fecha o el cambio entre dos.");
       h += S.modo === "cambio"
-        ? fila(base.grupo === "espera" ? "Cortes" : "Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select></span>`)
+        ? fila(base.grupo === "espera" ? "Cortes" : "Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select></span>`, aviso && `<span role="status">${esc(aviso)}</span>`)
         : fila(base.grupo === "espera" ? "Corte" : "Año", `<select id="aj-anio">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>`);
     } else h += fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
@@ -824,7 +844,7 @@ export function iniciar(DATA: DatosApp): void {
       ccEnt.length ? "cambios en las entidades" : "",
     ].filter(Boolean);
     const cuerpo = `<p>${esc(ind.desc)}</p>` +
-      (cambioDefinicion ? "<p>Hasta junio de 2024 el indicador se refería a pacientes con cita asignada. Desde diciembre de 2024 se incluyen pacientes sin cita que ya superaban 60 días en el registro. El cambio entre ambas definiciones no se calcula.</p>" : "") +
+      (cambioDefinicion ? '<p>Hasta junio de 2024 el indicador se refería a pacientes con cita asignada. Desde diciembre de 2024 se incluyen pacientes sin cita que ya superaban 60 días en el registro. El cambio entre ambas definiciones no se calcula. <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/docs/Datos_ccaa_dic2024.pdf#page=8">Informe de diciembre de 2024</a>.</p>' : "") +
       (consulta2023 ? '<p>En junio de 2023, el informe de consultas repite los recuentos, tiempos medios y porcentajes de diciembre de 2022, aunque publica tasas distintas. Se muestran las cifras de la fuente y se omiten los cambios que usan ese corte. <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/ListaEsperaInfAntCCAA.htm">Informes del Ministerio</a>.</p>' : "") +
       notasSISLE.map((n) => `<p><b>Nota del Ministerio (${n.fecha}):</b> ${esc(n.texto)}</p>`).join("") +
       notasAnio.map((n) => `<p><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</p>`).join("") +
@@ -1161,7 +1181,8 @@ export function iniciar(DATA: DatosApp): void {
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), grey = css("--grey-line"), noteBg = css("--note-bg"), note = css("--note");
     const path = (serie = []) => serie.map((v, i) => !Number.isFinite(v) ? "" :
       `${!i || !Number.isFinite(serie[i - 1]) || salto(fechas[i - 1], fechas[i]) ? "M" : "L"}${x(fechas[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
-    const medias = fechas.map((a, i) => media(Object.fromEntries(IDS.map((id) => [id, ind.serie[id]?.[i]]))));
+    const valoresPorFecha = fechas.map((_, i) => IDS.map((id) => ind.serie[id]?.[i]).filter(Number.isFinite));
+    const medias = valoresPorFecha.map(media);
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de ${esc(ind.nombre)}">`;
     if (ind.grupo === "gasto" && DATA.prov.length) s += `<rect x="${x(DATA.prov[0]) - (x(2023) - x(2022)) / 2}" y="${T}" width="${x(fin) - x(DATA.prov[0]) + (x(2023) - x(2022)) / 2}" height="${H - T - B}" fill="${noteBg}"/>
           <text x="${x(fin)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
@@ -1240,7 +1261,10 @@ export function iniciar(DATA: DatosApp): void {
       const a = fechas[i];
       cruz.setAttribute("x1", x(a)); cruz.setAttribute("x2", x(a)); cruz.setAttribute("visibility", "visible");
       const filas = S.sel.map((sl) => `<span style="color:${css(SLOTS[sl.slot])}">●</span> ${esc(NOMBRE[sl.id])}: ${fmt(ind.serie[sl.id]?.[i], ind.unidad)}`);
-      filas.push(`Media: ${fmt(medias[i], ind.unidad)}`);
+      const n = valoresPorFecha[i].length;
+      filas.push(n
+        ? `Media${ind.grupo === "espera" ? ` de ${n} ${n === 1 ? "comunidad" : "comunidades"}` : ""}: ${fmt(medias[i], ind.unidad)}`
+        : "Sin datos para calcular la media");
       const delAnio = marcas.filter((n) => n.anio === a);
       const extra = delAnio.length ? `<div class="tip-marcas">${delAnio.map((n) => `${iconoMarca(n.tipo, n.c)}${TIPO_MARCA[n.tipo]} (${esc(ABR[n.ccaa] || NOMBRE[n.ccaa])})`).join("<br>")}<br><span class="tip-ayuda">Detalle debajo del gráfico</span></div>` : "";
       showTip(`<b>${periodo(ind, a)}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);

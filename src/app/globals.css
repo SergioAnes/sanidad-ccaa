@@ -278,8 +278,11 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 
 
 /* Resumen de lo que estás viendo: encima del mapa y fijo arriba al bajar */
-.rs-barra { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; margin-top: 18px;
+.rs-barra { position: sticky; top: 0; z-index: 15; margin-top: 18px;
   padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 8px 12px -10px rgb(0 0 0 / 0.3); }
+.rs-controles { display: flex; align-items: center; gap: 8px; }
+.rs-aviso { margin: 6px 0 0; color: var(--note); font-size: 0.82rem; }
+.rs-aviso a { color: var(--accent); text-decoration: underline; }
 .rs-chips { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
 .chip-s { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 4px 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); white-space: nowrap; font-size: 0.85rem; color: var(--fg); }
 .chip-s .et { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
