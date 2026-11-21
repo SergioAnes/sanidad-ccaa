@@ -122,6 +122,7 @@ export function iniciar(DATA: DatosApp): void {
     const r = tip.getBoundingClientRect();
     let left = x + 14, top = y + 14;
     if (left + r.width > innerWidth - 8) left = x - r.width - 14;
+    left = Math.max(8, Math.min(left, innerWidth - r.width - 8)); // en pantallas estrechas, que no se salga
     if (top + r.height > innerHeight - 8) top = y - r.height - 14;
     tip.style.left = left + "px"; tip.style.top = top + "px";
   }
@@ -140,6 +141,7 @@ export function iniciar(DATA: DatosApp): void {
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
     vs: "", // comunidad con la que comparar en la ficha
     anioC: ULT, // año del gasto que se muestra en la ficha
+    notasAbiertas: false, // desplegable de notas bajo el gráfico de evolución
   };
   const NOTAS = DATA.notas; // notas del Ministerio sobre saltos en las series de gasto
   const notasDe = (id) => NOTAS.filter((n) => n.ccaa === id).sort((a, b) => a.anio - b.anio);
@@ -162,6 +164,15 @@ export function iniciar(DATA: DatosApp): void {
   const millones = (x) => `${nf(x >= 10 ? 0 : 1).format(x)} M€`;
   const pctTxt = (x) => `${nf(1).format(x)} %`;
   const AVISO_ENTIDADES = "La estadística no explica el motivo: puede ser una entidad nueva, una reorganización entre organismos públicos o una entidad que antes no se clasificaba como pública. No siempre mueve las cifras.";
+  // Marcas del gráfico de evolución: misma forma en el SVG, en la leyenda y en el recuadro.
+  const TIPO_MARCA = { nota: "Nota del Ministerio", aviso: "Variación inusual", entidades: "Cambio en las entidades" };
+  const LEYENDA_MARCA = { nota: "nota del Ministerio", aviso: "variación inusual", entidades: "cambio en las entidades" };
+  function formaMarca(tipo, cx, cy, color, relleno) {
+    return tipo === "entidades"
+      ? `<rect x="${cx - 4.5}" y="${cy - 4.5}" width="9" height="9" rx="1.5" fill="${relleno}" stroke="${color}" stroke-width="2"/>`
+      : `<circle cx="${cx}" cy="${cy}" r="4.5" fill="${relleno}" stroke="${color}" stroke-width="2" ${tipo === "aviso" ? 'stroke-dasharray="2 1.6"' : ""}/>`;
+  }
+  const iconoMarca = (tipo, color) => `<svg class="marca-ico" viewBox="0 0 14 14" width="14" height="14" aria-hidden="true">${formaMarca(tipo, 7, 7, color || css("--fg"), css("--surface"))}</svg>`;
   function textoEntidades(e, conNombre = true) {
     const grandes = e.entidades.filter((x) => x.peso >= 0.5), resto = e.entidades.filter((x) => x.peso < 0.5);
     const lista = grandes.map((x) => `${x.nombre} (${millones(x.millones)}, ${pctTxt(x.peso)})`);
@@ -677,7 +688,7 @@ export function iniciar(DATA: DatosApp): void {
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
-      [...document.querySelectorAll("#e-chart .notas-oficiales li")].map((li, k) => `${k + 1}. ${li.textContent.replace(/\s+/g, " ").trim()}`)));
+      [...document.querySelectorAll("#e-chart .notas-det[open] li")].map((li) => li.textContent.replace(/\s+/g, " ").trim())));
     const sinDato = IDS.filter((k) => vals[k] == null);
     $("#e-nota").innerHTML = `${esc(ind.desc)} Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
@@ -1002,34 +1013,40 @@ export function iniciar(DATA: DatosApp): void {
       ...avisosDe(ind.id, sl.id).map((a) => ({ ccaa: a.ccaa, anio: a.anio, tipo: "aviso", texto: textoAviso(a, false), c: css(SLOTS[sl.slot]) })),
       ...entidadesDe(sl.id).map((e) => ({ ccaa: e.ccaa, anio: e.anio, tipo: "entidades", texto: textoEntidades(e, false), c: css(SLOTS[sl.slot]) })),
     ]).sort((a, b) => a.ccaa.localeCompare(b.ccaa) || a.anio - b.anio);
-    // Si varias marcas caen en el mismo punto, se apilan hacia arriba para que se lean todas.
+    // Marcas pequeñas sobre la línea, sin números: el detalle va en el recuadro al pasar por el año y en un
+    // desplegable debajo (cerrado por defecto), para que el gráfico no se llene de texto.
+    // Nota del Ministerio: círculo; variación inusual: círculo discontinuo; cambio de entidades: cuadrado.
     const apiladas = {};
-    marcas.forEach((n, k) => {
+    marcas.forEach((n) => {
       const v = ind.serie[n.ccaa][n.anio - ANIOS[0]];
       if (v == null) return;
       const clave = `${n.ccaa}|${n.anio}`, nivel = apiladas[clave] = (apiladas[clave] ?? -1) + 1;
-      const cx = x(n.anio), cy = y(v) - nivel * 18;
-      // Nota del Ministerio: círculo continuo; variación inusual: círculo discontinuo; cambio de entidades: cuadrado.
-      const forma = n.tipo === "entidades"
-        ? `<rect x="${cx - 8}" y="${cy - 8}" width="16" height="16" rx="3" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2"/>`
-        : `<circle cx="${cx}" cy="${cy}" r="8" fill="${css("--surface")}" stroke="${n.c}" stroke-width="2" ${n.tipo === "aviso" ? 'stroke-dasharray="2 2"' : ""}/>`;
-      s += `<g aria-hidden="true">${forma}<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10" font-weight="700" fill="${fg}">${k + 1}</text></g>`;
+      s += `<g aria-hidden="true" pointer-events="none">${formaMarca(n.tipo, x(n.anio), y(v) - nivel * 11, n.c, css("--surface"))}</g>`;
     });
     s += `</svg>`;
     const fuera = (k) => !S.sel.some((sl) => sl.id === k);
     const otrasNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter(fuera);
     const otrosAvisos = [...new Set(avisosDe(ind.id).map((a) => a.ccaa))].filter(fuera);
     const otrasEntidades = [...new Set(ENTIDADES.map((e) => e.ccaa))].filter(fuera);
-    const TIPO = { nota: "Nota del Ministerio", aviso: "Variación inusual", entidades: "Cambio en las entidades" };
-    s += `<div class="notas-oficiales">` + (marcas.length
-      ? `<b>Sobre las comunidades destacadas</b>${marcas.some((n) => n.tipo === "entidades") ? " (en el gráfico, círculo: nota del Ministerio; círculo discontinuo: variación inusual; cuadrado: cambio en las entidades que cuenta la estadística)" : ""}:<ol>${marcas.map((n) => `<li><b>${TIPO[n.tipo]} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ol>` +
-        (marcas.some((n) => n.tipo === "entidades") ? `<p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a>.</p>` : "")
-      : "") +
-      (otrasNotas.length ? `<p>El Ministerio explica saltos en las series de ${otrasNotas.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
+    const tipos = [...new Set(marcas.map((n) => n.tipo))];
+    const leyenda = tipos.map((t) => `<span class="marca-ley">${iconoMarca(t)}${LEYENDA_MARCA[t]}</span>`).join("");
+    const otras = (otrasNotas.length ? `<p>El Ministerio explica saltos en las series de ${otrasNotas.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
       (otrosAvisos.length ? `<p>Hay variaciones inusuales sin explicación oficial en este dato en ${otrosAvisos.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
       (otrasEntidades.length ? `<p>Cambia la lista de entidades que cuenta la estadística en ${otrasEntidades.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
-      (otrasNotas.length || otrosAvisos.length || otrasEntidades.length ? `<p>Destaca una comunidad para verlo en el gráfico. <a href="#metodo-calidad">Cómo los detectamos</a>.</p>` : "") + `</div>`;
+      (otrasNotas.length || otrosAvisos.length || otrasEntidades.length ? `<p>Destaca una comunidad para verlo en el gráfico.</p>` : "");
+    const nombresSel = S.sel.filter((sl) => marcas.some((n) => n.ccaa === sl.id)).map((sl) => NOMBRE[sl.id]);
+    s += `<div class="notas-oficiales">` + (marcas.length
+      ? `<p class="marcas-cab">En el gráfico: ${leyenda}<span class="marca-ayuda">Pasa el ratón (o toca) por un año para verlas.</span></p>`
+      : "") +
+      (marcas.length || otras
+        ? `<details class="notas-det" ${S.notasAbiertas ? "open" : ""}><summary>${marcas.length ? `Ver las ${marcas.length} ${marcas.length === 1 ? "nota" : "notas"} de ${esc(nombresSel.length > 1 ? `${nombresSel.slice(0, -1).join(", ")} y ${nombresSel[nombresSel.length - 1]}` : nombresSel[0])}` : "Notas sobre otras comunidades"}</summary>` +
+          (marcas.length ? `<ul>${marcas.map((n) => `<li><b>${iconoMarca(n.tipo)}${TIPO_MARCA[n.tipo]} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
+          (marcas.some((n) => n.tipo === "entidades") ? `<p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a>.</p>` : "") +
+          otras + `<p><a href="#metodo-calidad">Cómo detectamos las variaciones inusuales</a>.</p></details>`
+        : "") + `</div>`;
     cont.innerHTML = s;
+    const det = cont.querySelector(".notas-det");
+    if (det) det.ontoggle = () => { S.notasAbiertas = det.open; };
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
       const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * (W / r.width);
@@ -1038,7 +1055,9 @@ export function iniciar(DATA: DatosApp): void {
       cruz.setAttribute("x1", x(a)); cruz.setAttribute("x2", x(a)); cruz.setAttribute("visibility", "visible");
       const filas = S.sel.map((sl) => `<span style="color:${css(SLOTS[sl.slot])}">●</span> ${esc(NOMBRE[sl.id])}: ${fmt(ind.serie[sl.id][i], ind.unidad)}`);
       filas.push(`Media: ${fmt(medias[i], ind.unidad)}`);
-      showTip(`<b>${a}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}`, e.clientX, e.clientY);
+      const delAnio = marcas.filter((n) => n.anio === a);
+      const extra = delAnio.length ? `<div class="tip-marcas">${delAnio.map((n) => `${iconoMarca(n.tipo, n.c)}${TIPO_MARCA[n.tipo]} (${esc(ABR[n.ccaa] || NOMBRE[n.ccaa])})`).join("<br>")}<br><span class="tip-ayuda">Detalle debajo del gráfico</span></div>` : "";
+      showTip(`<b>${a}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);
     };
     svg.querySelector("#zona").onmouseleave = () => { cruz.setAttribute("visibility", "hidden"); hideTip(); };
   }
