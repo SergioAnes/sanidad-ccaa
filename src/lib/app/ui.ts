@@ -677,9 +677,6 @@ export function iniciar(DATA: DatosApp): void {
     $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas" aria-hidden="true">▾</span>`;
     $("#rs-texto").setAttribute("aria-label", `Estás viendo: ${$("#rs-texto").textContent.replace("▾", "")}. Pulsa para cambiarlo`);
     $("#rs-texto").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
-    const barra = $("#resumen");
-    barra.classList.remove("compacta");
-    if (innerWidth > 640 && $("#rs-chips").scrollHeight > 46) barra.classList.add("compacta");
     const on = (id, fn) => { const el = $("#" + id); if (el) el.onchange = (e) => aplicar(() => fn(e.target.value)); };
     on("rs-dato", (v) => { cambiarIndicador(v); });
     on("rs-campo", (v) => { S.campoE = v; });
