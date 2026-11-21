@@ -29,7 +29,7 @@ export type Aviso = {
 
 export const CRITERIO = { z: 4, minEuros: 10, minPuntos: 3 } as const;
 
-const EN_EUROS = new Set(["gasto_hab", "farmacia_hab"]);
+const EN_EUROS = new Set(["gasto_hab", "farmacia_hab", "conciertos_hab"]);
 
 function mediana(xs: number[]): number {
   const o = [...xs].sort((a, b) => a - b), n = o.length;

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { construirDatos } from "../src/lib/app/datos-app";
+import { cambiosEntidades, construirDatos } from "../src/lib/app/datos-app";
 
 describe("datos de la interfaz", () => {
   const d = construirDatos();
 
-  it("tiene las 17 comunidades con abreviatura y los 11 indicadores", () => {
+  it("tiene las 17 comunidades con abreviatura y los 12 indicadores", () => {
     expect(d.ccaa).toHaveLength(17);
     expect(d.ccaa.every((c) => /^[A-Z]{3}$/.test(c.abr))).toBe(true);
-    expect(d.inds.filter((i) => i.grupo === "gasto")).toHaveLength(6);
+    expect(d.inds.filter((i) => i.grupo === "gasto")).toHaveLength(7);
     expect(d.inds.filter((i) => i.grupo === "espera")).toHaveLength(5);
   });
 
@@ -53,5 +53,27 @@ describe("datos de la interfaz", () => {
   it("el mapa tiene un trazado para cada comunidad", () => {
     const enMapa = new Set(d.geo.regiones.map((r) => r.id));
     for (const c of d.ccaa) expect(enMapa.has(c.id)).toBe(true);
+  });
+
+  it("cambios en las entidades que cuenta la estadística: agrupados por año y con peso de al menos un 1 %", () => {
+    expect(d.entidades.length).toBeGreaterThan(0);
+    for (const e of d.entidades) {
+      expect(e.peso).toBeGreaterThanOrEqual(1);
+      expect(d.anios).toContain(e.anio);
+      expect(e.entidades.reduce((s, x) => s + x.peso, 0)).toBeCloseTo(e.peso, 6);
+    }
+    // Comprobados en el Excel: entra el Hospital Clínic en Cataluña (2009); salen cuatro fundaciones en Baleares (2013)
+    const ct = d.entidades.find((e) => e.ccaa === "CT" && e.anio === 2009 && e.cambio === "entra");
+    expect(ct?.entidades[0].nombre).toMatch(/Hospital Cl.nico de Barcelona/);
+    expect(ct?.entidades[0].millones).toBeCloseTo(515.4, 1);
+    const ib = d.entidades.find((e) => e.ccaa === "IB" && e.anio === 2013 && e.cambio === "sale");
+    expect(ib?.entidades).toHaveLength(4);
+    expect(ib?.peso).toBeCloseTo(24.9, 1);
+    // Cifras citadas en «Cómo leer los datos»
+    expect(ib?.millones).toBeCloseTo(321, 0);
+    expect(d.entidades.find((e) => e.ccaa === "CT" && e.anio === 2006 && e.cambio === "entra")?.entidades).toHaveLength(11);
+    // El umbral es por año: Galicia 2009 (cuatro fundaciones de ~0,5 % cada una) cuenta; con umbral 3 %, no
+    expect(d.entidades.some((e) => e.ccaa === "GA" && e.anio === 2009)).toBe(true);
+    expect(cambiosEntidades(undefined, 3).some((e) => e.ccaa === "GA")).toBe(false);
   });
 });

@@ -57,7 +57,7 @@ button, select, input { font: inherit; color: inherit; }
 .selector { display: grid; gap: 12px; }
 .selector .seg { justify-self: start; }
 .insight a { color: var(--accent); font-weight: 600; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); gap: 10px; }
 .kpi { display: grid; gap: 4px; align-content: start; text-align: left; padding: 12px 14px 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; min-width: 0; }
 .kpi:hover { border-color: var(--accent); transform: translateY(-1px); }
 .kpi[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); background: var(--accent-soft); }
@@ -350,3 +350,19 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .rs-barra.compacta .rs-ajustes { gap: 6px; }
 #x-nota ul.leer { margin: 6px 0 8px; padding-left: 20px; display: grid; gap: 4px; }
 #x-nota a { color: var(--accent); }
+
+/* Marcas del gráfico de evolución: leyenda en una línea y detalle en un desplegable */
+.marca-ico, .chart svg.marca-ico { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; flex: none; }
+.marcas-cab { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.marca-ley { white-space: nowrap; }
+.marca-ayuda { color: var(--muted); }
+.pliegue { margin-top: 8px; }
+.pliegue summary { cursor: pointer; color: var(--accent); font-weight: 600; width: fit-content; }
+.pliegue summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.pliegue-c { margin-top: 6px; }
+.pliegue-c > p { margin: 6px 0; }
+.pliegue-c > ul { margin: 6px 0; padding-left: 18px; display: grid; gap: 4px; }
+.notas-oficiales .pliegue-c > ul { padding-left: 4px; list-style: none; gap: 6px; }
+.tip-marcas { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
+.tip-ayuda { opacity: 0.75; font-size: 0.9em; }
+.pliegue a { color: var(--accent); }
