@@ -13,3 +13,4 @@ datos-originales/*.pdf
 datos-originales/*.json
 __pycache__/
 *.tsbuildinfo
+datos-originales/cis-barometro/

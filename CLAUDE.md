@@ -4,8 +4,8 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 
 ## Estructura de la web
 
-- Una sola página con tres vistas por `#hash`: Datos (mapa, titulares, ranking/evolución/tabla y gasto frente a
-  espera), Tu comunidad (ficha, con «Comparar con»: `#comunidad-an?vs=md`) y Cómo leer los datos (`#metodo`). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
+- Una sola página con tres vistas por `#hash`: Datos (temas gasto, listas de espera y atención primaria y opinión;
+  mapa, titulares, ranking/evolución/tabla y gasto frente a espera), Tu comunidad (ficha, con «Comparar con»: `#comunidad-an?vs=md`) y Cómo leer los datos (`#metodo`). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
   `#portada` y `#explorar` (enlaces antiguos) llevan a Datos.
 - `public/og.png` es la vista previa al compartir; se regenera con una captura si cambia mucho el diseño.
 - `src/lib/app/datos-app.ts` prepara en compilación el paquete de datos de la interfaz a partir de `src/data`
@@ -45,6 +45,13 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   además del público) se genera con `python scripts/extraer_contexto.py` (INE 56940, certificados IGN/INE de la
   liquidación, Encuesta de Salud de España 2023 con su intervalo al 95 %). Es contexto: no corrige el gasto. La tabla
   del INE trae el agregado «85 y más años» además de las edades sueltas: no sumarlo dos veces.
+- `src/data/barometro.json` (tema «Atención primaria y opinión», grupo `opinion` en `datos-app.ts`) se genera con
+  `python scripts/extraer_barometro.py`: serie oficial por comunidad del Ministerio (xlsx) + microdatos del CIS
+  (`datos-originales/cis-barometro/`) + informe 2025. Es una encuesta: nunca puestos del 1 al 17 ni «Comparar años»;
+  se dice si el intervalo al 95 % queda por encima, por debajo o incluye a España. 2022-2025 (teléfono) aparte de
+  2002-2019 (en persona): no compararlos ni atribuir el salto a la pandemia o al método. Ceuta y Melilla no se
+  muestran (muestra mínima). Los «días para el médico de familia» son de atención primaria, no del SISLE, y solo de
+  quien no tuvo cita antes. Cada cifra debe poder contrastarse: la web enlaza serie, informe y estudios del CIS.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

@@ -3,7 +3,7 @@
 export const ESQUELETO = `<div class="wrap">
   <noscript><p class="aviso">Esta web necesita JavaScript para mostrar los mapas y gráficos.</p></noscript>
   <header class="top">
-    <div class="brand">Sanidad por comunidades<small>Gasto sanitario público y listas de espera de las 17 comunidades</small></div>
+    <div class="brand">Sanidad por comunidades<small>Gasto sanitario, listas de espera y opinión de las 17 comunidades</small></div>
     <nav class="nav" aria-label="Secciones">
       <a href="#datos" data-vista="datos">Datos</a>
       <a href="#comunidad" data-vista="comunidad">Tu comunidad</a>
@@ -97,6 +97,12 @@ export const ESQUELETO = `<div class="wrap">
       <div class="filas" id="c-espera"></div>
       <p class="extra" id="c-extra"></p>
     </div>
+    <div class="bloque">
+      <h2>Atención primaria y opinión</h2>
+      <p class="sub" id="c-opinion-sub"></p>
+      <div class="contexto" id="c-opinion"></div>
+      <div class="notas-min" id="c-opinion-notas"></div>
+    </div>
   </section>
 
   <section id="v-metodo" hidden>
@@ -108,6 +114,7 @@ export const ESQUELETO = `<div class="wrap">
     <ul>
       <li>Gasto: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm">Estadística de Gasto Sanitario Público</a> (<span id="f-gasto">gasto real</span>).</li>
       <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma (<span id="f-listas">último corte</span>).</li>
+      <li>Atención primaria y opinión: Ministerio de Sanidad y CIS, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (serie por comunidad y microdatos del CIS; enlaces a cada fichero en «Cómo leer los datos»).</li>
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>
     </ul>
