@@ -15,6 +15,9 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 - Decisiones de diseño: mapa con las siluetas reales (no casillas); medias y puestos siempre sobre las 17;
   Ceuta y Melilla solo en listas de espera, aparte y con aviso (en gasto el Excel solo trae la parte del INGESA);
   euros constantes con el IPC general nacional (no el regional).
+- Datos primero: las explicaciones (definiciones, notas, avisos, cambios de entidades) van plegadas con
+  `plegable()` de `ui.ts` (un `<details>` con recuento en el resumen, que recuerda si estaba abierto). En la
+  evolución, marcas pequeñas sin números; el detalle, en el recuadro del año y en el desplegable.
 
 ## Reglas de datos
 

@@ -141,7 +141,7 @@ export function iniciar(DATA: DatosApp): void {
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
     vs: "", // comunidad con la que comparar en la ficha
     anioC: ULT, // año del gasto que se muestra en la ficha
-    notasAbiertas: false, // desplegable de notas bajo el gráfico de evolución
+    abiertos: {}, // desplegables de explicaciones abiertos (por clave)
   };
   const NOTAS = DATA.notas; // notas del Ministerio sobre saltos en las series de gasto
   const notasDe = (id) => NOTAS.filter((n) => n.ccaa === id).sort((a, b) => a.anio - b.anio);
@@ -154,6 +154,13 @@ export function iniciar(DATA: DatosApp): void {
     return `${conNombre ? `${NOMBRE[a.ccaa]}, ${a.anio}: ` : ""}${firmado(a.cambio, d)}${u} respecto a ${a.anio - 1}${a.unidad === "%" ? " (en euros de cada año)" : ""}, cuando la mediana de las comunidades fue ${firmado(a.mediana, d)}${u}. Es la cifra oficial, pero el Ministerio no explica el motivo.` +
       (entidadesDe(a.ccaa).some((e) => e.anio === a.anio) ? " Ese año también cambió la lista de entidades que cuenta la estadística." : "");
   }
+
+  // Explicaciones plegadas: los datos primero; el texto, para quien lo quiera. Cada desplegable recuerda si
+  // estaba abierto al volver a dibujar la vista (S.abiertos[clave]).
+  function plegable(clave, resumen, cuerpo) {
+    return `<details class="pliegue" data-p="${clave}" ${S.abiertos[clave] ? "open" : ""}><summary>${resumen}</summary><div class="pliegue-c">${cuerpo}</div></details>`;
+  }
+  document.addEventListener("toggle", (e) => { const d = e.target; if (d.matches && d.matches("details[data-p]")) S.abiertos[d.dataset.p] = d.open; }, true);
 
   // ---------- entidades que cuenta la estadística (src/data/perimetro-egsp.json) ----------
   // Solo hechos: qué entidades aparecen o dejan de aparecer en la lista del Ministerio, cuánto pesaban y cuándo.
@@ -683,28 +690,32 @@ export function iniciar(DATA: DatosApp): void {
     } else {
       const mo = ordenados(mapa.vals);
       $("#e-titulo").textContent = S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}: ${NOMBRE[mo[0]]} en cabeza`;
-      $("#e-sub").textContent = "Pulsa una barra para destacar esa comunidad en la evolución.";
+      $("#e-sub").textContent = tieneSerie(ind) ? "Pulsa una barra para destacar esa comunidad en la evolución." : "Pulsa una barra para destacar esa comunidad.";
       ranking(cont, mapa.vals, mapa.ind);
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
-      [...document.querySelectorAll("#e-chart .notas-det[open] li")].map((li) => li.textContent.replace(/\s+/g, " ").trim())));
+      [...document.querySelectorAll("#e-chart .pliegue[open] li")].map((li) => li.textContent.replace(/\s+/g, " ").trim())));
     const sinDato = IDS.filter((k) => vals[k] == null);
-    $("#e-nota").innerHTML = `${esc(ind.desc)} Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
+    // Debajo del gráfico, a la vista solo la fuente; la definición y los avisos, en un desplegable con su recuento.
+    const conAvisos = tieneSerie(ind) && S.vistaE !== "evolucion";
+    const notasAnio = conAvisos ? NOTAS.filter((n) => n.anio === anio) : [];
+    const avisosV = !conAvisos ? [] : S.modo === "cambio" ? avisosDe(ind.id).filter((a) => a.anio > S.desde && a.anio <= anio) : avisosDe(ind.id).filter((a) => a.anio === anio);
+    // Al comparar un periodo, avisa si en él cambió la lista de entidades de alguna comunidad.
+    const ccEnt = conAvisos && S.modo === "cambio" ? [...new Set(ENTIDADES.filter((e) => e.anio > S.desde && e.anio <= anio).map((e) => e.ccaa))] : [];
+    const cuenta = [
+      notasAnio.length ? `${notasAnio.length} ${notasAnio.length === 1 ? "nota" : "notas"} del Ministerio` : "",
+      avisosV.length ? `${avisosV.length} ${avisosV.length === 1 ? "variación inusual" : "variaciones inusuales"}` : "",
+      ccEnt.length ? "cambios en las entidades" : "",
+    ].filter(Boolean);
+    const cuerpo = `<p>${esc(ind.desc)}</p>` +
+      notasAnio.map((n) => `<p><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</p>`).join("") +
+      (avisosV.length ? `<p><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b></p><ul>${avisosV.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul><p><a href="#metodo-calidad">Cómo las detectamos</a>.</p>` : "") +
+      (ccEnt.length ? `<p><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${ccEnt.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</p>` : "") +
+      (S.vistaE !== "evolucion" ? `<p><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</p>` : "");
+    $("#e-nota").innerHTML = `Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
-      (tieneSerie(ind) && S.vistaE !== "evolucion" ? NOTAS.filter((n) => n.anio === anio).map((n) => `<div class="notas-oficiales"><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</div>`).join("") : "") +
-      (tieneSerie(ind) && S.vistaE !== "evolucion" ? (() => {
-        const lista = S.modo === "cambio" ? avisosDe(ind.id).filter((a) => a.anio > S.desde && a.anio <= anio) : avisosDe(ind.id).filter((a) => a.anio === anio);
-        if (!lista.length) return "";
-        return `<div class="notas-oficiales"><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b><ul>${lista.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul> <a href="#metodo-calidad">Cómo las detectamos</a>.</div>`;
-      })() : "") +
-      // Al comparar un periodo, avisa si en él cambió la lista de entidades de alguna comunidad.
-      (tieneSerie(ind) && S.vistaE !== "evolucion" && S.modo === "cambio" ? (() => {
-        const cc = [...new Set(ENTIDADES.filter((e) => e.anio > S.desde && e.anio <= anio).map((e) => e.ccaa))];
-        if (!cc.length) return "";
-        return `<div class="notas-oficiales"><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${cc.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</div>`;
-      })() : "") +
-      (S.vistaE !== "evolucion" ? `<div class="aviso"><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</div>` : "");
+      plegable("e-nota", `Qué mide este dato${cuenta.length ? ` · ${cuenta.join(" · ")}` : ""}`, cuerpo);
   }
 
   // ---------- enlace compartible: el estado de la vista Datos va en la dirección ----------
@@ -945,13 +956,13 @@ export function iniciar(DATA: DatosApp): void {
       g.onmouseleave = hideTip;
     });
     const c2 = (v) => (v < 0 ? "−" : "") + nf(2).format(Math.abs(v));
-    $("#x-nota").innerHTML = `<b>Cómo leer este gráfico</b><ul class="leer">
+    $("#x-nota").innerHTML = plegable("xy", "Cómo leer este gráfico: correlación, causas y fechas", `<ul class="leer">
       <li><b>Qué muestra:</b> cada punto es una comunidad; las líneas discontinuas marcan la media de las ${ids.length}. ${conTuya ? "" : `${esc(NOMBRE[c0])} no aparece: el informe no trae ese dato. `}Sin Ceuta y Melilla (no tienen gasto comparable).</li>
       <li><b>Relación:</b> correlación ${c2(r)} (Pearson) y ${c2(rho)} por rangos (Spearman), en una escala de −1 a 1 en la que 0 es ninguna relación. Con ${ids.length} comunidades, cualquier valor entre −${c2(rc)} y +${c2(rc)} podría deberse al azar, así que ${clara ? `esta relación supera ese umbral. <b>Pero ojo:</b> la web permite mirar ${combinaciones} combinaciones de espera y especialidad, y al mirar tantas, unas ${Math.round(combinaciones * 0.05)} saldrían con «relación» solo por azar. Tómalo como una pista para investigar, no como una conclusión` : "no hay base para hablar de relación entre estos dos datos"}.</li>
       <li><b>Ir juntos no es causar:</b> ${clara ? "esta relación no prueba" : "ni aunque hubiera relación probaría"} que gastar más acorte o alargue la espera. Influyen otros factores que el gráfico no tiene en cuenta: la edad de la población, la dispersión geográfica, las derivaciones a centros concertados, el seguro privado, la organización de cada servicio y cómo registra cada comunidad sus listas.</li>
       <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${DATA.corteListas}.</li>
       <li><b>Comunidades, no personas:</b> compara cifras de comunidades enteras; no dice nada de lo que espera cada paciente.</li>
-    </ul><a href="#metodo-comparar">Más en «Cómo leer los datos»</a>`;
+    </ul><a href="#metodo-comparar">Más en «Cómo leer los datos»</a>`);
   }
 
   function ticks(min, max, n = 5) {
@@ -1039,14 +1050,12 @@ export function iniciar(DATA: DatosApp): void {
       ? `<p class="marcas-cab">En el gráfico: ${leyenda}<span class="marca-ayuda">Pasa el ratón (o toca) por un año para verlas.</span></p>`
       : "") +
       (marcas.length || otras
-        ? `<details class="notas-det" ${S.notasAbiertas ? "open" : ""}><summary>${marcas.length ? `Ver las ${marcas.length} ${marcas.length === 1 ? "nota" : "notas"} de ${esc(nombresSel.length > 1 ? `${nombresSel.slice(0, -1).join(", ")} y ${nombresSel[nombresSel.length - 1]}` : nombresSel[0])}` : "Notas sobre otras comunidades"}</summary>` +
+        ? plegable("evolucion", marcas.length ? `Ver las ${marcas.length} ${marcas.length === 1 ? "nota" : "notas"} de ${esc(nombresSel.length > 1 ? `${nombresSel.slice(0, -1).join(", ")} y ${nombresSel[nombresSel.length - 1]}` : nombresSel[0])}` : "Notas sobre otras comunidades",
           (marcas.length ? `<ul>${marcas.map((n) => `<li><b>${iconoMarca(n.tipo)}${TIPO_MARCA[n.tipo]} · ${esc(NOMBRE[n.ccaa])}, ${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
           (marcas.some((n) => n.tipo === "entidades") ? `<p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a>.</p>` : "") +
-          otras + `<p><a href="#metodo-calidad">Cómo detectamos las variaciones inusuales</a>.</p></details>`
+          otras + `<p><a href="#metodo-calidad">Cómo detectamos las variaciones inusuales</a>.</p>`)
         : "") + `</div>`;
     cont.innerHTML = s;
-    const det = cont.querySelector(".notas-det");
-    if (det) det.ontoggle = () => { S.notasAbiertas = det.open; };
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
       const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * (W / r.width);
@@ -1132,9 +1141,14 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-leyenda-vs").innerHTML = S.vs ? `<span><i style="background:${css("--accent")}"></i>${esc(NOMBRE[id])}</span><span><i style="background:${css("--s2")}"></i>${esc(NOMBRE[S.vs])}</span>` : "";
     $("#c-gasto").innerHTML = DATA.inds.filter((i) => i.grupo === "gasto").map((i) => filaInd(i, id, S.vs, aC)).join("");
     const nts = notasDe(id), avs = AVISOS.filter((a) => a.ccaa === id), ents = entidadesDe(id);
-    $("#c-notas").innerHTML = (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
+    const cuentaC = [
+      nts.length ? `${nts.length} ${nts.length === 1 ? "nota" : "notas"} del Ministerio` : "",
+      avs.length ? `${avs.length} ${avs.length === 1 ? "variación inusual" : "variaciones inusuales"}` : "",
+      ents.length ? `${ents.length} ${ents.length === 1 ? "cambio" : "cambios"} en las entidades` : "",
+    ].filter(Boolean);
+    $("#c-notas").innerHTML = !cuentaC.length ? "" : plegable("ficha", `Notas sobre estas cifras: ${cuentaC.join(" · ")}`, (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
       (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "") +
-      (ents.length ? `<p><b>Entidades que cuenta la estadística en ${esc(NOMBRE[id])}.</b> La estadística suma el gasto de las entidades públicas que gestionan la sanidad de cada comunidad, y esa lista cambia con los años. Cambios que pesan al menos un ${UMBRAL_ENT} % del gasto:</p><ul>${ents.map((e) => `<li><b>${e.anio}.</b> ${esc(textoEntidades(e, false))}</li>`).join("")}</ul><p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a></p>` : "");
+      (ents.length ? `<p><b>Entidades que cuenta la estadística en ${esc(NOMBRE[id])}.</b> La estadística suma el gasto de las entidades públicas que gestionan la sanidad de cada comunidad, y esa lista cambia con los años. Cambios que pesan al menos un ${UMBRAL_ENT} % del gasto:</p><ul>${ents.map((e) => `<li><b>${e.anio}.</b> ${esc(textoEntidades(e, false))}</li>`).join("")}</ul><p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a></p>` : ""));
     $("#c-espera-sub").textContent = `Situación a ${DATA.corteListas}. Un valor más alto significa más espera.`;
     $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs)).join("");
     const esp = Object.entries(DATA.especQuir).map(([n, o]) => [n, o[id]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
