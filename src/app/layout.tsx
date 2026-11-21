@@ -6,7 +6,7 @@ import "./globals.css";
 const cuerpo = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--f-body", display: "swap" });
 const titulos = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--f-display", display: "swap" });
 
-const descripcion = "Gasto sanitario público y listas de espera de las 17 comunidades autónomas, con datos oficiales del Ministerio de Sanidad.";
+const descripcion = "Gasto sanitario público, listas de espera y opinión sobre la sanidad de las 17 comunidades autónomas, con datos oficiales del Ministerio de Sanidad.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sanidad-ccaa.vercel.app"),

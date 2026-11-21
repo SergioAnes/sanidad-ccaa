@@ -64,5 +64,9 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return `${numero(valor, 2)} ‰`;
     case "dias":
       return `${numero(valor, 0)} días`;
+    case "nota10":
+      return numero(valor, 2);
+    case "dias_media":
+      return `${numero(valor, 1)} días`;
   }
 }

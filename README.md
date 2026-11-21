@@ -1,10 +1,11 @@
 # Sanidad por comunidades
 
-Web pública estática para comparar el gasto sanitario público y las listas de espera de las 17
-comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
+Web pública estática para comparar el gasto sanitario público, las listas de espera y la opinión sobre la
+sanidad (Barómetro Sanitario) de las 17 comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
 
 > **Estado:** todos los datos son **oficiales**: Estadística de Gasto Sanitario Público 2002-2024 y
-> SISLE-SNS (Ministerio de Sanidad), IPC (INE) y límites territoriales (IGN). Las cifras de gasto de
+> SISLE-SNS (Ministerio de Sanidad), Barómetro Sanitario (Ministerio de Sanidad y CIS), IPC (INE) y límites
+> territoriales (IGN). Las cifras de gasto de
 > 2023 y 2024 son provisionales.
 
 ## Tecnología
@@ -18,7 +19,8 @@ comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una f
 
 - **Datos:** mapa (valor del año o crecimiento desde 2002), titulares automáticos, ranking, evolución
   (descontando o no la inflación), tabla con descarga en CSV, listas de espera por especialidad y proceso,
-  y gráfico «¿Gastar más reduce la espera?». La dirección guarda la vista para compartirla.
+  gráfico «¿Gastar más reduce la espera?» y «Atención primaria y opinión» (Barómetro Sanitario: satisfacción,
+  valoración del médico de familia y acceso, con margen de error frente a la media de España). La dirección guarda la vista para compartirla.
 - **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16, comparación con otra
   comunidad y notas del Ministerio sobre saltos en sus series.
 - **Cómo leer los datos:** qué mide cada dato, fuentes, inflación, cómo comparar y límites.
@@ -50,6 +52,7 @@ npm test
 | `src/data/perimetro-egsp.json` | Entidades que la EGSP empieza o deja de contar en cada comunidad, con importe y peso (generado) |
 | `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
+| `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
 | `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |
@@ -94,6 +97,19 @@ con su nombre original `LISTAS_PUBLICACION_*.pdf` en la misma carpeta. De ellos 
 El script regenera `src/data/listas-espera.json` por corte, lista, especialidad, medida y territorio.
 Comprueba los recuentos frente a las tasas y contrasta los totales con sus desgloses. La web abre el
 corte más reciente y permite explorar toda la serie semestral.
+
+## Actualizar el Barómetro Sanitario
+
+1. Descarga la serie por comunidad (`BS_1998-2025_Principales_variables_CCAA.xlsx`) desde
+   https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm y el informe anual
+   (`barometro-informe-2025.pdf`); guárdalos en `datos-originales/`.
+2. Descarga los microdatos del CIS de cada año (enlaces en `scripts/extraer_barometro.py`) y descomprímelos en
+   `datos-originales/cis-barometro/<estudio>/`.
+3. Ejecuta `python scripts/extraer_barometro.py` y `npm test`.
+
+El script comprueba que los microdatos de 2025 reproducen la serie oficial y las cifras del informe. 2022-2024 se
+toman de la serie del Ministerio (recalculada; los microdatos no la reproducen exactamente), con márgenes de los
+microdatos. Antes de 2022 la encuesta era en persona: esa serie se muestra aparte, sin compararla.
 
 ## Actualizar el IPC (inflación)
 

@@ -379,3 +379,8 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .ctx-t { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
 .ctx-v { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
 .ctx-d, .ctx .vs { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
+
+/* Barómetro: la serie anterior al cambio de método va en un gráfico aparte */
+.evo-hist { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.evo-hist h3 { font-size: 0.98rem; margin: 0 0 4px; }
+.evo-hist .sub { margin: 0 0 8px; }

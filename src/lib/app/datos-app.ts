@@ -8,6 +8,7 @@ import notasJson from "@/data/notas-egsp.json";
 import perimetroJson from "@/data/perimetro-egsp.json";
 import ppeJson from "@/data/poblacion-equivalente.json";
 import contextoJson from "@/data/contexto-ccaa.json";
+import barometroJson from "@/data/barometro.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -92,8 +93,37 @@ export type AjusteEdad = {
   coeficientes: Record<string, number>; primerAnio: number; aniosPPE: number[];
 };
 
+/** Textos de los indicadores del Barómetro Sanitario (encuesta del Ministerio de Sanidad y el CIS). */
+const OPINION: Record<string, { corto: string; nombre: string; desc: string; mejorAlto: boolean }> = {
+  satisfaccion: {
+    corto: "Satisfacción con la sanidad", nombre: "Satisfacción con el funcionamiento del sistema sanitario (de 1 a 10)", mejorAlto: true,
+    desc: "Media de la respuesta, de 1 (muy insatisfecho) a 10 (muy satisfecho), a la pregunta del Barómetro Sanitario sobre el funcionamiento del sistema sanitario. Encuesta a la población de 18 y más años.",
+  },
+  valoracion_ap: {
+    corto: "Valoran bien al médico de familia", nombre: "Personas que valoran como buena o muy buena la atención del médico de familia de la sanidad pública", mejorAlto: true,
+    desc: "Porcentaje que valora como buena o muy buena la atención recibida, entre quienes fueron al médico de familia de la sanidad pública en el último año (el total incluye a quien no sabe o no contesta, como hace el Ministerio).",
+  },
+  ap_en_24h: {
+    corto: "Atendidos en el día o al siguiente", nombre: "Personas atendidas por el médico de familia el mismo día o el día siguiente de pedir cita", mejorAlto: true,
+    desc: "Porcentaje que fue atendido el mismo día o el día siguiente de pedir cita, según su última visita, entre quienes fueron al médico de familia de la sanidad pública en el último año.",
+  },
+  ap_dias: {
+    corto: "Días para el médico de familia", nombre: "Días para que te atienda el médico de familia, cuando no había cita antes", mejorAlto: false,
+    desc: "Media de días que pasaron hasta que les atendió el médico de familia, entre quienes no consiguieron cita para el mismo día o el siguiente porque no había cita antes. No es la espera de todos los pacientes: quien fue atendido en el día o al siguiente no entra en esta media.",
+  },
+};
+
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
+  | {
+      id: string; grupo: "opinion"; corto: string; nombre: string; unidad: Unidad; desc: string; mejorAlto: boolean;
+      /** Años (los periodos son sus índices, como los cortes de las listas de espera) */
+      fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[];
+      /** Semiamplitud del intervalo al 95 % de cada comunidad y de España, por año */
+      margen: Record<string, (number | null)[]>; margenEspana: (number | null)[];
+      /** Serie anterior al cambio de método de 2022 (entrevista en persona), solo para la evolución */
+      historico?: { fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[] };
+    }
   | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Serie; tipo: TipoLista; medida: MedidaLista };
 
 type Serie = Record<string, (number | null)[]>;
@@ -123,6 +153,8 @@ export type DatosApp = {
   edad: AjusteEdad | null;
   /** Datos de contexto de cada comunidad para la ficha (src/data/contexto-ccaa.json): no corrigen el gasto */
   contexto: typeof contextoJson;
+  /** Fuentes del Barómetro Sanitario (para citar y contrastar) */
+  barometro: { fuentes: typeof barometroJson.fuentes; primerAnioMetodo: number };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
   notasListas: string[];
@@ -142,6 +174,21 @@ function ajusteEdad(valores: Valor[], ids: string[]): AjusteEdad | null {
     anios, serie, coeficientes: ppeJson.coeficientes.tramos, primerAnio: ppeJson.primer_anio_comparable,
     aniosPPE: [...new Set(ppeJson.valores.map((v) => v.anio))].sort((a, b) => a - b),
   };
+}
+
+/** Indicadores del Barómetro Sanitario (src/data/barometro.json, generado por scripts/extraer_barometro.py). */
+function opinion(): IndApp[] {
+  return barometroJson.indicadores.map((i) => {
+    const t = OPINION[i.id];
+    if (!t) throw new Error(`Barómetro: falta el texto de ${i.id}`);
+    const h = (i as { historico?: { anios: number[]; valor: Record<string, (number | null)[]>; espana: (number | null)[] } }).historico;
+    return {
+      // La espera media del Barómetro lleva decimales (9,15 días); la de las listas de espera, no.
+      id: i.id, grupo: "opinion" as const, unidad: (i.unidad === "dias" ? "dias_media" : i.unidad) as Unidad, ...t,
+      fechas: i.anios, serie: i.valor, espana: i.espana, margen: i.margen, margenEspana: i.margen_espana,
+      ...(h ? { historico: { fechas: h.anios, serie: h.valor, espana: h.espana } } : {}),
+    };
+  });
 }
 
 export function construirDatos(valores: Valor[] = VALORES): DatosApp {
@@ -192,7 +239,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera],
+    inds: [...gasto, ...espera, ...opinion()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -201,6 +248,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     umbralEntidades: UMBRAL_ENTIDADES,
     edad: ajusteEdad(valores, ids),
     contexto: contextoJson,
+    barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,
