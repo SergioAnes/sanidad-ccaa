@@ -530,6 +530,8 @@ export function iniciar(DATA: DatosApp): void {
       const dias = u === "dias_media";
       out.push({ k: `Frente a España (${fmt(ind.espana[anio], u)})`, t: `<strong>${n(1)}</strong> ${dias ? "con más días" : "por encima"}, <strong>${n(0)}</strong> que no se distinguen y <strong>${n(-1)}</strong> ${dias ? "con menos días" : "por debajo"}, teniendo en cuenta el margen de error de la encuesta.` });
       out.push({ k: "Extremos", t: `<strong>${NOMBRE[top]}</strong>: ${fmt(vals[top], u)} (${intervalo(ind, top, anio)}). <strong>${NOMBRE[bot]}</strong>: ${fmt(vals[bot], u)} (${intervalo(ind, bot, anio)}).` });
+      const ch = anio > 0 ? cambioOpinion(ind, "ES", 0, anio) : null;
+      if (ch) out.push({ k: `España desde ${ind.fechas[0]}`, t: `De ${fmt(ch.desde, u)} a <strong>${fmt(ch.hasta, u)}</strong> en ${ind.fechas[anio]}: ${textoCambio(ind, ch)}.` });
       return { out, top, bot };
     }
     if (ind.id === "gasto_hab" || ind.id === "gasto_hab_edad" || ind.id === "farmacia_hab") {
@@ -700,7 +702,10 @@ export function iniciar(DATA: DatosApp): void {
 
     renderResumen(baseInd, ind);
     renderDetalle(ind, mapa, anio);
-    renderXY(ind);
+    // «¿Van juntos el gasto y la espera?» solo en el tema de listas de espera
+    const xy = document.querySelector("#v-datos .xy");
+    xy.style.display = ind.grupo === "espera" ? "" : "none";
+    if (ind.grupo === "espera") renderXY(ind);
     guardarEnlace();
   }
 
@@ -975,6 +980,20 @@ export function iniciar(DATA: DatosApp): void {
     if (v == null || m == null || ref == null) return null;
     return v - m > ref ? 1 : v + m < ref ? -1 : 0;
   }
+  // Cambio entre dos años: «sube» o «baja» solo si la diferencia supera el margen de error combinado de los dos años
+  // (raíz de la suma de los cuadrados: muestras independientes). id "ES" = España.
+  function cambioOpinion(ind, id, a, b) {
+    const v = id === "ES" ? ind.espana : ind.serie[id] || [], m = id === "ES" ? ind.margenEspana : ind.margen[id] || [];
+    if (v[a] == null || v[b] == null || m[a] == null || m[b] == null) return null;
+    const d = v[b] - v[a], e = Math.hypot(m[a], m[b]);
+    return { desde: v[a], hasta: v[b], d, e, c: d > e ? 1 : d < -e ? -1 : 0 };
+  }
+  const difOpinion = (ind, d) => ind.unidad === "pct" ? `${nf(1).format(Math.abs(d))} puntos` : fmt(Math.abs(d), ind.unidad);
+  function textoCambio(ind, ch, corto = false) {
+    if (ch.c === 0) return corto ? "no se distingue un cambio" : `el cambio (${ch.d >= 0 ? "+" : "−"}${difOpinion(ind, ch.d)}) no supera el margen de error (±${difOpinion(ind, ch.e)})`;
+    const v = ch.c > 0 ? "sube" : "baja";
+    return corto ? v : `${v} ${difOpinion(ind, ch.d)}, más que el margen de error (±${difOpinion(ind, ch.e)})`;
+  }
   function textoClase(ind, c) {
     if (c == null) return "Sin margen de error calculado";
     if (c === 0) return "No se distingue de la media de España";
@@ -991,6 +1010,7 @@ export function iniciar(DATA: DatosApp): void {
     const unAnio = ind && ind.fechas.length === 1;
     return `<p><b>Es una encuesta.</b> Cada cifra tiene un margen de error (intervalo de confianza al 95 %). Por eso no ordenamos a las comunidades del 1 al 17: el color dice si están por encima, por debajo o no se distinguen de la media de España. El margen lo calculamos con los microdatos del CIS (con el tamaño de muestra efectivo de Kish); es una aproximación, como el error que da el propio CIS. Al comparar 17 comunidades, alguna puede salir distinta solo por azar.</p>
       <p><b>Cambio de método en ${DATA.barometro.primerAnioMetodo}.</b> La encuesta pasó de entrevista en persona a telefónica, y en 2020 y 2021 no se hizo. Solo comparamos años del mismo método; la serie anterior se ve aparte en la evolución.</p>
+      <p><b>Cambios entre años.</b> Decimos que un dato sube o baja solo si la diferencia supera el margen de error combinado de los dos años; si no, «no se distingue un cambio». Por eso no hay mapa de «Comparar años»: en la mayoría de comunidades los cambios no superan ese margen.</p>
       ${unAnio ? `<p><b>Solo ${periodo(ind, 0)}.</b> Es el único año que podemos comprobar por comunidad con las cifras que publica el Ministerio.</p>`
         : `<p><b>Cifras de 2022 a 2024.</b> Son las de la serie actual del Ministerio, que las ha recalculado: con los microdatos públicos del CIS no salen exactamente iguales (las de 2025, sí). Los márgenes de error de esos años sí salen de los microdatos.</p>`}
       <p><b>Para contrastar las cifras:</b> ${fuentesOpinion()}</p>`;
@@ -1070,6 +1090,7 @@ export function iniciar(DATA: DatosApp): void {
       const a = ultimo(ind), v = ind.serie[id]?.[a], c = claseOpinion(ind, id, a);
       return `<div class="ctx"><div class="ctx-t">${esc(ind.corto)} · ${periodo(ind, a)}</div><div class="ctx-v">${fmt(v, ind.unidad)}</div>
         <div class="ctx-d">${v == null ? "Sin dato" : `${intervalo(ind, id, a)}. ${textoClase(ind, c)} (${fmt(ind.espana[a], ind.unidad)})`}</div>
+        ${(() => { const ch = a > 0 ? cambioOpinion(ind, id, 0, a) : null; return ch ? `<div class="ctx-d">Desde ${ind.fechas[0]} (${fmt(ch.desde, ind.unidad)}): <b>${textoCambio(ind, ch, true)}</b></div>` : ""; })()}
         ${vs && ind.serie[vs]?.[a] != null ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(ind.serie[vs][a], ind.unidad)}</div>` : ""}</div>`;
     }).join("");
     $("#c-opinion-notas").innerHTML = plegable("opinion-ficha", "¿Qué mide cada dato y de dónde sale?",
@@ -1248,15 +1269,6 @@ export function iniciar(DATA: DatosApp): void {
   // esté elegida arriba (tarjeta y especialidad). Con «Gasto», solo una invitación a verlo.
   function renderXY(ind) {
     const gx = IND.gasto_hab;
-    if (ind.grupo !== "espera") {
-      $("#x-titulo").textContent = "¿Van juntos el gasto y la espera?";
-      $("#x-sub").textContent = "Compara el gasto por habitante de cada comunidad con sus listas de espera.";
-      $("#x-y").innerHTML = `<button type="button" class="btn sm" id="x-ir">Verlo en Listas de espera</button>`;
-      $("#x-y").classList.remove("seg");
-      $("#x-ir").onclick = () => { cambiarIndicador("q_dias"); render(); document.querySelector("#v-datos .xy").scrollIntoView({ behavior: "smooth" }); };
-      $("#x-chart").innerHTML = ""; $("#x-nota").textContent = "";
-      return;
-    }
     const gy = ind, nombreY = gy.campoNombre ? `${gy.corto} en ${gy.campoNombre.toLowerCase()}` : gy.corto;
     $("#x-y").innerHTML = ""; $("#x-y").classList.remove("seg");
     const vx = valores(gx, ULT), vy = valores(gy, S.anioP);
