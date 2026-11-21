@@ -985,7 +985,7 @@ export function iniciar(DATA: DatosApp): void {
   const intervalo = (ind, id, a) => { const v = ind.serie[id]?.[a], m = ind.margen[id]?.[a]; return v == null || m == null ? "" : `entre ${fmt(v - m, ind.unidad)} y ${fmt(v + m, ind.unidad)}`; };
   function fuentesOpinion() {
     const F = DATA.barometro.fuentes;
-    return `<a href="${F.serie.url}">${esc(F.serie.texto)}</a> (fichero «${esc(F.serie.fichero)}»); <a href="${F.informe.url}">${esc(F.informe.texto)}</a>; microdatos del CIS: ${F.microdatos.map((m) => `<a href="${m.url}">${m.anio}, estudio ${m.estudio}</a>`).join(", ")}.`;
+    return `<a href="${F.serie.url}">${esc(F.serie.texto)}</a> (fichero <a href="${F.serie.url_fichero}">${esc(F.serie.fichero)}</a>); <a href="${F.informe.url}">${esc(F.informe.texto)}</a>; microdatos del CIS: ${F.microdatos.map((m) => `<a href="${m.url}">${m.anio}, estudio ${m.estudio}</a>`).join(", ")}.`;
   }
   function notasOpinion(ind) {
     const unAnio = ind && ind.fechas.length === 1;
@@ -1042,15 +1042,15 @@ export function iniciar(DATA: DatosApp): void {
   function filasCSVOpinion(ind) {
     const n = (v) => v == null ? "" : String(+v.toFixed(3)).replace(".", ",");
     const fuente = "Ministerio de Sanidad y CIS, Barómetro Sanitario";
-    const filas = [["indicador", "comunidad", "anio", "valor", "margen_error_95", "frente_a_espana", "fuente"]];
+    const filas = [["indicador", "comunidad", "anio", "valor", "margen_error_95", "frente_a_espana", "metodo", "fuente"]];
     periodos(ind).forEach((a) => {
-      IDS.forEach((id) => filas.push([ind.nombre, NOMBRE[id], ind.fechas[a], n(ind.serie[id]?.[a]), n(ind.margen[id]?.[a]), textoClase(ind, claseOpinion(ind, id, a)), fuente]));
-      filas.push([ind.nombre, "España", ind.fechas[a], n(ind.espana[a]), n(ind.margenEspana[a]), "", fuente]);
+      IDS.forEach((id) => filas.push([ind.nombre, NOMBRE[id], ind.fechas[a], n(ind.serie[id]?.[a]), n(ind.margen[id]?.[a]), textoClase(ind, claseOpinion(ind, id, a)), "entrevista telefónica", fuente]));
+      filas.push([ind.nombre, "España", ind.fechas[a], n(ind.espana[a]), n(ind.margenEspana[a]), "", "entrevista telefónica", fuente]);
     });
     if (ind.historico) ind.historico.fechas.forEach((f, i) => {
       [...IDS, "ES"].forEach((id) => {
         const v = id === "ES" ? ind.historico.espana[i] : ind.historico.serie[id]?.[i];
-        if (v != null) filas.push([ind.nombre, id === "ES" ? "España" : NOMBRE[id], f, n(v), "", "serie anterior al cambio de método de 2022 (sin margen)", fuente]);
+        if (v != null) filas.push([ind.nombre, id === "ES" ? "España" : NOMBRE[id], f, n(v), "", "", "entrevista en persona (serie anterior a 2022, no comparable)", fuente]);
       });
     });
     return filas;
@@ -1674,7 +1674,8 @@ export function iniciar(DATA: DatosApp): void {
       <p>Fuente: Barómetro Sanitario, encuesta anual del Ministerio de Sanidad y el Centro de Investigaciones Sociológicas (CIS) a la población de 18 y más años: entre unas 7.200 y 7.800 entrevistas al año (de 2022 a 2025), en tres oleadas.</p>
       <dl>${lista("opinion")}</dl>
       ${notasOpinion(null)}
-      <p><b>Cómo lo comprobamos.</b> Con los microdatos del CIS reproducimos exactamente las cifras de 2025 que publica el Ministerio, en las 17 comunidades: satisfacción, valoración del médico de familia y los datos de acceso que da su informe anual (por ejemplo, 9,15 días de media en España y 21,8 % atendido en el día o al siguiente). El cálculo es el mismo que el suyo: la ponderación nacional, también dentro de cada comunidad, y en las valoraciones el «no sabe o no contesta» cuenta en el total.</p>
+      <p><b>De dónde sale cada cifra.</b> Satisfacción y valoración del médico de familia: serie por comunidad del Ministerio. Atendidos en el día o al siguiente y días para el médico de familia: el Ministerio no publica la serie por comunidad, así que los calculamos con los microdatos del CIS de 2025, con su mismo método.</p>
+      <p><b>Cómo lo comprobamos.</b> Con los microdatos reproducimos exactamente la satisfacción y la valoración de 2025 de su serie, en las 17 comunidades, Ceuta y Melilla. En el acceso coinciden todas las cifras que da su informe anual: en España, 9,15 días de media, 21,8 % atendido en el día o al siguiente y 5,1 % que prefirió otra fecha; y los días de País Vasco (4,91), Asturias (5,45), Andalucía (11,16), Cataluña (10,59) y Ceuta (5,55). El cálculo usa la ponderación nacional, también dentro de cada comunidad, y en las valoraciones el «no sabe o no contesta» cuenta en el total.</p>
       <p><b>Los días de espera son de atención primaria.</b> No tienen que ver con las listas de espera de la web, que son de operaciones y consultas con el especialista (registro SISLE-SNS). Aquí se pregunta a la gente por su última visita al médico de familia.</p>
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>

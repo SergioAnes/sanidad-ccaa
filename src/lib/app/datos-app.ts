@@ -96,8 +96,8 @@ export type AjusteEdad = {
 /** Textos de los indicadores del Barómetro Sanitario (encuesta del Ministerio de Sanidad y el CIS). */
 const OPINION: Record<string, { corto: string; nombre: string; desc: string; mejorAlto: boolean }> = {
   satisfaccion: {
-    corto: "Satisfacción con la sanidad", nombre: "Satisfacción con el funcionamiento del sistema sanitario (de 1 a 10)", mejorAlto: true,
-    desc: "Media de la respuesta, de 1 (muy insatisfecho) a 10 (muy satisfecho), a la pregunta del Barómetro Sanitario sobre el funcionamiento del sistema sanitario. Encuesta a la población de 18 y más años.",
+    corto: "Satisfacción con la sanidad pública", nombre: "Satisfacción con el funcionamiento de la sanidad pública en España (de 1 a 10)", mejorAlto: true,
+    desc: "Media de la respuesta, de 1 (muy insatisfecho) a 10 (muy satisfecho), a la pregunta «En general, ¿está usted satisfecho o insatisfecho con el modo en que el sistema sanitario público funciona en España?». Pregunta por la sanidad pública de toda España, no por la de la comunidad: aquí se agrupan las respuestas según dónde vive quien contesta. Encuesta a la población de 18 y más años.",
   },
   valoracion_ap: {
     corto: "Valoran bien al médico de familia", nombre: "Personas que valoran como buena o muy buena la atención del médico de familia de la sanidad pública", mejorAlto: true,
@@ -105,11 +105,11 @@ const OPINION: Record<string, { corto: string; nombre: string; desc: string; mej
   },
   ap_en_24h: {
     corto: "Atendidos en el día o al siguiente", nombre: "Personas atendidas por el médico de familia el mismo día o el día siguiente de pedir cita", mejorAlto: true,
-    desc: "Porcentaje que fue atendido el mismo día o el día siguiente de pedir cita, según su última visita, entre quienes fueron al médico de familia de la sanidad pública en el último año.",
+    desc: "Porcentaje que fue atendido el mismo día o el día siguiente de pedir cita, según su última visita, entre quienes fueron al médico de familia de la sanidad pública en el último año. Como hace el Ministerio, el total incluye también a quienes solo tuvieron citas programadas, a quienes no necesitan pedir cita y a quien no contesta (en España, unas 3 de cada 100 respuestas en 2025). Cálculo propio con los microdatos del CIS.",
   },
   ap_dias: {
     corto: "Días para el médico de familia", nombre: "Días para que te atienda el médico de familia, cuando no había cita antes", mejorAlto: false,
-    desc: "Media de días que pasaron hasta que les atendió el médico de familia, entre quienes no consiguieron cita para el mismo día o el siguiente porque no había cita antes. No es la espera de todos los pacientes: quien fue atendido en el día o al siguiente no entra en esta media.",
+    desc: "Media de días que pasaron hasta que les atendió el médico de familia, entre quienes no consiguieron cita para el mismo día o el siguiente porque no había cita antes. No es la espera de todos los pacientes: quien fue atendido en el día o al siguiente, o esperó más porque prefirió otra fecha, no entra en esta media (en España, en 2025, entran unas 7 de cada 10 personas que fueron). Cálculo propio con los microdatos del CIS.",
   },
 };
 

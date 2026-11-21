@@ -57,7 +57,7 @@ describe("Barómetro Sanitario", () => {
 
   it("cita las fuentes con enlace, incluidos los microdatos de cada año", () => {
     const F = bs.fuentes;
-    for (const u of [F.serie.url, F.informe.url, ...F.microdatos.map((m) => m.url)]) expect(u).toMatch(/^https:\/\/www\.(sanidad\.gob|cis)\.es\//);
+    for (const u of [F.serie.url, F.serie.url_fichero, F.informe.url, ...F.microdatos.map((m) => m.url)]) expect(u).toMatch(/^https:\/\/www\.(sanidad\.gob|cis)\.es\//);
     const anios = new Set(bs.indicadores.flatMap((i) => i.anios));
     for (const a of anios) expect(F.microdatos.some((m) => m.anio === a), `microdatos ${a}`).toBe(true);
   });

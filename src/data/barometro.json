@@ -3,7 +3,8 @@
   "serie": {
    "texto": "Ministerio de Sanidad, Barómetro Sanitario: principales variables por comunidad autónoma, 1998-2025",
    "fichero": "BS_1998-2025_Principales_variables_CCAA.xlsx",
-   "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm"
+   "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm",
+   "url_fichero": "https://www.sanidad.gob.es/estadEstudios/estadisticas/BarometroSanitario/Barom_Sanit_2025/Totales/BS_1998-2025_Principales_variables_CCAA.xlsx"
   },
   "informe": {
    "texto": "Ministerio de Sanidad, Barómetro Sanitario 2025: informe anual",

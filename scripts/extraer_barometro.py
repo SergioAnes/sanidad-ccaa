@@ -56,6 +56,7 @@ VARIABLES = {
 PRIMER_ANIO_METODO = 2022  # entrevista telefónica (antes, en persona)
 
 URL_SERIE = "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm"
+URL_FICHERO = "https://www.sanidad.gob.es/estadEstudios/estadisticas/BarometroSanitario/Barom_Sanit_2025/Totales/BS_1998-2025_Principales_variables_CCAA.xlsx"
 URL_INFORME = "https://www.sanidad.gob.es/estadEstudios/estadisticas/BarometroSanitario/Barom_Sanit_2025/Totales/Informe_BS_2025.pdf"
 URL_MICRO = "https://www.cis.es/documents/d/cis/MD{}"
 
@@ -213,7 +214,8 @@ def main() -> None:
     datos = {
         "fuentes": {
             "serie": {"texto": "Ministerio de Sanidad, Barómetro Sanitario: principales variables por comunidad autónoma, 1998-2025",
-                      "fichero": "BS_1998-2025_Principales_variables_CCAA.xlsx", "url": URL_SERIE},
+                      "fichero": "BS_1998-2025_Principales_variables_CCAA.xlsx", "url": URL_SERIE,
+                      "url_fichero": URL_FICHERO},
             "informe": {"texto": "Ministerio de Sanidad, Barómetro Sanitario 2025: informe anual", "url": URL_INFORME},
             "microdatos": [{"anio": a, "estudio": e, "url": URL_MICRO.format(f"{e}-zip" if e in (3509, 3519, 3531, 8822) else e)}
                            for a, es in ESTUDIOS.items() for e in es],
