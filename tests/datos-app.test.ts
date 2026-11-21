@@ -37,6 +37,9 @@ describe("datos de la interfaz", () => {
     if (!q || q.grupo !== "espera") throw new Error("falta q_dias");
     expect(d.detalle.quirurgica.v.total.dias).toMatchObject(q.valor);
     expect(d.detalle.procesos.campos.some((c) => c.id === "catarata")).toBe(true);
+    // pacientes en espera (tarjeta «Pacientes en espera» y columna de la tabla): Andalucía, quirúrgica, dic. 2025
+    expect(d.detalle.quirurgica.v.total.pacientes.AN).toBe(199950);
+    expect(Object.keys(d.detalle.quirurgica.v.total.pacientes)).toEqual(expect.arrayContaining(["CE", "ML"]));
     expect(Object.keys(d.detalle.consultas.v.traumatologia.dias).length).toBeGreaterThanOrEqual(17);
   });
 

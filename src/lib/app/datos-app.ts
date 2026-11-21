@@ -148,7 +148,8 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
   });
 
   const detalle: DetalleListas = {};
-  const medidas = [...new Set(ESPERA.map((e) => e.medida))];
+  // Además de las medidas de las tarjetas, el número de pacientes (para la tarjeta «Pacientes en espera» y la tabla).
+  const medidas = [...new Set([...ESPERA.map((e) => e.medida), "pacientes" as MedidaLista])];
   for (const t of LISTAS.tipos) {
     const v: DetalleListas[string]["v"] = {};
     for (const c of t.campos) {

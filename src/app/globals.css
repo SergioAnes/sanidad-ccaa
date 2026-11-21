@@ -366,3 +366,4 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .tip-marcas { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
 .tip-ayuda { opacity: 0.75; font-size: 0.9em; }
 .pliegue a { color: var(--accent); }
+.campo .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
