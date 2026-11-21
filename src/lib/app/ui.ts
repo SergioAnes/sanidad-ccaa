@@ -652,11 +652,18 @@ export function iniciar(DATA: DatosApp): void {
   // ---------- Resumen de lo que estás viendo + panel «Ajustes» ----------
   // Una etiqueta por cada elección (dato, especialidad, años, inflación, tu comunidad, gráfico). El resumen va
   // encima del mapa y se queda fijo arriba al bajar. Las etiquetas que no están como al principio se resaltan.
-  const POR_DEFECTO = { indP: "gasto_hab", campoE: "total", modo: "valor", desde: ANIOS[0], real: true, vistaE: "ranking" };
+  function filtrosIniciales(base) {
+    return {
+      indP: DATA.inds.find((ind) => ind.grupo === base.grupo).id,
+      campoE: "total", modo: "valor", anioP: ultimo(base), desde: primero(base), vistaE: "ranking",
+      ...(base.grupo === "gasto" ? { real: true } : {}),
+    };
+  }
+  function filtrosModificados(base) {
+    return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
+  }
   function restablecer() {
-    delete seleccionPeriodo.gasto;
-    delete seleccionPeriodo.espera;
-    Object.assign(S, POR_DEFECTO, { anioP: ULT });
+    Object.assign(S, filtrosIniciales(IND[S.indP]));
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
@@ -685,10 +692,14 @@ export function iniciar(DATA: DatosApp): void {
     h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda("Se resalta en el mapa y en los gráficos"));
     h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
     // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
-    const cambiado = Object.entries(POR_DEFECTO).some(([k, v]) => S[k] !== v) || S.anioP !== ultimo(base);
+    const cambiado = filtrosModificados(base);
     if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
     $("#rs-chips").innerHTML = h;
-    if (cambiado) $("#rs-reset").onclick = () => aplicar(restablecer);
+    if (cambiado) $("#rs-reset").onclick = () => {
+      const teniaFoco = document.activeElement === $("#rs-reset");
+      aplicar(restablecer);
+      if (teniaFoco) $("#rs-dato").focus({ preventScroll: true });
+    };
     // En el móvil, una sola línea con el resumen (lo que no está como al principio, resaltado); al tocarla, Ajustes.
     const parte = (txt, cambiado = false) => `<span class="${cambiado ? "cambiado" : ""}">${esc(txt)}</span>`;
     const partes = [parte(base.corto)];
@@ -731,7 +742,8 @@ export function iniciar(DATA: DatosApp): void {
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
     h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, "Se resalta en el mapa y en los gráficos.");
     h += fila("Gráfico", radios("graf", S.vistaE, [["ranking", "Ranking"], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]), "El gráfico que aparece debajo del mapa.");
-    h += `<div class="aj-pie"><button type="button" class="btn" id="aj-reset">Restablecer</button><button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
+    const cambiado = filtrosModificados(base);
+    h += `<div class="aj-pie">${cambiado ? '<button type="button" class="btn" id="aj-reset">Restablecer</button>' : ""}<button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
     $("#aj-cuerpo").innerHTML = h;
     const on = (sel, fn) => $("#aj-cuerpo").querySelectorAll(sel).forEach((el) => el.onchange = (e) => { pararPlay(); fn(e.target.value); render(); });
     on("#aj-dato", (v) => { cambiarIndicador(v); });
@@ -746,7 +758,12 @@ export function iniciar(DATA: DatosApp): void {
     const cerrar = () => $("#ajustes").close();
     $("#aj-cerrar").onclick = cerrar;
     $("#aj-ver").onclick = () => { cerrar(); document.querySelector("#v-datos .portada-grid").scrollIntoView({ behavior: "smooth", block: "start" }); };
-    $("#aj-reset").onclick = () => { pararPlay(); restablecer(); render(); };
+    if (cambiado) $("#aj-reset").onclick = () => {
+      pararPlay();
+      restablecer();
+      render();
+      $("#aj-ver").focus({ preventScroll: true });
+    };
   }
 
   // Pestañas bajo el mapa. El ranking sigue al mapa (valor o cambio); la tabla trae los dos.
