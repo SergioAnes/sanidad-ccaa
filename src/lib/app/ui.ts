@@ -1325,6 +1325,19 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- TU COMUNIDAD ----------
+  // En la fila «Gasto por habitante» de la ficha, una línea con el dato ajustado por edad (no una fila aparte: diría
+  // casi lo mismo que la anterior). El puesto puede cambiar mucho: por eso se muestra siempre, no solo al pedirlo.
+  function lineaEdad(ind, id, vs, anio) {
+    if (ind.id !== "gasto_hab" || !EDAD) return "";
+    const que = `<a href="#metodo-edad">¿Qué es esto?</a>`;
+    if (!periodos(EDAD).includes(anio)) return `<div class="edad-ficha">Ajuste por edad: disponible desde ${EDAD.anios[0]}. ${que}</div>`;
+    const ve = valores(EDAD, anio), oe = ordenados(ve);
+    if (ve[id] == null) return "";
+    const puesto = puestoTxt(EDAD, oe.indexOf(id) + 1, oe.length);
+    return `<div class="edad-ficha">Ajustado por edad: <b>${fmt(ve[id], "eur_hab")}</b> · ${puesto.charAt(0).toLowerCase() + puesto.slice(1)}` +
+      `${vs && ve[vs] != null ? ` · ${esc(NOMBRE[vs])}: ${fmt(ve[vs], "eur_hab")}` : ""}. ${que}</div>`;
+  }
+
   function filaInd(ind, id, vs = "", anioSel = ULT) {
     const anio = anioSel;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
@@ -1363,7 +1376,7 @@ export function iniciar(DATA: DatosApp): void {
       <div><div class="n">${esc(ind.corto)}</div><div class="pos">${hayDato ? puestoTxt(ind, pos, o.length) : "Sin dato en el informe"}</div></div>
       <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${hayDato ? dif : ""}</div>${vs ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</div>` : ""}</div>
       <div class="strip">${strip}</div>
-      <div class="spark">${spark}</div>
+      <div class="spark">${spark}</div>${lineaEdad(ind, id, vs, anio)}
     </div>`;
   }
 
