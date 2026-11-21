@@ -35,6 +35,7 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "pct") return nf(1).format(v) + " %";
     if (u === "por_mil") return nf(1).format(v) + " ‰";
     if (u === "dias") return nf(0).format(v) + " días";
+    if (u === "num") return nf(0).format(v);
     if (u === "var") return (v > 0 ? "+" : v < 0 ? "−" : "") + nf(0).format(Math.abs(v)) + " %";
     if (u === "pp") return (v > 0 ? "+" : v < 0 ? "−" : "") + nf(1).format(Math.abs(v)) + " p.";
     return nf(1).format(v);
@@ -216,19 +217,15 @@ export function iniciar(DATA: DatosApp): void {
     }
     return IND[id];
   }
-  function selectorCampo(cont, base, selId) {
-    if (base.grupo !== "espera") { cont.innerHTML = ""; return; }
-    const opc = (tipo, c) => `<option value="${tipo}:${c.id}" ${S.campoE === `${tipo}:${c.id}` ? "selected" : ""}>${esc(c.nombre)}</option>`;
-    const grupos = familias(base).map((tipo) => {
-      const t = DATA.detalle[tipo];
-      const campos = t.campos.filter((c) => c.id !== "total");
-      return `<optgroup label="${tipo === "procesos" ? "Procesos frecuentes" : "Especialidades"}">${campos.map((c) => opc(tipo, c)).join("")}</optgroup>`;
-    }).join("");
-    cont.innerHTML = `<label for="${selId}">Especialidad o proceso:</label>
-      <select id="${selId}"><option value="total" ${S.campoE === "total" ? "selected" : ""}>Todas (total)</option>${grupos}</select>` +
-      (S.campoE !== "total" ? `<span>Las tarjetas de arriba siguen mostrando el total.</span>` : "");
-    cont.querySelector("select").onchange = (e) => { S.campoE = e.target.value; render(); };
+  // Pacientes en espera de la lista que muestra el indicador (total o la especialidad/proceso elegido), por territorio.
+  function pacientesDe(ind) {
+    if (ind.grupo !== "espera") return null;
+    const [tipo, campo] = ind.id.includes("@") ? ind.id.split("@")[1].split(":") : [ind.tipo, "total"];
+    return DATA.detalle[tipo]?.v[campo]?.pacientes || null;
   }
+  const queEspera = (ind) => (ind.tipo === "consultas" ? "una primera consulta con el especialista" : "una operación") +
+    (ind.campoNombre ? ` (${ind.campoNombre})` : "");
+
   const SLOTS = ["--s1", "--s2", "--s3"];
   const colorSel = (id) => { const s = S.sel.find((x) => x.id === id); return s ? css(SLOTS[s.slot]) : null; };
   function alternarSel(id) {
@@ -457,7 +454,13 @@ export function iniciar(DATA: DatosApp): void {
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
       out.push({ k: `Cambio de ${base0()} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
     } else if (!tieneSerie(ind)) {
-      out.push({ k: "Dato del informe", t: `Datos del SISLE-SNS a ${DATA.corteListas}. ${ind.desc}` });
+      const pac = pacientesDe(ind);
+      const con = pac ? IDS.filter((id) => pac[id] != null) : [];
+      if (con.length) {
+        const total = con.reduce((s, id) => s + pac[id], 0);
+        out.push({ k: "Pacientes en espera", t: `<strong>${fmt(total, "num")}</strong> personas esperan ${esc(queEspera(ind))} en ${con.length < IDS.length ? `las ${con.length} comunidades con dato` : "las 17 comunidades"}` +
+          (pac[S.com] != null ? `; en <strong>${NOMBRE[S.com]}</strong>, ${fmt(pac[S.com], "num")}.` : `. ${NOMBRE[S.com]} no tiene dato en el informe.`) });
+      }
     }
     return { out, top, bot };
   }
@@ -486,7 +489,10 @@ export function iniciar(DATA: DatosApp): void {
     if (!tieneSerie(ind)) S.modo = "valor";
     if (S.modo === "cambio" && S.anioP <= S.desde) { S.anioP = ULT; if (S.desde >= ULT) S.desde = ANIOS[0]; }
     selector($("#sel-datos"), S.indP, (id) => { pararPlay(); S.indP = id; render(); });
-    selectorCampo($("#d-campo"), baseInd, "d-campo-sel");
+    $("#d-campo").innerHTML = ind !== baseInd
+      ? `<span>Mapa y gráficos: <b>${esc(ind.campoNombre)}</b>. Las tarjetas siguen mostrando el total.</span><button type="button" class="btn-link" id="d-campo-total">Volver al total</button>`
+      : "";
+    if ($("#d-campo-total")) $("#d-campo-total").onclick = () => sinMover(() => { S.campoE = "total"; render(); });
 
     const anio = tieneSerie(ind) ? S.anioP : null;
     const vals = valores(ind, anio);
@@ -599,7 +605,7 @@ export function iniciar(DATA: DatosApp): void {
     // En el móvil, una sola línea con el resumen (lo que no está como al principio, resaltado); al tocarla, Ajustes.
     const parte = (txt, cambiado = false) => `<span class="${cambiado ? "cambiado" : ""}">${esc(txt)}</span>`;
     const partes = [parte(base.corto)];
-    if (base.grupo === "espera" && S.campoE !== "total") partes.push(parte(indDetalle(base, S.campoE).campoNombre || "", true));
+    if (base.grupo === "espera") partes.push(S.campoE !== "total" ? parte(indDetalle(base, S.campoE).campoNombre || "", true) : parte("total"));
     if (serie) partes.push(S.modo === "cambio" ? parte(`${S.desde} → ${S.anioP}`, true) : parte(String(S.anioP), S.anioP !== ULT));
     else partes.push(parte(corteCorto()));
     if (enEuros(base)) partes.push(parte(S.real ? "sin inflación" : "con inflación", !S.real));
@@ -803,13 +809,16 @@ export function iniciar(DATA: DatosApp): void {
     const signo = (x, txt) => /^0( |$)/.test(txt) ? `<span class="neg">≈ ${txt}</span>` : `<span class="${x < 0 ? "neg" : ""}">${x >= 0 ? "+" : "−"}${txt}</span>`;
     const difMedia = (v) => u === "pct" ? signo(v - m, nf(1).format(Math.abs(v - m)) + " p.") : signo(v - m, nf(0).format(Math.abs(v / m - 1) * 100) + " %");
     const cambio = (id) => u === "pct" ? signo(vals[id] - base[id], nf(1).format(Math.abs(vals[id] - base[id])) + " p.") : signo(vals[id] - base[id], nf(0).format(Math.abs(vals[id] / base[id] - 1) * 100) + " %");
-    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${b0}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${serie ? anio : "Valor"}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th></tr>`;
-    const filas = o.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i + 1}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td></tr>`).join("");
-    const pie = `<tr><td></td><td>Media de las ${o.length}</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td></tr>`;
-    const nCol = 4 + (serie ? 2 : 0);
+    const pac = pacientesDe(ind);
+    const celdaPac = (v) => pac ? `<td>${fmt(v, "num")}</td>` : "";
+    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${b0}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${serie ? anio : "Valor"}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? "<th>Pacientes en espera</th>" : ""}</tr>`;
+    const filas = o.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i + 1}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdaPac(pac && pac[id])}</tr>`).join("");
+    const totalPac = pac ? o.reduce((s, id) => s + (pac[id] || 0), 0) : 0;
+    const pie = `<tr><td></td><td>Media de las ${o.length}</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")} <span style="font-weight:400">en total</span></td>` : ""}</tr>`;
+    const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0);
     const ciu = !serie && DATA.ciudades[ind.id] ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
-      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td><td>${fmt(datoCiudad(ind, k), u)}</td><td>${difMedia(datoCiudad(ind, k))}</td></tr>`).join("") : "";
+      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td><td>${fmt(datoCiudad(ind, k), u)}</td><td>${difMedia(datoCiudad(ind, k))}</td>${celdaPac(pac && pac[k])}</tr>`).join("") : "";
     cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
       <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV${serie ? ` (${ANIOS[0]}-${ULT})` : ""}</button></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
@@ -822,9 +831,10 @@ export function iniciar(DATA: DatosApp): void {
       filas = [["indicador", "comunidad", "anio", real ? "valor_euros_corrientes" : "valor", ...(real ? [`valor_euros_${ULT}`] : []), "provisional"]];
       IDS.forEach((id) => ANIOS.forEach((a, i) => filas.push([ind.nombre, NOMBRE[id], a, n((real ? ind.serieNom : ind.serie)[id][i]), ...(real ? [n(ind.serieReal[id][i])] : []), esProv(a) ? "si" : "no"])));
     } else {
-      filas = [["indicador", "comunidad", "fecha", "valor", "nota"]];
-      IDS.forEach((id) => filas.push([ind.nombre, NOMBRE[id], DATA.corteListas, n(ind.valor[id]), ind.valor[id] == null ? "sin dato en el informe" : ""]));
-      Object.keys(CIUDADES).forEach((k) => { const v = datoCiudad(ind, k); if (v != null) filas.push([ind.nombre, CIUDADES[k], DATA.corteListas, n(v), "ciudad autonoma: fuera de la media de las 17"]); });
+      const pac = pacientesDe(ind) || {};
+      filas = [["indicador", "comunidad", "fecha", "valor", "pacientes_en_espera", "nota"]];
+      IDS.forEach((id) => filas.push([ind.nombre, NOMBRE[id], DATA.corteListas, n(ind.valor[id]), n(pac[id]), ind.valor[id] == null ? "sin dato en el informe" : ""]));
+      Object.keys(CIUDADES).forEach((k) => { const v = datoCiudad(ind, k); if (v != null) filas.push([ind.nombre, CIUDADES[k], DATA.corteListas, n(v), n(pac[k]), "ciudad autonoma: fuera de la media de las 17"]); });
     }
     const csv = "\ufeff" + filas.map((f) => f.map((c) => /[;"\n]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(";")).join("\r\n");
     const a = document.createElement("a");
