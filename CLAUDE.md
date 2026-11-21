@@ -41,6 +41,10 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   Ejecutar ANTES de `extraer_egsp.py`, que calcula `gasto_hab_edad` (gasto por habitante ajustado por edad, desde 2013:
   antes la población protegida no se calculaba con tarjeta sanitaria). En la web es una variante de «Gasto por
   habitante» (interruptor «Ajustado por edad», `edad=si` en la dirección), no una tarjeta; no genera avisos propios.
+- `src/data/contexto-ccaa.json` (ficha, bloque «Contexto»: % 65+ y 80+, densidad, núcleos de población, seguro privado
+  además del público) se genera con `python scripts/extraer_contexto.py` (INE 56940, certificados IGN/INE de la
+  liquidación, Encuesta de Salud de España 2023 con su intervalo al 95 %). Es contexto: no corrige el gasto. La tabla
+  del INE trae el agregado «85 y más años» además de las edades sueltas: no sumarlo dos veces.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

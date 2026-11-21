@@ -7,6 +7,7 @@ import mapaJson from "@/data/mapa-ccaa.json";
 import notasJson from "@/data/notas-egsp.json";
 import perimetroJson from "@/data/perimetro-egsp.json";
 import ppeJson from "@/data/poblacion-equivalente.json";
+import contextoJson from "@/data/contexto-ccaa.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -120,6 +121,8 @@ export type DatosApp = {
   umbralEntidades: number;
   /** Gasto por habitante ajustado por edad (src/data/poblacion-equivalente.json) */
   edad: AjusteEdad | null;
+  /** Datos de contexto de cada comunidad para la ficha (src/data/contexto-ccaa.json): no corrigen el gasto */
+  contexto: typeof contextoJson;
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
   notasListas: string[];
@@ -197,6 +200,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     entidades: cambiosEntidades(),
     umbralEntidades: UMBRAL_ENTIDADES,
     edad: ajusteEdad(valores, ids),
+    contexto: contextoJson,
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,

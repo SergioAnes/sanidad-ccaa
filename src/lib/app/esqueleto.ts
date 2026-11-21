@@ -86,6 +86,12 @@ export const ESQUELETO = `<div class="wrap">
       <div class="notas-min" id="c-notas"></div>
     </div>
     <div class="bloque">
+      <h2>Contexto</h2>
+      <p class="sub" id="c-contexto-sub"></p>
+      <div class="contexto" id="c-contexto"></div>
+      <div class="notas-min" id="c-contexto-notas"></div>
+    </div>
+    <div class="bloque">
       <h2>Listas de espera</h2>
       <p class="sub" id="c-espera-sub"></p>
       <div class="filas" id="c-espera"></div>

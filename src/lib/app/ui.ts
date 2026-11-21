@@ -1338,6 +1338,36 @@ export function iniciar(DATA: DatosApp): void {
       `${vs && ve[vs] != null ? ` · ${esc(NOMBRE[vs])}: ${fmt(ve[vs], "eur_hab")}` : ""}. ${que}</div>`;
   }
 
+  // ---------- Contexto de la comunidad (ficha) ----------
+  // Cuatro datos que ayudan a entender el gasto, sin corregirlo. Tres son registros (puesto entre las 17) y uno es
+  // una encuesta: para ese no se da puesto, solo si se distingue de la media de España con su margen de error.
+  function renderContexto(id) {
+    const C = DATA.contexto, d = C.ccaa[id], vs = S.vs && C.ccaa[S.vs] ? S.vs : "";
+    const nf1 = nf(1), nf0 = nf(0);
+    const puesto = (campo) => {
+      const o = IDS.slice().sort((a, b) => C.ccaa[b][campo] - C.ccaa[a][campo]);
+      return puestoTxt({ grupo: "gasto" }, o.indexOf(id) + 1, o.length);
+    };
+    const esp = C.espana_cobertura.mixta, [lo, hi] = d.cobertura_ic;
+    const frente = lo > esp ? `Por encima de la media de España (${nf1.format(esp)} %)` : hi < esp ? `Por debajo de la media de España (${nf1.format(esp)} %)` : `No se distingue de la media de España (${nf1.format(esp)} %)`;
+    const celda = (titulo, valor, detalle, campoVs) => `<div class="ctx"><div class="ctx-t">${titulo}</div><div class="ctx-v">${valor}</div><div class="ctx-d">${detalle}</div>${vs && campoVs ? `<div class="vs">${esc(NOMBRE[vs])}: ${campoVs(C.ccaa[vs])}</div>` : ""}</div>`;
+    const fecha = C.fecha.split("-").reverse().join("/");
+    $("#c-contexto-sub").textContent = `Datos que ayudan a entender el gasto, sin corregirlo. A 1 de enero de ${C.fecha.slice(0, 4)}, salvo el seguro privado (encuesta de 2023).`;
+    $("#c-contexto").innerHTML =
+      celda("Mayores de 65 años", `${nf1.format(d.pct65)} %`, `${puesto("pct65")} · 80 años o más: ${nf1.format(d.pct80)} %`, (x) => `${nf1.format(x.pct65)} %`) +
+      celda("Densidad de población", `${nf0.format(d.densidad)} hab./km²`, puesto("densidad"), (x) => `${nf0.format(x.densidad)} hab./km²`) +
+      celda("Núcleos de población", nf0.format(d.entidades), `${puesto("entidades")} · el sistema de financiación lo usa para medir la dispersión`, (x) => nf0.format(x.entidades)) +
+      celda("Con seguro privado además del público", `${nf1.format(d.cobertura_mixta)} %`, `Entre ${nf1.format(lo)} % y ${nf1.format(hi)} % (encuesta). ${frente}`, (x) => `${nf1.format(x.cobertura_mixta)} %`);
+    $("#c-contexto-notas").innerHTML = plegable("contexto", "¿Por qué importan y de dónde salen?", `
+      <p><b>Ninguno de estos datos corrige el gasto.</b> Sirven para entender por qué unas comunidades gastan más que otras, pero su efecto no se puede medir con estas cifras.</p>
+      <ul>
+        <li><b>Mayores de 65 años.</b> Las personas mayores necesitan más atención. Es el factor que corrige el «Gasto por habitante, ajustado por edad». Fuente: INE, Estadística Continua de Población (1/1/${C.fecha.slice(0, 4)}).</li>
+        <li><b>Densidad y núcleos de población.</b> Una población dispersa puede obligar a mantener más centros y desplazamientos, lo que puede encarecer la atención. Las zonas densas pueden tener otros costes (personal, suelo) y hospitales de referencia que atienden a pacientes de otras comunidades. El efecto puede ir en los dos sentidos. Superficie: Instituto Geográfico Nacional; núcleos («entidades singulares»): INE. Ambos certificados en la <a href="${C.urls.liquidacion}">liquidación del sistema de financiación</a> (1/1/${C.fecha.slice(0, 4)}).</li>
+        <li><b>Seguro privado además del público.</b> Personas con un seguro médico privado voluntario (individual o de empresa) que conservan la sanidad pública. Tener un seguro privado no quita el derecho a la sanidad pública, y quien lo tiene puede seguir usándola, también para lo más caro. Por eso un porcentaje alto no implica por sí solo que la comunidad atienda a menos gente. Fuente: <a href="${C.urls.encuesta}">Encuesta de Salud de España 2023</a> (Ministerio de Sanidad e INE). Es una encuesta: damos el intervalo de confianza al 95 % y no ordenamos comunidades que no se distinguen. Los mutualistas (MUFACE, ISFAS, MUGEJU) atendidos por una aseguradora cuentan en esta encuesta como cobertura pública, no como seguro privado.</li>
+        <li><b>Mutualistas.</b> No hay datos oficiales completos por comunidad (MUFACE los publica, ISFAS y MUGEJU no), así que no los mostramos. El gasto ajustado por edad ya los tiene en cuenta: la población con tarjeta sanitaria no incluye a los que eligieron una aseguradora.</li>
+      </ul>`);
+  }
+
   function filaInd(ind, id, vs = "", anioSel = ULT) {
     const anio = anioSel;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
@@ -1423,6 +1453,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-espera-sub").innerHTML = `<label class="periodo" for="c-corte">Corte <select id="c-corte">${opcionesAnio(q, PERIODOS_ESPERA.slice().reverse(), S.corteC)}</select></label> <span class="sub-ficha">Un valor más alto significa más espera.${CORTES[S.corteC].id === "2023-06" ? ' Las cifras de consultas de este corte llevan un aviso en <a href="#metodo">Cómo leer los datos</a>.' : ""}</span>`;
     $("#c-corte").onchange = (e) => { S.corteC = +e.target.value; render(); };
     $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs, S.corteC)).join("");
+    renderContexto(id);
     const quir = DATA.detalle.quirurgica;
     const esp = quir.campos.filter((c) => c.id !== "total").map((c) => [c.nombre, quir.v[c.id].dias[id]?.[S.corteC]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
     $("#c-extra").innerHTML = esp.length ? `Especialidad quirúrgica con más espera en ${esc(NOMBRE[id])}: <strong>${esc(esp[0][0])}</strong> (${fmt(esp[0][1], "dias")} de media). Con menos: <strong>${esc(esp[esp.length - 1][0])}</strong> (${fmt(esp[esp.length - 1][1], "dias")}).` : "";
