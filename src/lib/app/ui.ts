@@ -493,10 +493,7 @@ export function iniciar(DATA: DatosApp): void {
       $("#p-titulo").textContent = `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
       $("#p-sub").textContent = `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
     }
-    $("#p-tiempo-cab").hidden = !tieneSerie(ind);
-    $("#p-modo").innerHTML = tieneSerie(ind) ? `<button type="button" data-m="valor" aria-pressed="${!enCambio}">Un año</button>
-      <button type="button" data-m="cambio" aria-pressed="${enCambio}">Cambio entre dos años</button>` : "";
-    $("#p-modo").querySelectorAll("button").forEach((b) => b.onclick = () => { pararPlay(); S.modo = b.dataset.m; render(); });
+    // El modo (un año / cambio entre dos años) se elige arriba, en el resumen o en Ajustes.
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); } }));
     botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, $("#p-titulo").textContent, $("#p-leyenda"),
       [$("#p-sub").textContent.replace(" Pulsa una comunidad para elegirla como la tuya.", "")]));

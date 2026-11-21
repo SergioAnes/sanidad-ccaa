@@ -33,8 +33,6 @@ export const ESQUELETO = `<div class="wrap">
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
         <div class="tiempo">
-          <div class="tiempo-cab" id="p-tiempo-cab"><span class="tiempo-q">¿Qué quieres ver?</span>
-            <div class="seg sm modo" id="p-modo" role="group" aria-label="Qué quieres ver"></div></div>
           <div class="anios" id="p-anios"></div>
         </div>
         <div class="descargas" id="p-desc"></div>
