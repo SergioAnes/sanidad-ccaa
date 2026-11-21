@@ -34,6 +34,13 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   no dice si es entidad nueva, reorganización o reclasificación; no interpretarlo ni afirmar efectos.
 - Conciertos: usar la definición literal de la metodología EGSP (pág. 15: centros «de titularidad pública o privada»);
   no describirlos como «privados». `conciertos_hab` = importe / población implícita del Anexo I.2 (cálculo propio).
+- `src/data/poblacion-equivalente.json` (población protegida equivalente oficial por comunidad, 2009-…) se genera con
+  `python scripts/extraer_ppe.py` a partir de los anexos de las liquidaciones del sistema de financiación
+  (`datos-originales/liquidacion-sfa-anexos-AAAA.pdf`). 2009-2020 son escaneos: sus totales están transcritos en
+  `scripts/ppe_certificados_escaneados.py` (comprobados: suma = total y coinciden con los cuadros de la liquidación).
+  Ejecutar ANTES de `extraer_egsp.py`, que calcula `gasto_hab_edad` (gasto por habitante ajustado por edad, desde 2013:
+  antes la población protegida no se calculaba con tarjeta sanitaria). En la web es una variante de «Gasto por
+  habitante» (interruptor «Ajustado por edad», `edad=si` en la dirección), no una tarjeta; no genera avisos propios.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

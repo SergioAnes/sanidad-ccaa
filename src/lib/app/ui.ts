@@ -17,12 +17,15 @@ export function iniciar(DATA: DatosApp): void {
   const ANIOS = DATA.anios;
   const ULT = ANIOS[ANIOS.length - 1];
   const IND = Object.fromEntries(DATA.inds.map((i) => [i.id, i]));
+  // Gasto por habitante ajustado por edad: variante de gasto_hab con sus propios años (desde 2013).
+  const EDAD = DATA.edad;
+  if (EDAD) IND[EDAD.id] = EDAD;
   // Euros constantes: valor × IPC(último año) / IPC(año). IPC = media anual del índice general del INE.
   const IPC = DATA.ipc;
   const enEuros = (ind) => ind.unidad === "eur_hab";
-  for (const ind of DATA.inds) if (enEuros(ind) && ind.serie) {
-    const nom = ind.serie;
-    const real = Object.fromEntries(Object.entries(nom).map(([id, sr]) => [id, sr.map((v, i) => v == null ? null : v * IPC[ULT] / IPC[ANIOS[i]])]));
+  for (const ind of [...DATA.inds, ...(EDAD ? [EDAD] : [])]) if (enEuros(ind) && ind.serie) {
+    const nom = ind.serie, anios = ind.anios || ANIOS;
+    const real = Object.fromEntries(Object.entries(nom).map(([id, sr]) => [id, sr.map((v, i) => v == null ? null : v * IPC[ULT] / IPC[anios[i]])]));
     ind.serieNom = nom; ind.serieReal = real;
     Object.defineProperty(ind, "serie", { get: () => (S.real ? real : nom) });
   }
@@ -48,7 +51,7 @@ export function iniciar(DATA: DatosApp): void {
   const CORTES = DATA.cortes;
   const PERIODOS_ESPERA = CORTES.map((_, i) => i);
   const ULT_CORTE = PERIODOS_ESPERA.at(-1);
-  const periodos = (ind) => ind.grupo === "espera" ? PERIODOS_ESPERA : ANIOS;
+  const periodos = (ind) => ind.anios || (ind.grupo === "espera" ? PERIODOS_ESPERA : ANIOS);
   const primero = (ind) => periodos(ind)[0];
   const ultimo = (ind) => periodos(ind).at(-1);
   const tieneSerie = (ind) => periodos(ind).length > 1;
@@ -58,7 +61,9 @@ export function iniciar(DATA: DatosApp): void {
     // En minúscula y con «de», como se escribe en español en mitad de una frase: «diciembre de 2025».
     return mes === "06" ? (corto ? `jun. ${anio}` : `junio de ${anio}`) : (corto ? `dic. ${anio}` : `diciembre de ${anio}`);
   };
-  const periodoActual = () => IND[S.indP];
+  // Indicador que se está viendo: el elegido, o su versión ajustada por edad si está activada.
+  const conEdad = () => S.edad && S.indP === "gasto_hab" && !!EDAD;
+  const periodoActual = () => conEdad() ? EDAD : IND[S.indP];
   const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
   const dato = (ind, id, a) => ind.serie[id]?.[indice(ind, a)] ?? null;
   function motivoComparacion(ind, desde, hasta, medida = ind.medida) {
@@ -169,6 +174,7 @@ export function iniciar(DATA: DatosApp): void {
     sel: [{ id: "MD", slot: 0 }, { id: "AN", slot: 1 }],
     com: "AN",
     real: true,
+    edad: false, // gasto por habitante ajustado por edad (solo en «Gasto por habitante»)
     yXY: "q_dias",
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
     vs: "", // comunidad con la que comparar en la ficha
@@ -194,6 +200,17 @@ export function iniciar(DATA: DatosApp): void {
     return `<details class="pliegue" data-p="${clave}" ${S.abiertos[clave] ? "open" : ""}><summary>${resumen}</summary><div class="pliegue-c">${cuerpo}</div></details>`;
   }
   document.addEventListener("toggle", (e) => { const d = e.target; if (d.matches && d.matches("details[data-p]")) S.abiertos[d.dataset.p] = d.open; }, true);
+
+  // ---------- gasto ajustado por edad: explicación ----------
+  const URL_LEY = "https://www.boe.es/buscar/act.php?id=BOE-A-2009-20375";
+  const URL_LIQ = "https://www.hacienda.gob.es/es-ES/CDI/Paginas/SistemasFinanciacionDeuda/InformacionCCAAs/Informes%20financiacion%20comunidades%20autonomas2.aspx";
+  const URL_INF = "https://www.hacienda.gob.es/GabineteMinistro/varios/03-12-21-informe-poblacion-ajustada.pdf";
+  const tramosEdad = () => Object.entries(EDAD.coeficientes).map(([t, c]) => `${t.replace("75+", "75 y más")} años: ${nf(3).format(c)}`).join("; ");
+  function textoEdadCorto() {
+    return `<p>Dividimos el gasto de cada comunidad entre su <b>población protegida equivalente</b>: las personas con tarjeta sanitaria de su servicio de salud, ponderadas por edad con los pesos de la <a href="${URL_LEY}">Ley 22/2009</a> (art. 9). Una persona de 75 años o más cuenta como 2,759; una de 15 a 44, como 0,547. El Ministerio de Sanidad la certifica cada año para repartir la financiación autonómica.</p>
+      <p>Después se reescala para que el conjunto de las 17 quede igual: una comunidad con la estructura de edad media no cambia, una más envejecida baja y una más joven sube.</p>
+      <p>Es un cálculo nuestro con datos oficiales, desde ${EDAD.anios[0]}. <a href="#metodo-edad">Método completo y límites</a>.</p>`;
+  }
 
   // ---------- entidades que cuenta la estadística (src/data/perimetro-egsp.json) ----------
   // Solo hechos: qué entidades aparecen o dejan de aparecer en la lista del Ministerio, cuánto pesaban y cuándo.
@@ -318,8 +335,17 @@ export function iniciar(DATA: DatosApp): void {
         </div><span>${S.real
           ? `Cada año se expresa en euros de ${ULT}: así se ve cuánto ha crecido el gasto de verdad. Los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]} (IPC del INE).`
           : `Cada año, en los euros de entonces: parte de la subida es solo inflación (los precios han subido un ${nf(0).format((IPC[ULT] / IPC[ANIOS[0]] - 1) * 100)} % desde ${ANIOS[0]}).`}
-          Solo afecta a los datos en euros y a los años anteriores a ${ULT}: lo verás en la tendencia, al mover la barra de años y en «Cambio entre dos años». Los porcentajes no cambian.</span></div>` : "");
-    cont.querySelectorAll(".real button").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
+          Solo afecta a los datos en euros y a los años anteriores a ${ULT}: lo verás en la tendencia, al mover la barra de años y en «Cambio entre dos años». Los porcentajes no cambian.</span></div>` : "") +
+      (actualId === "gasto_hab" && EDAD ? `<div class="real edad">
+        <div class="seg sm" role="group" aria-label="Edad de la población">
+          <button type="button" data-e="0" aria-pressed="${!S.edad}">Por habitante</button>
+          <button type="button" data-e="1" aria-pressed="${S.edad}">Ajustado por edad</button>
+        </div><span>${S.edad
+          ? `Corrige que unas comunidades tienen más población mayor, que necesita más atención. Desde ${EDAD.anios[0]}.`
+          : "El dato oficial. Las comunidades con más población mayor necesitan gastar más por habitante."}</span>
+        ${plegable("edad-como", "¿Cómo se calcula?", textoEdadCorto())}</div>` : "");
+    cont.querySelectorAll(".real button[data-r]").forEach((b) => b.onclick = () => { S.real = b.dataset.r === "1"; render(); });
+    cont.querySelectorAll(".real button[data-e]").forEach((b) => b.onclick = () => { S.edad = b.dataset.e === "1"; render(); });
     // Solo los botones de tema: los de inflación (.real) también son .seg y tienen su propia acción.
     cont.querySelectorAll('.seg[aria-label="Tema"] button').forEach((b) => b.onclick = () => {
       if (b.dataset.g !== grupo) onPick(DATA.inds.find((i) => i.grupo === b.dataset.g).id);
@@ -481,7 +507,7 @@ export function iniciar(DATA: DatosApp): void {
     const m = media(vals); const u = ind.unidad;
     const out = [];
     if (!o.length) return { out, top, bot };
-    if (ind.id === "gasto_hab" || ind.id === "farmacia_hab") {
+    if (ind.id === "gasto_hab" || ind.id === "gasto_hab_edad" || ind.id === "farmacia_hab") {
       out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> gasta ${fmt(vals[top], u)} por habitante, un ${nf(0).format((vals[top] / vals[bot] - 1) * 100)} % más que <strong>${NOMBRE[bot]}</strong> (${fmt(vals[bot], u)}).` });
     } else if (u === "dias") {
       out.push({ k: "Más y menos espera", t: `En <strong>${NOMBRE[top]}</strong> se espera de media ${fmt(vals[top], u)}; en <strong>${NOMBRE[bot]}</strong>, ${fmt(vals[bot], u)}. ${vals[bot] > 0 ? `El primero es ${nf(1).format(vals[top] / vals[bot])} veces el segundo.` : ""}` });
@@ -557,8 +583,10 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function renderDatos() {
-    const baseInd = IND[S.indP];
+    const baseInd = periodoActual();
     const ind = campoValido(baseInd);
+    if (!periodos(ind).includes(S.anioP)) S.anioP = ultimo(ind);
+    if (!periodos(ind).includes(S.desde)) S.desde = primero(ind);
     if (ind === baseInd) S.campoE = "total";
     if (!tieneSerie(ind) && S.vistaE === "evolucion") S.vistaE = "ranking";
     if (!tieneSerie(ind)) S.modo = "valor";
@@ -667,14 +695,14 @@ export function iniciar(DATA: DatosApp): void {
     return {
       indP: DATA.inds.find((ind) => ind.grupo === base.grupo).id,
       campoE: "total", modo: "valor", anioP: ultimo(base), desde: primero(base), vistaE: "ranking",
-      ...(base.grupo === "gasto" ? { real: true } : {}),
+      ...(base.grupo === "gasto" ? { real: true, edad: false } : {}),
     };
   }
   function filtrosModificados(base) {
     return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
   }
   function restablecer() {
-    Object.assign(S, filtrosIniciales(IND[S.indP]));
+    Object.assign(S, filtrosIniciales(periodoActual()));
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
@@ -703,6 +731,7 @@ export function iniciar(DATA: DatosApp): void {
         ? chip("", `<select id="rs-desde" aria-label="${fecha} inicial">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select><span class="flecha" aria-hidden="true">→</span><select id="rs-hasta" aria-label="${fecha} final">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select>${btnModo}`, true, ayuda("Cuánto ha cambiado entre las fechas elegidas"))
         : chip("", `<select id="rs-anio" aria-label="${fecha}">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>${btnModo}`, S.anioP !== ultimo(base), ayuda("Fecha del mapa y del ranking. «Comparar años» permite elegir dos fechas"));
     } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
+    if (S.indP === "gasto_hab" && EDAD) h += `<button type="button" id="rs-edad" class="chip-s boton${S.edad ? " cambiado" : ""}" aria-pressed="${S.edad}" title="Pulsa para ${S.edad ? "ver el dato oficial, sin ajustar" : "ajustar por la edad de la población"}"><span class="et">Edad</span>${S.edad ? "Ajustado" : "Sin ajustar"}</button>`;
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
     h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda("Se resalta en el mapa y en los gráficos"));
     h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
@@ -732,6 +761,7 @@ export function iniciar(DATA: DatosApp): void {
     if (base.grupo === "espera") partes.push(S.campoE !== "total" ? parte(indDetalle(base, S.campoE).campoNombre || "", true) : parte("total"));
     if (serie) partes.push(S.modo === "cambio" ? parte(`${periodo(base, S.desde, true)} → ${periodo(base, S.anioP, true)}`, true) : parte(periodo(base, S.anioP, true), S.anioP !== ultimo(base)));
     else partes.push(parte(corteCorto()));
+    if (conEdad()) partes.push(parte("ajustado por edad", true));
     if (enEuros(base)) partes.push(parte(S.real ? "sin inflación" : "con inflación", !S.real));
     partes.push(parte(NOMBRE[S.com]));
     $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas" aria-hidden="true">▾</span>`;
@@ -747,13 +777,14 @@ export function iniciar(DATA: DatosApp): void {
     on("rs-com", (v) => { S.com = v; });
     on("rs-graf", (v) => { S.vistaE = v; });
     if ($("#rs-infl")) $("#rs-infl").onclick = () => aplicar(() => { S.real = !S.real; });
+    if ($("#rs-edad")) $("#rs-edad").onclick = () => aplicar(() => { S.edad = !S.edad; });
     $("#rs-ajustes").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
     if ($("#ajustes").open) renderAjustes();
   }
 
   // Panel con todas las opciones juntas y explicadas (en el móvil sale desde abajo).
   function renderAjustes() {
-    const base = IND[S.indP], serie = tieneSerie(base);
+    const base = periodoActual(), serie = tieneSerie(base);
     const aviso = avisoComparacion(indDetalle(base, S.campoE));
     const radios = (nombre, valor, ops) => `<div class="aj-radios" role="radiogroup" aria-label="${nombre}">${ops.map(([v, t, nota, dis]) => `<label class="aj-radio${dis ? " dis" : ""}"><input type="radio" name="aj-${nombre}" id="aj-${nombre}-${v}" value="${v}" ${String(valor) === String(v) ? "checked" : ""} ${dis ? "disabled" : ""}><span>${t}${nota ? ` <small>${nota}</small>` : ""}</span></label>`).join("")}</div>`;
     const fila = (titulo, control, ayuda = "") => `<div class="aj-fila"><div class="aj-t">${titulo}</div><div>${control}${ayuda ? `<p class="aj-ayuda">${ayuda}</p>` : ""}</div></div>`;
@@ -766,6 +797,7 @@ export function iniciar(DATA: DatosApp): void {
         ? fila(base.grupo === "espera" ? "Cortes" : "Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select></span>`, aviso && `<span role="status">${esc(aviso)}</span>`)
         : fila(base.grupo === "espera" ? "Corte" : "Año", `<select id="aj-anio">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>`);
     } else h += fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
+    if (S.indP === "gasto_hab" && EDAD) h += fila("Edad", radios("edad", S.edad ? "1" : "0", [["0", "Por habitante", "(dato oficial)"], ["1", "Ajustado por edad"]]), `Ajustado: corrige que unas comunidades tienen más población mayor. Desde ${EDAD.anios[0]}. <a href="#metodo-edad">Cómo se calcula</a>.`);
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
     h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, "Se resalta en el mapa y en los gráficos.");
     h += fila("Gráfico", radios("graf", S.vistaE, [["ranking", "Ranking"], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]), "El gráfico que aparece debajo del mapa.");
@@ -780,6 +812,7 @@ export function iniciar(DATA: DatosApp): void {
     on("#aj-desde", (v) => { S.desde = +v; });
     on("#aj-hasta", (v) => { S.anioP = +v; });
     on('input[name="aj-infl"]', (v) => { S.real = v === "1"; });
+    on('input[name="aj-edad"]', (v) => { S.edad = v === "1"; });
     on("#aj-com", (v) => { S.com = v; });
     on('input[name="aj-graf"]', (v) => { S.vistaE = v; });
     const cerrar = () => $("#ajustes").close();
@@ -877,6 +910,7 @@ export function iniciar(DATA: DatosApp): void {
     if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
     if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
     if (!S.real) q.set("inflacion", "no");
+    if (conEdad()) q.set("edad", "si");
     if (S.com !== "AN") q.set("com", S.com.toLowerCase());
     const hash = "#datos" + (q.toString() ? "?" + q.toString() : "");
     if (location.hash !== hash) history.replaceState(null, "", hash);
@@ -884,7 +918,8 @@ export function iniciar(DATA: DatosApp): void {
   function leerEnlace(qs) {
     const q = new URLSearchParams(qs);
     const id = q.get("dato");
-    S.indP = id && Object.hasOwn(IND, id) && !id.includes("@") ? id : "gasto_hab";
+    S.indP = id && Object.hasOwn(IND, id) && !id.includes("@") && id !== EDAD?.id ? id : "gasto_hab";
+    S.edad = q.get("edad") === "si";
     const ind = periodoActual();
     const leerPeriodo = (clave) => ind.grupo === "espera" ? CORTES.findIndex((c) => c.id === q.get(clave)) : +q.get(clave);
     S.campoE = "total";
@@ -1000,7 +1035,7 @@ export function iniciar(DATA: DatosApp): void {
     if (ind.grupo === "gasto") {
       const real = enEuros(ind);
       filas = [["indicador", "comunidad", "anio", real ? "valor_euros_corrientes" : "valor", ...(real ? [`valor_euros_${ULT}`] : []), "provisional"]];
-      IDS.forEach((id) => ANIOS.forEach((a, i) => filas.push([ind.nombre, NOMBRE[id], a, n((real ? ind.serieNom : ind.serie)[id][i]), ...(real ? [n(ind.serieReal[id][i])] : []), esProv(a) ? "si" : "no"])));
+      IDS.forEach((id) => periodos(ind).forEach((a, i) => filas.push([ind.nombre, NOMBRE[id], a, n((real ? ind.serieNom : ind.serie)[id][i]), ...(real ? [n(ind.serieReal[id][i])] : []), esProv(a) ? "si" : "no"])));
     } else {
       filas = [["indicador", "comunidad", "fecha", "valor", "pacientes_en_espera", "nota"]];
       CORTES.forEach((c, a) => {
@@ -1173,12 +1208,13 @@ export function iniciar(DATA: DatosApp): void {
 
   // Años del eje horizontal según el espacio: siempre el primero y el último; en medio, cada 2, 4, 5 o 10 años
   // (el menor salto que deje sitio a cada etiqueta) y sin años intermedios pegados al último.
-  function aniosEje(ancho, fuente = 11) {
+  function aniosEje(ancho, fuente = 11, anios = ANIOS) {
     const anchoEtiqueta = fuente * 2.6 + 10; // «2024» más un margen
-    const porAnio = ancho / (ULT - ANIOS[0]);
+    const a0 = anios[0], aN = anios.at(-1);
+    const porAnio = ancho / (aN - a0);
     const paso = [2, 4, 5, 10].find((p) => p * porAnio >= anchoEtiqueta) || 10;
-    const out = ANIOS.filter((a) => (a - ANIOS[0]) % paso === 0 && (ULT - a) * porAnio >= anchoEtiqueta);
-    return [...out, ULT];
+    const out = anios.filter((a) => (a - a0) % paso === 0 && (aN - a) * porAnio >= anchoEtiqueta);
+    return [...out, aN];
   }
 
   function lineas(cont, ind) {
@@ -1203,7 +1239,7 @@ export function iniciar(DATA: DatosApp): void {
           <text x="${x(fin)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
     tk.forEach((v) => { s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${line}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, ind.unidad)}</text>`; });
     const paso = Math.max(1, Math.ceil(58 * (fin - inicio) / (W - L - R)));
-    const etiquetasEje = ind.grupo === "gasto" ? aniosEje(W - L - R, 11) :
+    const etiquetasEje = ind.grupo === "gasto" ? aniosEje(W - L - R, 11, fechas) :
       fechas.filter((a) => a === fin || (a - inicio) % paso === 0 && fin - a >= paso);
     etiquetasEje.forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${periodo(ind, a, true)}</text>`; });
     IDS.filter((id) => !colorSel(id)).forEach((id) => { s += `<path d="${path(ind.serie[id])}" fill="none" stroke="${grey}" stroke-width="1.2"/>`; });
@@ -1289,6 +1325,19 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   // ---------- TU COMUNIDAD ----------
+  // En la fila «Gasto por habitante» de la ficha, una línea con el dato ajustado por edad (no una fila aparte: diría
+  // casi lo mismo que la anterior). El puesto puede cambiar mucho: por eso se muestra siempre, no solo al pedirlo.
+  function lineaEdad(ind, id, vs, anio) {
+    if (ind.id !== "gasto_hab" || !EDAD) return "";
+    const que = `<a href="#metodo-edad">¿Qué es esto?</a>`;
+    if (!periodos(EDAD).includes(anio)) return `<div class="edad-ficha">Ajuste por edad: disponible desde ${EDAD.anios[0]}. ${que}</div>`;
+    const ve = valores(EDAD, anio), oe = ordenados(ve);
+    if (ve[id] == null) return "";
+    const puesto = puestoTxt(EDAD, oe.indexOf(id) + 1, oe.length);
+    return `<div class="edad-ficha">Ajustado por edad: <b>${fmt(ve[id], "eur_hab")}</b> · ${puesto.charAt(0).toLowerCase() + puesto.slice(1)}` +
+      `${vs && ve[vs] != null ? ` · ${esc(NOMBRE[vs])}: ${fmt(ve[vs], "eur_hab")}` : ""}. ${que}</div>`;
+  }
+
   function filaInd(ind, id, vs = "", anioSel = ULT) {
     const anio = anioSel;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
@@ -1327,7 +1376,7 @@ export function iniciar(DATA: DatosApp): void {
       <div><div class="n">${esc(ind.corto)}</div><div class="pos">${hayDato ? puestoTxt(ind, pos, o.length) : "Sin dato en el informe"}</div></div>
       <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${hayDato ? dif : ""}</div>${vs ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</div>` : ""}</div>
       <div class="strip">${strip}</div>
-      <div class="spark">${spark}</div>
+      <div class="spark">${spark}</div>${lineaEdad(ind, id, vs, anio)}
     </div>`;
   }
 
@@ -1391,7 +1440,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a><a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -1408,6 +1457,20 @@ export function iniciar(DATA: DatosApp): void {
       <h2 id="metodo-inflacion">Descontar la inflación</h2>
       <p>Un euro de ${ANIOS[0]} no compra lo mismo que uno de ${ULT}: los precios han subido un ${subida} % (IPC general nacional del INE, media anual). Con «Descontando la inflación», cada año se expresa en euros de ${ULT}, así que el crecimiento que ves es real. Solo afecta a los datos en euros; los porcentajes no cambian, porque suben a la vez el gasto y aquello con lo que se compara.</p>
       <p>Usamos el IPC nacional para todas las comunidades, como es habitual al comparar gasto público entre regiones. El IPC de cada comunidad mide cómo cambian los precios de la cesta de los hogares, no los costes sanitarios, y no permite comparar niveles de precios entre comunidades.</p>
+
+      ${EDAD ? `<h2 id="metodo-edad">Gasto ajustado por edad</h2>
+      <p>Las comunidades con más población mayor necesitan gastar más por habitante: una persona de 80 años necesita más atención que una de 30. En «Gasto por habitante» puedes elegir «Ajustado por edad» para ver el gasto corrigiendo ese efecto. Por defecto se muestra el dato oficial, sin ajustar.</p>
+      <p><b>Cómo se calcula.</b> Gasto de la comunidad ÷ su <b>población protegida equivalente</b>, reescalado para que el conjunto de las 17 no cambie. En la práctica, el gasto por habitante se divide entre un «factor de edad»: mayor que 1 si la comunidad necesita más gasto por su población que la media de las 17, menor que 1 si necesita menos.</p>
+      <p><b>Qué es la población protegida equivalente.</b> Es la población con tarjeta sanitaria de cada servicio de salud, ponderada por edad con los pesos del artículo 9 de la <a href="${URL_LEY}">Ley 22/2009</a> (${tramosEdad()}). Es la variable con la que el sistema de financiación autonómica reparte el dinero de la sanidad. El Ministerio de Sanidad la certifica cada año y Hacienda la publica en los anexos de la <a href="${URL_LIQ}">liquidación del sistema de financiación</a>. De 2009 a 2020 esos certificados son documentos escaneados: hemos transcrito sus cifras y comprobado que la suma de las comunidades da el total y que coinciden con los cuadros de la liquidación.</p>
+      <p><b>Por qué desde ${EDAD.anios[0]}.</b> Hay certificados desde ${EDAD.aniosPPE[0]}, pero según Hacienda la población protegida se calcula con la base de datos de tarjeta sanitaria «desde el 2013» (<a href="${URL_INF}">informe sobre la población ajustada, 2021</a>, pág. 178). Las cifras de antes y de después no son comparables, así que el ajuste empieza en ${EDAD.anios[0]}.</p>
+      <p><b>Límites.</b></p>
+      <ul>
+        <li>No es una cifra del Ministerio de Sanidad, sino un cálculo nuestro con dos datos oficiales.</li>
+        <li>Los pesos por edad de la ley se calcularon con datos de 2001. En 2026 se aprobó un nuevo modelo de financiación con 20 tramos de edad y pesos actualizados; los cambiaremos cuando se publiquen.</li>
+        <li>La población equivalente solo cuenta a quien atiende el servicio de salud de cada comunidad (por ejemplo, no a los mutualistas que eligieron una aseguradora privada). Por eso el ajuste corrige la edad y también la población que de verdad atiende cada servicio de salud.</li>
+        <li>Solo corrige la edad. No tiene en cuenta otras diferencias, como la dispersión de la población, los costes o la insularidad.</li>
+        <li>Se aplica al gasto total por habitante, no a la farmacia ni a los conciertos, que tienen su propia relación con la edad.</li>
+      </ul>` : ""}
 
       <h2 id="metodo-comparar">Comparar comunidades</h2>
       <ul>
@@ -1451,7 +1514,7 @@ export function iniciar(DATA: DatosApp): void {
 
       <h2 id="metodo-limites">Lo que no dicen estos datos</h2>
       <ul>
-        <li><b>La edad de la población:</b> las comunidades más envejecidas necesitan gastar más por habitante. El gasto que mostramos no está ajustado por edad.</li>
+        <li><b>La edad de la población:</b> las comunidades más envejecidas necesitan gastar más por habitante. El gasto que mostramos por defecto no está ajustado por edad; en «Gasto por habitante» puedes verlo ajustado desde ${EDAD ? EDAD.anios[0] : ""} (<a href="#metodo-edad">cómo se calcula</a>).</li>
         <li><b>La calidad:</b> gastar más o menos, o esperar más o menos, no mide por sí solo si la atención es mejor o peor.</li>
         <li><b>La sanidad privada y las mutualidades</b> (MUFACE, ISFAS, MUGEJU) no están en el gasto público de las comunidades.</li>
         <li><b>La atención primaria:</b> el SISLE no mide cuánto se tarda en conseguir cita con el médico de familia.</li>

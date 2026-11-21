@@ -1,0 +1,1558 @@
+{
+ "fuente": "Ministerio de Sanidad, certificado de población protegida equivalente del SNS (7 tramos de edad), en los anexos de la liquidación del sistema de financiación autonómica (Ministerio de Hacienda)",
+ "url": "https://www.hacienda.gob.es/es-ES/CDI/Paginas/SistemasFinanciacionDeuda/InformacionCCAAs/Informes%20financiacion%20comunidades%20autonomas2.aspx",
+ "coeficientes": {
+  "fuente": "Ley 22/2009, artículo 9",
+  "url": "https://www.boe.es/buscar/act.php?id=BOE-A-2009-20375",
+  "tramos": {
+   "0-4": 1.031,
+   "5-14": 0.433,
+   "15-44": 0.547,
+   "45-54": 0.904,
+   "55-64": 1.292,
+   "65-74": 2.175,
+   "75+": 2.759
+  }
+ },
+ "primer_anio_comparable": 2013,
+ "paginas": {
+  "2009": 50,
+  "2010": 42,
+  "2011": 34,
+  "2012": 38,
+  "2013": 36,
+  "2014": 36,
+  "2015": 38,
+  "2016": 40,
+  "2017": 40,
+  "2018": 38,
+  "2019": 38,
+  "2020": 38,
+  "2021": 31,
+  "2022": 31,
+  "2023": 30,
+  "2024": 32
+ },
+ "valores": [
+  {
+   "anio": 2009,
+   "ccaa": "AN",
+   "ppe": 7595899
+  },
+  {
+   "anio": 2009,
+   "ccaa": "AR",
+   "ppe": 1373907
+  },
+  {
+   "anio": 2009,
+   "ccaa": "AS",
+   "ppe": 1200095
+  },
+  {
+   "anio": 2009,
+   "ccaa": "IB",
+   "ppe": 1006974
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CN",
+   "ppe": 1878585
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CB",
+   "ppe": 603264
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CL",
+   "ppe": 2739647
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CM",
+   "ppe": 2036078
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CT",
+   "ppe": 7362757
+  },
+  {
+   "anio": 2009,
+   "ccaa": "VC",
+   "ppe": 4947153
+  },
+  {
+   "anio": 2009,
+   "ccaa": "EX",
+   "ppe": 1094215
+  },
+  {
+   "anio": 2009,
+   "ccaa": "GA",
+   "ppe": 2998612
+  },
+  {
+   "anio": 2009,
+   "ccaa": "MD",
+   "ppe": 5793403
+  },
+  {
+   "anio": 2009,
+   "ccaa": "MC",
+   "ppe": 1290700
+  },
+  {
+   "anio": 2009,
+   "ccaa": "NC",
+   "ppe": 635050
+  },
+  {
+   "anio": 2009,
+   "ccaa": "PV",
+   "ppe": 2285010
+  },
+  {
+   "anio": 2009,
+   "ccaa": "RI",
+   "ppe": 323154
+  },
+  {
+   "anio": 2009,
+   "ccaa": "CE",
+   "ppe": 57362
+  },
+  {
+   "anio": 2009,
+   "ccaa": "ML",
+   "ppe": 52358
+  },
+  {
+   "anio": 2010,
+   "ccaa": "AN",
+   "ppe": 7709626
+  },
+  {
+   "anio": 2010,
+   "ccaa": "AR",
+   "ppe": 1381654
+  },
+  {
+   "anio": 2010,
+   "ccaa": "AS",
+   "ppe": 1206833
+  },
+  {
+   "anio": 2010,
+   "ccaa": "IB",
+   "ppe": 1023813
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CN",
+   "ppe": 1914585
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CB",
+   "ppe": 610189
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CL",
+   "ppe": 2752682
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CM",
+   "ppe": 2060739
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CT",
+   "ppe": 7439767
+  },
+  {
+   "anio": 2010,
+   "ccaa": "VC",
+   "ppe": 5005431
+  },
+  {
+   "anio": 2010,
+   "ccaa": "EX",
+   "ppe": 1105343
+  },
+  {
+   "anio": 2010,
+   "ccaa": "GA",
+   "ppe": 3021604
+  },
+  {
+   "anio": 2010,
+   "ccaa": "MD",
+   "ppe": 5909686
+  },
+  {
+   "anio": 2010,
+   "ccaa": "MC",
+   "ppe": 1311786
+  },
+  {
+   "anio": 2010,
+   "ccaa": "NC",
+   "ppe": 643735
+  },
+  {
+   "anio": 2010,
+   "ccaa": "PV",
+   "ppe": 2308402
+  },
+  {
+   "anio": 2010,
+   "ccaa": "RI",
+   "ppe": 326026
+  },
+  {
+   "anio": 2010,
+   "ccaa": "CE",
+   "ppe": 58357
+  },
+  {
+   "anio": 2010,
+   "ccaa": "ML",
+   "ppe": 54174
+  },
+  {
+   "anio": 2011,
+   "ccaa": "AN",
+   "ppe": 7811723
+  },
+  {
+   "anio": 2011,
+   "ccaa": "AR",
+   "ppe": 1389149
+  },
+  {
+   "anio": 2011,
+   "ccaa": "AS",
+   "ppe": 1211475
+  },
+  {
+   "anio": 2011,
+   "ccaa": "IB",
+   "ppe": 1039209
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CN",
+   "ppe": 1943834
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CB",
+   "ppe": 614371
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CL",
+   "ppe": 2769668
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CM",
+   "ppe": 2084792
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CT",
+   "ppe": 7516925
+  },
+  {
+   "anio": 2011,
+   "ccaa": "VC",
+   "ppe": 5055577
+  },
+  {
+   "anio": 2011,
+   "ccaa": "EX",
+   "ppe": 1112072
+  },
+  {
+   "anio": 2011,
+   "ccaa": "GA",
+   "ppe": 3042691
+  },
+  {
+   "anio": 2011,
+   "ccaa": "MD",
+   "ppe": 5986733
+  },
+  {
+   "anio": 2011,
+   "ccaa": "MC",
+   "ppe": 1329468
+  },
+  {
+   "anio": 2011,
+   "ccaa": "NC",
+   "ppe": 653065
+  },
+  {
+   "anio": 2011,
+   "ccaa": "PV",
+   "ppe": 2334256
+  },
+  {
+   "anio": 2011,
+   "ccaa": "RI",
+   "ppe": 328614
+  },
+  {
+   "anio": 2011,
+   "ccaa": "CE",
+   "ppe": 60133
+  },
+  {
+   "anio": 2011,
+   "ccaa": "ML",
+   "ppe": 56150
+  },
+  {
+   "anio": 2012,
+   "ccaa": "AN",
+   "ppe": 7888632
+  },
+  {
+   "anio": 2012,
+   "ccaa": "AR",
+   "ppe": 1397474
+  },
+  {
+   "anio": 2012,
+   "ccaa": "AS",
+   "ppe": 1215146
+  },
+  {
+   "anio": 2012,
+   "ccaa": "IB",
+   "ppe": 1053086
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CN",
+   "ppe": 1958586
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CB",
+   "ppe": 619239
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CL",
+   "ppe": 2777496
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CM",
+   "ppe": 2096927
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CT",
+   "ppe": 7592175
+  },
+  {
+   "anio": 2012,
+   "ccaa": "VC",
+   "ppe": 5107438
+  },
+  {
+   "anio": 2012,
+   "ccaa": "EX",
+   "ppe": 1116191
+  },
+  {
+   "anio": 2012,
+   "ccaa": "GA",
+   "ppe": 3050583
+  },
+  {
+   "anio": 2012,
+   "ccaa": "MD",
+   "ppe": 6053957
+  },
+  {
+   "anio": 2012,
+   "ccaa": "MC",
+   "ppe": 1343531
+  },
+  {
+   "anio": 2012,
+   "ccaa": "NC",
+   "ppe": 659794
+  },
+  {
+   "anio": 2012,
+   "ccaa": "PV",
+   "ppe": 2359893
+  },
+  {
+   "anio": 2012,
+   "ccaa": "RI",
+   "ppe": 331140
+  },
+  {
+   "anio": 2012,
+   "ccaa": "CE",
+   "ppe": 62006
+  },
+  {
+   "anio": 2012,
+   "ccaa": "ML",
+   "ppe": 57881
+  },
+  {
+   "anio": 2013,
+   "ccaa": "AN",
+   "ppe": 7573016
+  },
+  {
+   "anio": 2013,
+   "ccaa": "AR",
+   "ppe": 1437950
+  },
+  {
+   "anio": 2013,
+   "ccaa": "AS",
+   "ppe": 1241221
+  },
+  {
+   "anio": 2013,
+   "ccaa": "IB",
+   "ppe": 1013506
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CN",
+   "ppe": 1832459
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CB",
+   "ppe": 623519
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CL",
+   "ppe": 2811168
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CM",
+   "ppe": 2105570
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CT",
+   "ppe": 7315628
+  },
+  {
+   "anio": 2013,
+   "ccaa": "VC",
+   "ppe": 4702587
+  },
+  {
+   "anio": 2013,
+   "ccaa": "EX",
+   "ppe": 1163578
+  },
+  {
+   "anio": 2013,
+   "ccaa": "GA",
+   "ppe": 3086325
+  },
+  {
+   "anio": 2013,
+   "ccaa": "MD",
+   "ppe": 6154085
+  },
+  {
+   "anio": 2013,
+   "ccaa": "MC",
+   "ppe": 1330809
+  },
+  {
+   "anio": 2013,
+   "ccaa": "NC",
+   "ppe": 599193
+  },
+  {
+   "anio": 2013,
+   "ccaa": "PV",
+   "ppe": 2382894
+  },
+  {
+   "anio": 2013,
+   "ccaa": "RI",
+   "ppe": 335366
+  },
+  {
+   "anio": 2013,
+   "ccaa": "CE",
+   "ppe": 65804
+  },
+  {
+   "anio": 2013,
+   "ccaa": "ML",
+   "ppe": 57556
+  },
+  {
+   "anio": 2014,
+   "ccaa": "AN",
+   "ppe": 7719548
+  },
+  {
+   "anio": 2014,
+   "ccaa": "AR",
+   "ppe": 1442119
+  },
+  {
+   "anio": 2014,
+   "ccaa": "AS",
+   "ppe": 1243913
+  },
+  {
+   "anio": 2014,
+   "ccaa": "IB",
+   "ppe": 1036523
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CN",
+   "ppe": 1868732
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CB",
+   "ppe": 627105
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CL",
+   "ppe": 2818922
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CM",
+   "ppe": 2097937
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CT",
+   "ppe": 7498171
+  },
+  {
+   "anio": 2014,
+   "ccaa": "VC",
+   "ppe": 4796245
+  },
+  {
+   "anio": 2014,
+   "ccaa": "EX",
+   "ppe": 1159913
+  },
+  {
+   "anio": 2014,
+   "ccaa": "GA",
+   "ppe": 3094748
+  },
+  {
+   "anio": 2014,
+   "ccaa": "MD",
+   "ppe": 6277862
+  },
+  {
+   "anio": 2014,
+   "ccaa": "MC",
+   "ppe": 1345908
+  },
+  {
+   "anio": 2014,
+   "ccaa": "NC",
+   "ppe": 641097
+  },
+  {
+   "anio": 2014,
+   "ccaa": "PV",
+   "ppe": 2408981
+  },
+  {
+   "anio": 2014,
+   "ccaa": "RI",
+   "ppe": 337801
+  },
+  {
+   "anio": 2014,
+   "ccaa": "CE",
+   "ppe": 67774
+  },
+  {
+   "anio": 2014,
+   "ccaa": "ML",
+   "ppe": 59545
+  },
+  {
+   "anio": 2015,
+   "ccaa": "AN",
+   "ppe": 7919261
+  },
+  {
+   "anio": 2015,
+   "ccaa": "AR",
+   "ppe": 1429696
+  },
+  {
+   "anio": 2015,
+   "ccaa": "AS",
+   "ppe": 1233891
+  },
+  {
+   "anio": 2015,
+   "ccaa": "IB",
+   "ppe": 1027885
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CN",
+   "ppe": 1890609
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CB",
+   "ppe": 628658
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CL",
+   "ppe": 2805815
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CM",
+   "ppe": 2062286
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CT",
+   "ppe": 7558120
+  },
+  {
+   "anio": 2015,
+   "ccaa": "VC",
+   "ppe": 4838785
+  },
+  {
+   "anio": 2015,
+   "ccaa": "EX",
+   "ppe": 1151296
+  },
+  {
+   "anio": 2015,
+   "ccaa": "GA",
+   "ppe": 3100656
+  },
+  {
+   "anio": 2015,
+   "ccaa": "MD",
+   "ppe": 6349762
+  },
+  {
+   "anio": 2015,
+   "ccaa": "MC",
+   "ppe": 1361694
+  },
+  {
+   "anio": 2015,
+   "ccaa": "NC",
+   "ppe": 649170
+  },
+  {
+   "anio": 2015,
+   "ccaa": "PV",
+   "ppe": 2427964
+  },
+  {
+   "anio": 2015,
+   "ccaa": "RI",
+   "ppe": 338122
+  },
+  {
+   "anio": 2015,
+   "ccaa": "CE",
+   "ppe": 67745
+  },
+  {
+   "anio": 2015,
+   "ccaa": "ML",
+   "ppe": 61268
+  },
+  {
+   "anio": 2016,
+   "ccaa": "AN",
+   "ppe": 8035316
+  },
+  {
+   "anio": 2016,
+   "ccaa": "AR",
+   "ppe": 1434031
+  },
+  {
+   "anio": 2016,
+   "ccaa": "AS",
+   "ppe": 1231505
+  },
+  {
+   "anio": 2016,
+   "ccaa": "IB",
+   "ppe": 1043539
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CN",
+   "ppe": 1916751
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CB",
+   "ppe": 631684
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CL",
+   "ppe": 2803426
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CM",
+   "ppe": 2062735
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CT",
+   "ppe": 7543945
+  },
+  {
+   "anio": 2016,
+   "ccaa": "VC",
+   "ppe": 4891368
+  },
+  {
+   "anio": 2016,
+   "ccaa": "EX",
+   "ppe": 1152653
+  },
+  {
+   "anio": 2016,
+   "ccaa": "GA",
+   "ppe": 3108868
+  },
+  {
+   "anio": 2016,
+   "ccaa": "MD",
+   "ppe": 6440254
+  },
+  {
+   "anio": 2016,
+   "ccaa": "MC",
+   "ppe": 1375141
+  },
+  {
+   "anio": 2016,
+   "ccaa": "NC",
+   "ppe": 666323
+  },
+  {
+   "anio": 2016,
+   "ccaa": "PV",
+   "ppe": 2456504
+  },
+  {
+   "anio": 2016,
+   "ccaa": "RI",
+   "ppe": 340106
+  },
+  {
+   "anio": 2016,
+   "ccaa": "CE",
+   "ppe": 68009
+  },
+  {
+   "anio": 2016,
+   "ccaa": "ML",
+   "ppe": 62802
+  },
+  {
+   "anio": 2017,
+   "ccaa": "AN",
+   "ppe": 8131250
+  },
+  {
+   "anio": 2017,
+   "ccaa": "AR",
+   "ppe": 1442931
+  },
+  {
+   "anio": 2017,
+   "ccaa": "AS",
+   "ppe": 1231661
+  },
+  {
+   "anio": 2017,
+   "ccaa": "IB",
+   "ppe": 1066130
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CN",
+   "ppe": 1951169
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CB",
+   "ppe": 634758
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CL",
+   "ppe": 2803394
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CM",
+   "ppe": 2068539
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CT",
+   "ppe": 7616520
+  },
+  {
+   "anio": 2017,
+   "ccaa": "VC",
+   "ppe": 4933148
+  },
+  {
+   "anio": 2017,
+   "ccaa": "EX",
+   "ppe": 1153581
+  },
+  {
+   "anio": 2017,
+   "ccaa": "GA",
+   "ppe": 3116429
+  },
+  {
+   "anio": 2017,
+   "ccaa": "MD",
+   "ppe": 6537969
+  },
+  {
+   "anio": 2017,
+   "ccaa": "MC",
+   "ppe": 1394703
+  },
+  {
+   "anio": 2017,
+   "ccaa": "NC",
+   "ppe": 670381
+  },
+  {
+   "anio": 2017,
+   "ccaa": "PV",
+   "ppe": 2469054
+  },
+  {
+   "anio": 2017,
+   "ccaa": "RI",
+   "ppe": 341703
+  },
+  {
+   "anio": 2017,
+   "ccaa": "CE",
+   "ppe": 68901
+  },
+  {
+   "anio": 2017,
+   "ccaa": "ML",
+   "ppe": 63688
+  },
+  {
+   "anio": 2018,
+   "ccaa": "AN",
+   "ppe": 8209402
+  },
+  {
+   "anio": 2018,
+   "ccaa": "AR",
+   "ppe": 1453033
+  },
+  {
+   "anio": 2018,
+   "ccaa": "AS",
+   "ppe": 1234479
+  },
+  {
+   "anio": 2018,
+   "ccaa": "IB",
+   "ppe": 1081802
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CN",
+   "ppe": 1989854
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CB",
+   "ppe": 638198
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CL",
+   "ppe": 2800416
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CM",
+   "ppe": 2073397
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CT",
+   "ppe": 7712465
+  },
+  {
+   "anio": 2018,
+   "ccaa": "VC",
+   "ppe": 4984113
+  },
+  {
+   "anio": 2018,
+   "ccaa": "EX",
+   "ppe": 1154269
+  },
+  {
+   "anio": 2018,
+   "ccaa": "GA",
+   "ppe": 3130081
+  },
+  {
+   "anio": 2018,
+   "ccaa": "MD",
+   "ppe": 6646206
+  },
+  {
+   "anio": 2018,
+   "ccaa": "MC",
+   "ppe": 1411235
+  },
+  {
+   "anio": 2018,
+   "ccaa": "NC",
+   "ppe": 683004
+  },
+  {
+   "anio": 2018,
+   "ccaa": "PV",
+   "ppe": 2490103
+  },
+  {
+   "anio": 2018,
+   "ccaa": "RI",
+   "ppe": 342411
+  },
+  {
+   "anio": 2018,
+   "ccaa": "CE",
+   "ppe": 68741
+  },
+  {
+   "anio": 2018,
+   "ccaa": "ML",
+   "ppe": 64259
+  },
+  {
+   "anio": 2019,
+   "ccaa": "AN",
+   "ppe": 8246171
+  },
+  {
+   "anio": 2019,
+   "ccaa": "AR",
+   "ppe": 1465372
+  },
+  {
+   "anio": 2019,
+   "ccaa": "AS",
+   "ppe": 1237523
+  },
+  {
+   "anio": 2019,
+   "ccaa": "IB",
+   "ppe": 1109696
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CN",
+   "ppe": 2035093
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CB",
+   "ppe": 641918
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CL",
+   "ppe": 2807318
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CM",
+   "ppe": 2090253
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CT",
+   "ppe": 7778524
+  },
+  {
+   "anio": 2019,
+   "ccaa": "VC",
+   "ppe": 5035167
+  },
+  {
+   "anio": 2019,
+   "ccaa": "EX",
+   "ppe": 1156243
+  },
+  {
+   "anio": 2019,
+   "ccaa": "GA",
+   "ppe": 3144637
+  },
+  {
+   "anio": 2019,
+   "ccaa": "MD",
+   "ppe": 6741338
+  },
+  {
+   "anio": 2019,
+   "ccaa": "MC",
+   "ppe": 1434702
+  },
+  {
+   "anio": 2019,
+   "ccaa": "NC",
+   "ppe": 693524
+  },
+  {
+   "anio": 2019,
+   "ccaa": "PV",
+   "ppe": 2516358
+  },
+  {
+   "anio": 2019,
+   "ccaa": "RI",
+   "ppe": 344596
+  },
+  {
+   "anio": 2019,
+   "ccaa": "CE",
+   "ppe": 69662
+  },
+  {
+   "anio": 2019,
+   "ccaa": "ML",
+   "ppe": 65144
+  },
+  {
+   "anio": 2020,
+   "ccaa": "AN",
+   "ppe": 8362612
+  },
+  {
+   "anio": 2020,
+   "ccaa": "AR",
+   "ppe": 1474000
+  },
+  {
+   "anio": 2020,
+   "ccaa": "AS",
+   "ppe": 1237596
+  },
+  {
+   "anio": 2020,
+   "ccaa": "IB",
+   "ppe": 1135571
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CN",
+   "ppe": 2078974
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CB",
+   "ppe": 647110
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CL",
+   "ppe": 2804049
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CM",
+   "ppe": 2097408
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CT",
+   "ppe": 7838105
+  },
+  {
+   "anio": 2020,
+   "ccaa": "VC",
+   "ppe": 5103998
+  },
+  {
+   "anio": 2020,
+   "ccaa": "EX",
+   "ppe": 1154189
+  },
+  {
+   "anio": 2020,
+   "ccaa": "GA",
+   "ppe": 3157930
+  },
+  {
+   "anio": 2020,
+   "ccaa": "MD",
+   "ppe": 6869715
+  },
+  {
+   "anio": 2020,
+   "ccaa": "MC",
+   "ppe": 1463664
+  },
+  {
+   "anio": 2020,
+   "ccaa": "NC",
+   "ppe": 698514
+  },
+  {
+   "anio": 2020,
+   "ccaa": "PV",
+   "ppe": 2540405
+  },
+  {
+   "anio": 2020,
+   "ccaa": "RI",
+   "ppe": 348562
+  },
+  {
+   "anio": 2020,
+   "ccaa": "CE",
+   "ppe": 69349
+  },
+  {
+   "anio": 2020,
+   "ccaa": "ML",
+   "ppe": 65775
+  },
+  {
+   "anio": 2021,
+   "ccaa": "AN",
+   "ppe": 8455197
+  },
+  {
+   "anio": 2021,
+   "ccaa": "AR",
+   "ppe": 1481118
+  },
+  {
+   "anio": 2021,
+   "ccaa": "AS",
+   "ppe": 1237644
+  },
+  {
+   "anio": 2021,
+   "ccaa": "IB",
+   "ppe": 1152701
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CN",
+   "ppe": 2115394
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CB",
+   "ppe": 652320
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CL",
+   "ppe": 2796708
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CM",
+   "ppe": 2097533
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CT",
+   "ppe": 7877588
+  },
+  {
+   "anio": 2021,
+   "ccaa": "VC",
+   "ppe": 5152445
+  },
+  {
+   "anio": 2021,
+   "ccaa": "EX",
+   "ppe": 1156234
+  },
+  {
+   "anio": 2021,
+   "ccaa": "GA",
+   "ppe": 3177086
+  },
+  {
+   "anio": 2021,
+   "ccaa": "MD",
+   "ppe": 6910365
+  },
+  {
+   "anio": 2021,
+   "ccaa": "MC",
+   "ppe": 1482719
+  },
+  {
+   "anio": 2021,
+   "ccaa": "NC",
+   "ppe": 703650
+  },
+  {
+   "anio": 2021,
+   "ccaa": "PV",
+   "ppe": 2562302
+  },
+  {
+   "anio": 2021,
+   "ccaa": "RI",
+   "ppe": 351239
+  },
+  {
+   "anio": 2021,
+   "ccaa": "CE",
+   "ppe": 69774
+  },
+  {
+   "anio": 2021,
+   "ccaa": "ML",
+   "ppe": 65806
+  },
+  {
+   "anio": 2022,
+   "ccaa": "AN",
+   "ppe": 8571146
+  },
+  {
+   "anio": 2022,
+   "ccaa": "AR",
+   "ppe": 1493386
+  },
+  {
+   "anio": 2022,
+   "ccaa": "AS",
+   "ppe": 1244288
+  },
+  {
+   "anio": 2022,
+   "ccaa": "IB",
+   "ppe": 1165207
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CN",
+   "ppe": 2154898
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CB",
+   "ppe": 659356
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CL",
+   "ppe": 2809959
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CM",
+   "ppe": 2117159
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CT",
+   "ppe": 8084738
+  },
+  {
+   "anio": 2022,
+   "ccaa": "VC",
+   "ppe": 5215137
+  },
+  {
+   "anio": 2022,
+   "ccaa": "EX",
+   "ppe": 1157395
+  },
+  {
+   "anio": 2022,
+   "ccaa": "GA",
+   "ppe": 3195901
+  },
+  {
+   "anio": 2022,
+   "ccaa": "MD",
+   "ppe": 7027587
+  },
+  {
+   "anio": 2022,
+   "ccaa": "MC",
+   "ppe": 1508429
+  },
+  {
+   "anio": 2022,
+   "ccaa": "NC",
+   "ppe": 711781
+  },
+  {
+   "anio": 2022,
+   "ccaa": "PV",
+   "ppe": 2580629
+  },
+  {
+   "anio": 2022,
+   "ccaa": "RI",
+   "ppe": 354128
+  },
+  {
+   "anio": 2022,
+   "ccaa": "CE",
+   "ppe": 69584
+  },
+  {
+   "anio": 2022,
+   "ccaa": "ML",
+   "ppe": 65940
+  },
+  {
+   "anio": 2023,
+   "ccaa": "AN",
+   "ppe": 8694554
+  },
+  {
+   "anio": 2023,
+   "ccaa": "AR",
+   "ppe": 1508026
+  },
+  {
+   "anio": 2023,
+   "ccaa": "AS",
+   "ppe": 1249426
+  },
+  {
+   "anio": 2023,
+   "ccaa": "IB",
+   "ppe": 1194196
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CN",
+   "ppe": 2196208
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CB",
+   "ppe": 666643
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CL",
+   "ppe": 2826657
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CM",
+   "ppe": 2144061
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CT",
+   "ppe": 8231312
+  },
+  {
+   "anio": 2023,
+   "ccaa": "VC",
+   "ppe": 5353382
+  },
+  {
+   "anio": 2023,
+   "ccaa": "EX",
+   "ppe": 1162399
+  },
+  {
+   "anio": 2023,
+   "ccaa": "GA",
+   "ppe": 3213526
+  },
+  {
+   "anio": 2023,
+   "ccaa": "MD",
+   "ppe": 7170546
+  },
+  {
+   "anio": 2023,
+   "ccaa": "MC",
+   "ppe": 1541706
+  },
+  {
+   "anio": 2023,
+   "ccaa": "NC",
+   "ppe": 720882
+  },
+  {
+   "anio": 2023,
+   "ccaa": "PV",
+   "ppe": 2601602
+  },
+  {
+   "anio": 2023,
+   "ccaa": "RI",
+   "ppe": 357803
+  },
+  {
+   "anio": 2023,
+   "ccaa": "CE",
+   "ppe": 69356
+  },
+  {
+   "anio": 2023,
+   "ccaa": "ML",
+   "ppe": 66148
+  },
+  {
+   "anio": 2024,
+   "ccaa": "AN",
+   "ppe": 8837779
+  },
+  {
+   "anio": 2024,
+   "ccaa": "AR",
+   "ppe": 1525237
+  },
+  {
+   "anio": 2024,
+   "ccaa": "AS",
+   "ppe": 1262585
+  },
+  {
+   "anio": 2024,
+   "ccaa": "IB",
+   "ppe": 1227662
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CN",
+   "ppe": 2242707
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CB",
+   "ppe": 676284
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CL",
+   "ppe": 2855043
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CM",
+   "ppe": 2169733
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CT",
+   "ppe": 8390954
+  },
+  {
+   "anio": 2024,
+   "ccaa": "VC",
+   "ppe": 5490473
+  },
+  {
+   "anio": 2024,
+   "ccaa": "EX",
+   "ppe": 1169348
+  },
+  {
+   "anio": 2024,
+   "ccaa": "GA",
+   "ppe": 3212322
+  },
+  {
+   "anio": 2024,
+   "ccaa": "MD",
+   "ppe": 7333328
+  },
+  {
+   "anio": 2024,
+   "ccaa": "MC",
+   "ppe": 1572921
+  },
+  {
+   "anio": 2024,
+   "ccaa": "NC",
+   "ppe": 732055
+  },
+  {
+   "anio": 2024,
+   "ccaa": "PV",
+   "ppe": 2626390
+  },
+  {
+   "anio": 2024,
+   "ccaa": "RI",
+   "ppe": 363846
+  },
+  {
+   "anio": 2024,
+   "ccaa": "CE",
+   "ppe": 70317
+  },
+  {
+   "anio": 2024,
+   "ccaa": "ML",
+   "ppe": 66186
+  }
+ ]
+}

@@ -9,6 +9,15 @@
     "estado": "oficial"
   },
   {
+    "id": "gasto_hab_edad",
+    "nombre": "Gasto sanitario público por habitante, ajustado por edad",
+    "unidad": "eur_hab",
+    "descripcion": "Gasto sanitario público por habitante corregido por la edad de la población que atiende cada servicio de salud: el gasto de la comunidad se divide entre su población protegida equivalente (población con tarjeta sanitaria ponderada por edad con los coeficientes de la Ley 22/2009) y se reescala para que el conjunto de las 17 no cambie. Cálculo propio a partir de datos oficiales, desde 2013.",
+    "fuente": "Ministerio de Sanidad — Estadística de Gasto Sanitario Público (Anexo I.2 y Tablas 3.4) y certificados de población protegida equivalente en las liquidaciones del sistema de financiación (Ministerio de Hacienda); cálculo propio",
+    "url": "https://www.hacienda.gob.es/es-ES/CDI/Paginas/SistemasFinanciacionDeuda/InformacionCCAAs/Informes%20financiacion%20comunidades%20autonomas2.aspx",
+    "estado": "oficial"
+  },
+  {
     "id": "pct_pib",
     "nombre": "Gasto sanitario público (% del PIB regional)",
     "unidad": "pct",

@@ -6,6 +6,7 @@ import ipcJson from "@/data/ipc.json";
 import mapaJson from "@/data/mapa-ccaa.json";
 import notasJson from "@/data/notas-egsp.json";
 import perimetroJson from "@/data/perimetro-egsp.json";
+import ppeJson from "@/data/poblacion-equivalente.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -82,6 +83,14 @@ export function cambiosEntidades(filas: FilaPerimetro[] = perimetroJson as FilaP
     .sort((a, b) => a.ccaa.localeCompare(b.ccaa) || a.anio - b.anio || a.cambio.localeCompare(b.cambio));
 }
 
+/** Variante del gasto por habitante ajustado por edad: mismas propiedades que un indicador de gasto, con sus años. */
+export type AjusteEdad = {
+  id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string;
+  anios: number[]; serie: Record<string, (number | null)[]>;
+  /** Coeficientes de la Ley 22/2009 por tramo de edad y años de los certificados disponibles */
+  coeficientes: Record<string, number>; primerAnio: number; aniosPPE: number[];
+};
+
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
   | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Serie; tipo: TipoLista; medida: MedidaLista };
@@ -109,11 +118,28 @@ export type DatosApp = {
   /** Entidades que empiezan o dejan de contarse en la estadística (≥ UMBRAL_ENTIDADES % del gasto) */
   entidades: CambioEntidades[];
   umbralEntidades: number;
+  /** Gasto por habitante ajustado por edad (src/data/poblacion-equivalente.json) */
+  edad: AjusteEdad | null;
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
   notasListas: string[];
   geo: typeof mapaJson;
 };
+
+function ajusteEdad(valores: Valor[], ids: string[]): AjusteEdad | null {
+  const def = INDICADORES.find((i) => i.id === "gasto_hab_edad");
+  const filas = valores.filter((v) => v.indicador === "gasto_hab_edad");
+  if (!def || !filas.length) return null;
+  if (def.estado !== "oficial") throw new Error("gasto_hab_edad no es oficial");
+  const anios = [...new Set(filas.map((v) => v.anio))].sort((a, b) => a - b);
+  const serie: AjusteEdad["serie"] = {};
+  for (const id of ids) serie[id] = anios.map((a) => filas.find((v) => v.ccaa === id && v.anio === a)?.valor ?? null);
+  return {
+    id: def.id, grupo: "gasto", corto: "Gasto por habitante, ajustado por edad", nombre: def.nombre, unidad: def.unidad, desc: def.descripcion,
+    anios, serie, coeficientes: ppeJson.coeficientes.tramos, primerAnio: ppeJson.primer_anio_comparable,
+    aniosPPE: [...new Set(ppeJson.valores.map((v) => v.anio))].sort((a, b) => a - b),
+  };
+}
 
 export function construirDatos(valores: Valor[] = VALORES): DatosApp {
   const ids = CCAA.map((c) => c.id);
@@ -167,9 +193,10 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
-    avisos: detectarAvisos(valores, notasJson),
+    avisos: detectarAvisos(valores.filter((v) => v.indicador !== "gasto_hab_edad"), notasJson),
     entidades: cambiosEntidades(),
     umbralEntidades: UMBRAL_ENTIDADES,
+    edad: ajusteEdad(valores, ids),
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,

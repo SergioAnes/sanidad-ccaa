@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import notas from "../src/data/notas-egsp.json";
 import listas from "../src/data/listas-espera.json";
+import ppe from "../src/data/poblacion-equivalente.json";
 import { CCAA, VALORES } from "../src/lib/datos";
 import { detectarAvisos } from "../src/lib/avisos";
 
@@ -9,9 +10,11 @@ const anios = [...new Set(VALORES.map((v) => v.anio))].sort((a, b) => a - b);
 const val = (ind: string, c: string, a: number) => VALORES.find((v) => v.indicador === ind && v.ccaa === c && v.anio === a)?.valor;
 
 describe("coherencia de los datos de gasto", () => {
-  it("cada indicador tiene las 17 comunidades en todos los años, sin huecos", () => {
+  it("cada indicador tiene las 17 comunidades en todos sus años, sin huecos", () => {
     for (const ind of new Set(VALORES.map((v) => v.indicador))) {
-      for (const c of CCAA) for (const a of anios) expect(val(ind, c.id, a), `${ind} ${c.id} ${a}`).toBeTypeOf("number");
+      // El gasto ajustado por edad empieza en 2013 (primer año comparable de la población protegida equivalente).
+      const desde = ind === "gasto_hab_edad" ? ppe.primer_anio_comparable : anios[0];
+      for (const c of CCAA) for (const a of anios.filter((x) => x >= desde)) expect(val(ind, c.id, a), `${ind} ${c.id} ${a}`).toBeTypeOf("number");
     }
   });
 
@@ -73,3 +76,39 @@ describe("listas de espera", () => {
     }
   });
 });
+
+describe("población protegida equivalente y gasto ajustado por edad", () => {
+  const anioPPE = [...new Set(ppe.valores.map((v) => v.anio))];
+
+  it("hay certificado de las 17 comunidades más Ceuta y Melilla en cada año, desde 2009", () => {
+    expect(Math.min(...anioPPE)).toBe(2009);
+    for (const a of anioPPE) expect(ppe.valores.filter((v) => v.anio === a)).toHaveLength(19);
+  });
+
+  it("coincide con cifras comprobadas en los certificados (Andalucía 2015 y 2023, Navarra 2010)", () => {
+    const v = (c: string, a: number) => ppe.valores.find((x) => x.ccaa === c && x.anio === a)?.ppe;
+    expect(v("AN", 2015)).toBe(7919261);
+    expect(v("AN", 2023)).toBe(8694554);
+    expect(v("NC", 2010)).toBe(643735);
+  });
+
+  it("el ajuste reparte, no añade: el reescalado deja igual el conjunto de las 17", () => {
+    // gasto_hab_edad = gasto_hab / factor, con factor = (PPE / población) / (ΣPPE / Σpoblación). Por tanto
+    // Σ PPE / factor = Σ población × (ΣPPE / Σpoblación) = Σ PPE: los factores se compensan entre comunidades.
+    for (const a of anios.filter((x) => x >= ppe.primer_anio_comparable)) {
+      const P = (c: string) => ppe.valores.find((x) => x.ccaa === c && x.anio === a)!.ppe;
+      const sumaP = CCAA.reduce((s, c) => s + P(c.id), 0);
+      const sumaPsobreFactor = CCAA.reduce((s, c) => s + P(c.id) * val("gasto_hab_edad", c.id, a)! / val("gasto_hab", c.id, a)!, 0);
+      expect(sumaPsobreFactor / sumaP, String(a)).toBeCloseTo(1, 4);
+    }
+  });
+
+  it("las comunidades más envejecidas bajan y las más jóvenes suben (2024)", () => {
+    expect(val("gasto_hab_edad", "AS", 2024)!).toBeLessThan(val("gasto_hab", "AS", 2024)!);
+    expect(val("gasto_hab_edad", "CL", 2024)!).toBeLessThan(val("gasto_hab", "CL", 2024)!);
+    expect(val("gasto_hab_edad", "MC", 2024)!).toBeGreaterThan(val("gasto_hab", "MC", 2024)!);
+    // Asturias 2024: 2.322 € / factor 1,176 ≈ 1.975 € (comprobado a mano)
+    expect(val("gasto_hab_edad", "AS", 2024)!).toBeCloseTo(1974.82, 1);
+  });
+});
+

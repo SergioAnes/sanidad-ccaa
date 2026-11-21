@@ -362,3 +362,13 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .tip-ayuda { opacity: 0.75; font-size: 0.9em; }
 .pliegue a { color: var(--accent); }
 .campo .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+/* Ajuste por edad: el «¿Cómo se calcula?» ocupa toda la fila y usa la letra pequeña de la zona */
+.real.edad { margin-top: 8px; }
+.real.edad .pliegue { flex-basis: 100%; margin-top: 0; font-size: 0.82rem; }
+.real.edad .pliegue-c { max-width: 70ch; color: var(--fg); }
+.real.edad .pliegue-c p { font-size: inherit; line-height: 1.5; }
+/* Ficha: línea del gasto ajustado por edad dentro de la fila «Gasto por habitante» */
+.edad-ficha { grid-column: 1 / 4; margin-top: -8px; font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+@media (max-width: 640px) { .ind .edad-ficha { grid-column: 1 / -1; order: 1; margin-top: -6px; } .ind .strip { order: 2; } .ind .spark { order: 3; } }
+.edad-ficha b { color: var(--fg); }
+.edad-ficha a { color: var(--accent); }
