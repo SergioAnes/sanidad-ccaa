@@ -11,6 +11,11 @@ export const ESQUELETO = `<div class="wrap">
     </nav>
   </header>
   <section id="v-datos" hidden>
+    <div class="barra-dato" id="barra-dato" hidden>
+      <label class="sr" for="bd-dato">Dato que estás viendo</label><select id="bd-dato"></select>
+      <label class="sr" for="bd-campo">Especialidad o proceso</label><select id="bd-campo"></select>
+      <button type="button" class="bd-arriba" id="bd-arriba" aria-label="Volver a las tarjetas">↑</button>
+    </div>
     <div class="intro">
       <div class="intro-cab">
         <div>

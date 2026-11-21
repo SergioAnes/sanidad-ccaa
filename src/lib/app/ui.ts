@@ -502,9 +502,35 @@ export function iniciar(DATA: DatosApp): void {
     if (enCambio) barraPeriodo($("#p-anios"), () => { pararPlay(); render(); });
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
+    renderBarraDato(baseInd);
     renderDetalle(ind, mapa, anio);
     renderXY(ind);
     guardarEnlace();
+  }
+
+  // Barra fija con el dato que estás viendo: aparece al bajar, cuando las tarjetas ya no se ven,
+  // para cambiar de dato (y de especialidad) sin tener que volver arriba. Útil sobre todo en el móvil.
+  // Cambia algo sin mover la pantalla: el bloque que estabas mirando se queda en el mismo sitio aunque
+  // lo de arriba cambie de altura (p. ej. al pasar de gasto a listas de espera).
+  function sinMover(accion) {
+    const bajo = document.elementFromPoint(innerWidth / 2, Math.min(innerHeight / 2, 160));
+    const ancla = bajo && bajo.closest(".panel, .intro");
+    const antes = ancla ? ancla.getBoundingClientRect().top : null;
+    accion();
+    if (ancla && antes != null) scrollBy(0, ancla.getBoundingClientRect().top - antes);
+  }
+  function renderBarraDato(base) {
+    const grupo = (g, titulo) => `<optgroup label="${titulo}">${DATA.inds.filter((i) => i.grupo === g).map((i) => `<option value="${i.id}" ${i.id === S.indP ? "selected" : ""}>${esc(i.corto)}</option>`).join("")}</optgroup>`;
+    $("#bd-dato").innerHTML = grupo("gasto", "Gasto sanitario") + grupo("espera", "Listas de espera");
+    $("#bd-dato").onchange = (e) => sinMover(() => { pararPlay(); S.indP = e.target.value; render(); });
+    const campo = $("#bd-campo");
+    if (base.grupo === "espera") {
+      campo.hidden = false;
+      campo.innerHTML = `<option value="total">Todas (total)</option>` + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => `<option value="${tipo}:${c.id}" ${S.campoE === `${tipo}:${c.id}` ? "selected" : ""}>${esc(c.nombre)}</option>`).join("")}</optgroup>`).join("");
+      campo.value = S.campoE;
+      campo.onchange = (e) => sinMover(() => { S.campoE = e.target.value; render(); });
+    } else { campo.hidden = true; campo.innerHTML = ""; }
+    $("#bd-arriba").onclick = () => $("#sel-datos").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // Pestañas bajo el mapa. El ranking sigue al mapa (valor o cambio); la tabla trae los dos.
@@ -1060,6 +1086,12 @@ export function iniciar(DATA: DatosApp): void {
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera a ${DATA.corteListas}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
+  // Mostrar la barra fija solo cuando las tarjetas han quedado por encima de la pantalla.
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(([e]) => {
+      $("#barra-dato").hidden = e.isIntersecting || e.boundingClientRect.top > 0;
+    }).observe($("#sel-datos"));
+  }
   addEventListener("hashchange", leerHash);
   let rz, anchoPrevio = innerWidth;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== anchoPrevio) { anchoPrevio = innerWidth; render(); } }, 150); });
