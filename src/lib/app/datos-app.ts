@@ -41,7 +41,7 @@ export const ESPERA: DefEspera[] = [
   { id: "c_dias", tipo: "consultas", medida: "dias", corto: "Espera para el especialista", nombre: "Días de espera para ver al especialista",
     desc: "Tiempo medio que llevan esperando los pacientes de la lista de primeras consultas con el especialista." },
   { id: "c_pct", tipo: "consultas", medida: "pct_largo", corto: "Más de 60 días para el especialista", nombre: "Pacientes que llevan más de 60 días esperando al especialista",
-    desc: "Porcentaje de la lista de consultas que supera los 60 días (incluye pacientes sin cita asignada)." },
+    desc: "Porcentaje de pacientes con más de 60 días de espera para una primera consulta. La definición depende del corte." },
 ];
 
 const UNIDAD_MEDIDA: Record<MedidaLista, Unidad> = { pacientes: "num", tasa: "por_mil", dias: "dias", pct_largo: "pct" };
@@ -84,24 +84,23 @@ export function cambiosEntidades(filas: FilaPerimetro[] = perimetroJson as FilaP
 
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
-  | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; valor: Record<string, number>; tipo: TipoLista; medida: MedidaLista };
+  | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Serie; tipo: TipoLista; medida: MedidaLista };
 
-/** Detalle por especialidad o proceso: tipo -> campos y valores[campo][medida][territorio] (incluye Ceuta y Melilla). */
-export type DetalleListas = Record<string, { nombre: string; campos: { id: string; nombre: string }[]; v: Record<string, Record<string, Record<string, number>>> }>;
+type Serie = Record<string, (number | null)[]>;
+/** Valores por campo, medida y territorio, en el orden de los cortes del SISLE. */
+export type DetalleListas = Record<string, { nombre: string; campos: { id: string; nombre: string }[]; v: Record<string, Record<string, Serie>> }>;
+type VersionLista = { fichero: string; rectificado: boolean; fecha_pdf: string | null; resumen?: string };
 
 export type DatosApp = {
   anios: number[];
   prov: number[];
   corteListas: string;
+  cortes: { id: string; fecha: string; version: VersionLista | null; notas: string[] }[];
   ccaa: { id: string; nombre: string; abr: string }[];
   inds: IndApp[];
-  /** Días de espera quirúrgica por especialidad: nombre de especialidad -> ccaa -> días */
-  especQuir: Record<string, Record<string, number>>;
   /** Media anual del IPC (base 2021), por año */
   ipc: Record<string, number>;
-  /** Valores de Ceuta y Melilla (se muestran aparte) por indicador de espera */
-  ciudades: Record<string, Record<string, number>>;
-  /** Listas de espera por especialidad (quirúrgica y consultas) y por proceso, último corte */
+  /** Listas de espera por especialidad (quirúrgica y consultas) y por proceso */
   detalle: DetalleListas;
   /** Notas metodológicas del Ministerio por comunidad y año (saltos en las series de gasto) */
   notas: { ccaa: string; anio: number; texto: string }[];
@@ -111,7 +110,7 @@ export type DatosApp = {
   entidades: CambioEntidades[];
   umbralEntidades: number;
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
-  versionListas: { fichero: string; rectificado: boolean; fecha_pdf: string | null } | null;
+  versionListas: VersionLista | null;
   notasListas: string[];
   geo: typeof mapaJson;
 };
@@ -121,7 +120,11 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
   const anios = [...new Set(valores.filter((v) => v.indicador === "gasto_hab").map((v) => v.anio))].sort((a, b) => a - b);
   const prov = [...new Set(valores.filter((v) => v.provisional).map((v) => v.anio))].sort((a, b) => a - b);
   const corte = LISTAS.cortes[LISTAS.cortes.length - 1];
-  const filasCorte = LISTAS.valores.filter((v) => v.corte === corte);
+  const meta = LISTAS as typeof LISTAS & { versiones?: Record<string, VersionLista>; notas_pdf?: { corte: string; texto: string }[] };
+  const cortes = LISTAS.cortes.map((id) => ({
+    id, fecha: nombreCorte(id), version: meta.versiones?.[id] ?? null,
+    notas: (meta.notas_pdf ?? []).filter((n) => n.corte === id).map((n) => n.texto),
+  }));
 
   const gasto: IndApp[] = INDICADORES.filter((i) => CORTOS_GASTO[i.id]).map((i) => {
     // La web no tiene modo "datos de ejemplo": si un indicador no es oficial, la compilación se detiene.
@@ -133,20 +136,6 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     return { id: i.id, grupo: "gasto", corto: CORTOS_GASTO[i.id], nombre: i.nombre, unidad: i.unidad, desc: i.descripcion, serie };
   });
 
-  const ciudades: DatosApp["ciudades"] = {};
-  const espera: IndApp[] = ESPERA.map((e) => {
-    const de = (ccaa: string) => filasCorte.find((v) => v.tipo === e.tipo && v.campo === "total" && v.medida === e.medida && v.ccaa === ccaa)?.valor;
-    const valor: Record<string, number> = {};
-    for (const id of ids) {
-      const x = de(id);
-      if (x === undefined) throw new Error(`Falta ${e.id} para ${id} en el corte ${corte}`);
-      valor[id] = x;
-    }
-    ciudades[e.id] = {};
-    for (const c of ["CE", "ML"]) { const x = de(c); if (x !== undefined) ciudades[e.id][c] = x; }
-    return { id: e.id, grupo: "espera", corto: e.corto, nombre: e.nombre, unidad: UNIDAD_MEDIDA[e.medida], desc: e.desc, valor, tipo: e.tipo, medida: e.medida };
-  });
-
   const detalle: DetalleListas = {};
   // Además de las medidas de las tarjetas, el número de pacientes (para la tarjeta «Pacientes en espera» y la tabla).
   const medidas = [...new Set([...ESPERA.map((e) => e.medida), "pacientes" as MedidaLista])];
@@ -156,38 +145,33 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
       v[c.id] = {};
       for (const m of medidas) v[c.id][m] = {};
     }
-    for (const f of filasCorte) {
-      if (f.tipo === t.id && v[f.campo] && v[f.campo][f.medida]) v[f.campo][f.medida][f.ccaa] = f.valor;
+    for (const f of LISTAS.valores) {
+      const series = v[f.campo]?.[f.medida];
+      if (f.tipo !== t.id || !series) continue;
+      const serie = series[f.ccaa] ??= Array(cortes.length).fill(null);
+      serie[LISTAS.cortes.indexOf(f.corte)] = f.valor;
     }
     detalle[t.id] = { nombre: t.nombre, campos: t.campos, v };
   }
 
-  const especQuir: DatosApp["especQuir"] = {};
-  const quir = LISTAS.tipos.find((t) => t.id === "quirurgica")!;
-  for (const campo of quir.campos.filter((c) => c.id !== "total")) {
-    const fila: Record<string, number> = {};
-    for (const id of ids) {
-      const x = filasCorte.find((v) => v.tipo === "quirurgica" && v.campo === campo.id && v.medida === "dias" && v.ccaa === id)?.valor;
-      if (x !== undefined) fila[id] = x;
-    }
-    especQuir[campo.nombre] = fila;
-  }
+  const espera: IndApp[] = ESPERA.map((e) => ({
+    ...e, grupo: "espera", unidad: UNIDAD_MEDIDA[e.medida],
+    serie: detalle[e.tipo].v.total[e.medida],
+  }));
 
   return {
-    anios, prov,
+    anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
     inds: [...gasto, ...espera],
-    especQuir,
     ipc: ipcJson.medias,
-    ciudades,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
     avisos: detectarAvisos(valores, notasJson),
     entidades: cambiosEntidades(),
     umbralEntidades: UMBRAL_ENTIDADES,
-    versionListas: (LISTAS as unknown as { versiones?: Record<string, DatosApp["versionListas"]> }).versiones?.[corte] ?? null,
-    notasListas: ((LISTAS as unknown as { notas_pdf?: { corte: string; texto: string }[] }).notas_pdf ?? []).filter((n) => n.corte === corte).map((n) => n.texto),
+    versionListas: cortes.at(-1)?.version ?? null,
+    notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,
   };
 }

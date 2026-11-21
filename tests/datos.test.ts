@@ -93,9 +93,11 @@ describe("listas de espera", () => {
 
   it("el total quirúrgico es la suma de especialidades (pacientes)", async () => {
     const { LISTAS } = await import("../src/lib/listas");
-    const q = LISTAS.valores.filter((v) => v.tipo === "quirurgica" && v.medida === "pacientes" && v.ccaa === "MD");
-    const total = q.find((v) => v.campo === "total")!.valor;
-    expect(q.filter((v) => v.campo !== "total").reduce((s, v) => s + v.valor, 0)).toBe(total);
+    for (const corte of LISTAS.cortes) {
+      const q = LISTAS.valores.filter((v) => v.corte === corte && v.tipo === "quirurgica" && v.medida === "pacientes" && v.ccaa === "MD");
+      const total = q.find((v) => v.campo === "total")!.valor;
+      expect(q.filter((v) => v.campo !== "total").reduce((s, v) => s + v.valor, 0)).toBe(total);
+    }
   });
 
   it("coincide con valores comprobados en el PDF (dic. 2025)", async () => {

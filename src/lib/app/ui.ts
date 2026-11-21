@@ -42,10 +42,32 @@ export function iniciar(DATA: DatosApp): void {
   }
   const fmtCorto = (v, u) => u === "dias" ? nf(0).format(v) + " d" : fmt(v, u).replace(" %", "%");
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const tieneSerie = (ind) => ind.grupo === "gasto";
+  const CORTES = DATA.cortes;
+  const PERIODOS_ESPERA = CORTES.map((_, i) => i);
+  const ULT_CORTE = PERIODOS_ESPERA.at(-1);
+  const periodos = (ind) => ind.grupo === "espera" ? PERIODOS_ESPERA : ANIOS;
+  const primero = (ind) => periodos(ind)[0];
+  const ultimo = (ind) => periodos(ind).at(-1);
+  const tieneSerie = (ind) => periodos(ind).length > 1;
+  const periodo = (ind, a, corto = false) => {
+    if (ind.grupo === "gasto") return String(a);
+    const [anio, mes] = CORTES[a].id.split("-");
+    return `${mes === "06" ? (corto ? "jun." : "Junio") : (corto ? "dic." : "Diciembre")} ${anio}`;
+  };
+  const periodoActual = () => IND[S.indP];
+  const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
+  const dato = (ind, id, a) => ind.serie[id]?.[indice(ind, a)] ?? null;
+  const comparar = (ind, desde, hasta) => {
+    if (ind.tipo !== "consultas") return true;
+    const a = CORTES[desde].id, b = CORTES[hasta].id;
+    if (a === "2023-06" || b === "2023-06") return false;
+    return ind.medida !== "pct_largo" || (a < "2024-12") === (b < "2024-12");
+  };
+  const diferencia = (ind, a, b) => a == null || b == null || (ind.unidad !== "pct" && a === 0)
+    ? null : ind.unidad === "pct" ? b - a : (b / a - 1) * 100;
   function valores(ind, anio) {
     const out = {};
-    for (const id of IDS) out[id] = tieneSerie(ind) ? ind.serie[id][anio - ANIOS[0]] : ind.valor[id];
+    for (const id of IDS) out[id] = dato(ind, id, anio);
     return out;
   }
   const media = (o) => { const v = Object.values(o).filter((x) => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
@@ -107,6 +129,7 @@ export function iniciar(DATA: DatosApp): void {
       const kv = (v) => { const c = topes.findIndex((t) => v <= t); return c < 0 ? 4 : c; };
       return { color: (id) => caja(cols[k(id)]), colorV: (v) => caja(cols[kv(v)]), leyenda: clases(cols, et, `Cada tono agrupa 3 o 4 comunidades, de menos a más. En ${UNI[u]}.`) };
     }
+    if (!o.length) return { leyenda: `<span>Sin valores para las comunidades autónomas.</span>` };
     // media: cinco grupos según la distancia a la media (en desviaciones típicas)
     const cols = DIV();
     const kz = (v) => { const z = (v - m) / sd; return z < -1 ? 0 : z < -1 / 3 ? 1 : z <= 1 / 3 ? 2 : z <= 1 ? 3 : 4; };
@@ -141,6 +164,7 @@ export function iniciar(DATA: DatosApp): void {
     yXY: "q_dias",
     campoE: "total", // especialidad o proceso en el Explorador: "total" o "tipo:campo"
     vs: "", // comunidad con la que comparar en la ficha
+    corteC: ULT_CORTE,
     anioC: ULT, // año del gasto que se muestra en la ficha
     abiertos: {}, // desplegables de explicaciones abiertos (por clave)
   };
@@ -207,21 +231,17 @@ export function iniciar(DATA: DatosApp): void {
     if (!familias(base).includes(tipo) || !t || !t.v[campo]) return base;
     const id = `${base.id}@${tipo}:${campo}`;
     if (!IND[id]) {
-      const datos = t.v[campo][base.medida] || {};
-      const valor = {}; IDS.forEach((k) => { if (datos[k] != null) valor[k] = datos[k]; });
-      const ciu = {}; ["CE", "ML"].forEach((k) => { if (datos[k] != null) ciu[k] = datos[k]; });
       const nombreCampo = t.campos.find((c) => c.id === campo).nombre;
       const que = tipo === "procesos" ? "Proceso" : "Especialidad";
-      IND[id] = { ...base, id, valor, nombre: `${base.nombre}: ${nombreCampo}`, desc: `${base.desc.replace(/ \(todas las especialidades\)/, "")} ${que}: ${nombreCampo}.`, campoNombre: nombreCampo };
-      DATA.ciudades[id] = ciu;
+      IND[id] = { ...base, id, tipo, campo, serie: t.v[campo][base.medida], nombre: `${base.nombre}: ${nombreCampo}`, desc: `${base.desc.replace(/ \(todas las especialidades\)/, "")} ${que}: ${nombreCampo}.`, campoNombre: nombreCampo };
     }
     return IND[id];
   }
   // Pacientes en espera de la lista que muestra el indicador (total o la especialidad/proceso elegido), por territorio.
-  function pacientesDe(ind) {
+  function pacientesDe(ind, a = S.anioP) {
     if (ind.grupo !== "espera") return null;
-    const [tipo, campo] = ind.id.includes("@") ? ind.id.split("@")[1].split(":") : [ind.tipo, "total"];
-    return DATA.detalle[tipo]?.v[campo]?.pacientes || null;
+    const series = DATA.detalle[ind.tipo]?.v[ind.campo || "total"]?.pacientes;
+    return series ? Object.fromEntries(Object.entries(series).map(([id, sr]) => [id, sr[a]])) : null;
   }
   const queEspera = (ind) => (ind.tipo === "consultas" ? "una primera consulta con el especialista" : "una operación") +
     (ind.campoNombre ? ` (${ind.campoNombre})` : "");
@@ -242,11 +262,11 @@ export function iniciar(DATA: DatosApp): void {
     const grupo = IND[actualId].grupo;
     const acc = css("--accent"), soft = css("--accent-soft"), grey = css("--grey-line");
     const tarjetas = DATA.inds.filter((i) => i.grupo === grupo).map((i) => {
-      const anio = tieneSerie(i) ? ULT : null;
-      const vals = valores(i, anio); const m = media(vals);
+      const anio = ultimo(i);
+      const vals = valores(i, i.grupo === "espera" ? S.anioP : anio); const m = media(vals);
       let mini;
       if (tieneSerie(i)) {
-        const medias = ANIOS.map((a) => media(valores(i, a)));
+        const medias = periodos(i).map((a) => media(valores(i, a)));
         const lo = Math.min(...medias), hi = Math.max(...medias);
         const sx = (k) => 2 + (k / (medias.length - 1)) * 116, sy = (v) => 3 + (1 - (v - lo) / (hi - lo || 1)) * 22;
         const d = medias.map((v, k) => `${k ? "L" : "M"}${sx(k).toFixed(1)},${sy(v).toFixed(1)}`).join("");
@@ -259,7 +279,8 @@ export function iniciar(DATA: DatosApp): void {
           `<circle cx="${sx(vals[S.com]).toFixed(1)}" cy="15" r="5" fill="${acc}"/></svg>`;
       }
       let pie = `Media de las 17 · en azul, ${ABR[S.com]}`;
-      if (tieneSerie(i)) {
+      if (i.grupo === "espera") pie = `Media de las comunidades con dato · ${periodo(i, S.anioP)}`;
+      else if (tieneSerie(i)) {
         // Crecimiento de la media de las 17: aquí se ve el efecto de descontar o no la inflación.
         const m0 = media(valores(i, ANIOS[0]));
         const c = i.unidad === "pct" ? fmt(m - m0, "pp").replace(" p.", " puntos") : fmt((m / m0 - 1) * 100, "var");
@@ -292,7 +313,7 @@ export function iniciar(DATA: DatosApp): void {
   const GEO = DATA.geo;
   const SIN_DATOS = ["CE", "ML", "GI"]; // Ceuta y Melilla: aparte (círculos) si hay dato; Gibraltar solo de contexto
   const CIUDADES = { CE: "Ceuta", ML: "Melilla" };
-  const datoCiudad = (ind, id) => (DATA.ciudades[ind.id] || {})[id];
+  const datoCiudad = (ind, id, a = S.anioP) => ind.grupo === "espera" ? (ind.cambioCiudades ? ind.cambioCiudades[id] : dato(ind, id, a)) : null;
   const AVISO_CIUDADES = "Se muestran aparte: su sanidad la gestiona directamente el Ministerio (INGESA) y su población es muy pequeña, así que una sola cifra puede variar mucho. No cuentan para la media ni para los puestos de las 17, ni cambian sus colores.";
   const AVISO_GASTO = "No aparecen en gasto: el Excel del Ministerio solo recoge la parte que paga el INGESA (tablas 3.5.1 y 3.5.2); el resto va por los ayuntamientos y no está desglosado. Compararlas con las 17 daría una cifra más baja de la real.";
   function tileMap(cont, vals, ind, { onClick, selIds = [], neutro = false, paleta = PAL } = {}) {
@@ -320,11 +341,10 @@ export function iniciar(DATA: DatosApp): void {
       sv += `<text x="${r.lx}" y="${r.ly + (grande ? -2 : 4)}" text-anchor="middle" font-size="${peq ? 10 : 12}" font-weight="700" fill="${k.fg}" ${halo}>${ABR[r.id]}</text>`;
       if (grande) sv += `<text x="${r.lx}" y="${r.ly + 12}" text-anchor="middle" font-size="11" fill="${k.fg}" class="num" ${halo}>${v}</text>`;
     });
-    const conCiud = !neutro && DATA.ciudades[ind.id];
+    const conCiud = !neutro && ind.grupo === "espera";
     if (conCiud) GEO.regiones.filter((r) => CIUDADES[r.id]).forEach((r) => {
       const v = datoCiudad(ind, r.id); if (v == null) return;
-      const k = esca.colorV(v);
-      sv += `<g class="reg ciu" data-id="${r.id}" tabindex="0" role="img" aria-label="${CIUDADES[r.id]}: ${esc(fmt(v, ind.unidad))} (aparte)"><circle cx="${r.lx}" cy="${r.ly}" r="8" fill="${k.bg}" stroke="${fg}" stroke-width="1.2" stroke-dasharray="2 2"/>
+      sv += `<g class="reg ciu" data-id="${r.id}" tabindex="0" role="img" aria-label="${CIUDADES[r.id]}: ${esc(fmt(v, ind.unidad))} (aparte)"><circle cx="${r.lx}" cy="${r.ly}" r="8" fill="${surf}" stroke="${fg}" stroke-width="1.2" stroke-dasharray="2 2"/>
         <text x="${r.lx + 12}" y="${r.ly + 4}" font-size="10.5" fill="${fg}">${CIUDADES[r.id]} ${fmtCorto(v, ind.unidad)}*</text></g>`;
     });
     sv += `<text x="${m.x + 8}" y="${m.y + m.h - 8}" font-size="10" fill="${muted}">Canarias</text></svg><p class="geo-fuente">Mapa: Instituto Geográfico Nacional (es-atlas), CC BY 4.0. ${conCiud ? "* Ceuta y Melilla, aparte: no cuentan para la media ni los puestos." : neutro ? "" : "Ceuta y Melilla, en gris: sin gasto comparable."}</p>`;
@@ -356,60 +376,60 @@ export function iniciar(DATA: DatosApp): void {
   let timer = null;
   // Línea de tiempo. El control se crea una vez y luego solo se actualiza: si se volviera a crear en cada
   // paso, el navegador soltaría el tirador a mitad de un arrastre.
-  const pctAnio = (a) => ((a - ANIOS[0]) / (ULT - ANIOS[0])) * 100;
-  const marcasAnios = () => `<div class="marcas" aria-hidden="true">${ANIOS.filter((a, i) => a === ANIOS[0] || a === ULT || (a - ANIOS[0]) % 4 === 0 && ULT - a >= 3)
-    .map((a) => `<span style="left:calc(10px + (100% - 20px) * ${pctAnio(a) / 100})">${a}</span>`).join("")}</div>`;
+  const pctAnio = (ind, a) => ((a - primero(ind)) / (ultimo(ind) - primero(ind))) * 100;
+  const marcasAnios = (ind) => `<div class="marcas" aria-hidden="true">${periodos(ind).filter((a, i) => a === primero(ind) || a === ultimo(ind) || ind.grupo === "gasto" && (a - primero(ind)) % 4 === 0 && ultimo(ind) - a >= 3)
+    .map((a) => `<span style="left:calc(10px + (100% - 20px) * ${pctAnio(ind, a) / 100})">${periodo(ind, a, true)}</span>`).join("")}</div>`;
   function barraAnios(cont, ind, anio, onChange) {
     if (!tieneSerie(ind)) {
       cont.dataset.tipo = "";
       cont.innerHTML = `<span class="nota" style="margin:0">Listas de espera: un solo corte (${DATA.corteListas}). La evolución llegará al añadir más informes.</span>`;
       return;
     }
-    if (cont.dataset.tipo !== "anio") {
-      cont.dataset.tipo = "anio";
+    if (cont.dataset.tipo !== `anio-${ind.grupo}`) {
+      cont.dataset.tipo = `anio-${ind.grupo}`;
       cont.innerHTML = `<button type="button" class="play"></button><span class="anio"></span><span class="prov">provisional</span>
-        <div class="linea"><input type="range" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año">${marcasAnios()}</div>
-        <span class="ayuda-rango">Mueve el punto para elegir el año. Con ▶ verás cómo cambia año a año.</span>`;
+        <div class="linea"><input type="range" min="${primero(ind)}" max="${ultimo(ind)}" step="1" aria-label="Año">${marcasAnios(ind)}</div>
+        <span class="ayuda-rango">Mueve el punto para elegir la fecha. Pulsa ▶ para reproducir la serie.</span>`;
     }
     const inp = cont.querySelector("input"), play = cont.querySelector(".play");
     if (+inp.value !== anio) inp.value = anio;
-    cont.querySelector(".anio").textContent = anio;
+    cont.querySelector(".anio").textContent = periodo(ind, anio);
     cont.querySelector(".prov").hidden = !esProv(anio);
     play.textContent = timer ? "❚❚" : "▶";
-    play.setAttribute("aria-label", timer ? "Pausar" : "Reproducir los años");
+    play.setAttribute("aria-label", timer ? "Pausar" : "Reproducir la serie");
     inp.oninput = () => { pararPlay(); onChange(+inp.value); };
     play.onclick = () => {
       if (timer) { pararPlay(); render(); return; }
-      let a = anio >= ULT ? ANIOS[0] : anio;
+      let a = anio >= ultimo(ind) ? primero(ind) : anio;
       onChange(a);
-      timer = setInterval(() => { a++; if (a > ULT) { pararPlay(); render(); return; } onChange(a); }, 420);
+      timer = setInterval(() => { a++; if (a > ultimo(ind)) { pararPlay(); render(); return; } onChange(a); }, 420);
       render();
     };
   }
   function pararPlay() { if (timer) { clearInterval(timer); timer = null; } }
   // Año de partida para los cambios: el elegido en modo «Crecimiento», o el primero de la serie.
-  const base0 = () => (S.modo === "cambio" ? S.desde : ANIOS[0]);
+  const base0 = (ind) => S.modo === "cambio" ? S.desde : primero(ind);
   // En modo «Crecimiento»: la misma línea de tiempo con dos tiradores (desde y hasta) y el tramo resaltado.
-  function barraPeriodo(cont, onChange) {
-    if (cont.dataset.tipo !== "rango") {
-      cont.dataset.tipo = "rango";
+  function barraPeriodo(cont, ind, onChange) {
+    if (cont.dataset.tipo !== `rango-${ind.grupo}`) {
+      cont.dataset.tipo = `rango-${ind.grupo}`;
       cont.innerHTML = `<span class="anio rango-txt"></span><span class="prov">provisional</span>
         <div class="linea rango"><div class="pista"></div><div class="tramo"></div>
-          <input type="range" class="r-desde" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año de inicio del periodo">
-          <input type="range" class="r-hasta" min="${ANIOS[0]}" max="${ULT}" step="1" aria-label="Año final del periodo">${marcasAnios()}</div>
-        <span class="ayuda-rango">Arrastra los dos puntos: el de la izquierda es el año de inicio y el de la derecha, el final.</span>`;
+          <input type="range" class="r-desde" min="${primero(ind)}" max="${ultimo(ind)}" step="1" aria-label="Fecha inicial del periodo">
+          <input type="range" class="r-hasta" min="${primero(ind)}" max="${ultimo(ind)}" step="1" aria-label="Fecha final del periodo">${marcasAnios(ind)}</div>
+        <span class="ayuda-rango">Arrastra los dos puntos: el de la izquierda es la fecha inicial y el de la derecha, la final.</span>`;
     }
     const d = cont.querySelector(".r-desde"), h = cont.querySelector(".r-hasta");
     const pintar = () => {
       if (+d.value !== S.desde) d.value = S.desde;
       if (+h.value !== S.anioP) h.value = S.anioP;
-      cont.querySelector(".rango-txt").textContent = `De ${S.desde} a ${S.anioP}`;
+      cont.querySelector(".rango-txt").textContent = `${periodo(ind, S.desde, true)} → ${periodo(ind, S.anioP, true)}`;
       cont.querySelector(".prov").hidden = !esProv(S.anioP) && !esProv(S.desde);
       const t = cont.querySelector(".tramo");
-      t.style.left = `calc(10px + (100% - 20px) * ${pctAnio(S.desde) / 100})`;
-      t.style.width = `calc((100% - 20px) * ${(pctAnio(S.anioP) - pctAnio(S.desde)) / 100})`;
+      t.style.left = `calc(10px + (100% - 20px) * ${pctAnio(ind, S.desde) / 100})`;
+      t.style.width = `calc((100% - 20px) * ${(pctAnio(ind, S.anioP) - pctAnio(ind, S.desde)) / 100})`;
       // el tirador más cercano al otro extremo queda encima, para poder moverlo siempre
-      d.style.zIndex = S.desde > ULT - 2 ? 3 : 2;
+      d.style.zIndex = S.desde > ultimo(ind) - 2 ? 3 : 2;
     };
     pintar();
     // Los extremos nunca se cruzan: como mínimo, un año de diferencia.
@@ -438,22 +458,29 @@ export function iniciar(DATA: DatosApp): void {
     const o = ordenados(vals); const top = o[0], bot = o[o.length - 1];
     const m = media(vals); const u = ind.unidad;
     const out = [];
+    if (!o.length) return { out, top, bot };
     if (ind.id === "gasto_hab" || ind.id === "farmacia_hab") {
       out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> gasta ${fmt(vals[top], u)} por habitante, un ${nf(0).format((vals[top] / vals[bot] - 1) * 100)} % más que <strong>${NOMBRE[bot]}</strong> (${fmt(vals[bot], u)}).` });
     } else if (u === "dias") {
-      out.push({ k: "Más y menos espera", t: `En <strong>${NOMBRE[top]}</strong> se espera de media ${fmt(vals[top], u)}; en <strong>${NOMBRE[bot]}</strong>, ${fmt(vals[bot], u)}. Es ${nf(1).format(vals[top] / vals[bot])} veces más.` });
+      out.push({ k: "Más y menos espera", t: `En <strong>${NOMBRE[top]}</strong> se espera de media ${fmt(vals[top], u)}; en <strong>${NOMBRE[bot]}</strong>, ${fmt(vals[bot], u)}. ${vals[bot] > 0 ? `El primero es ${nf(1).format(vals[top] / vals[bot])} veces el segundo.` : ""}` });
     } else {
       out.push({ k: "Extremos", t: `<strong>${NOMBRE[top]}</strong> tiene el valor más alto (${fmt(vals[top], u)}) y <strong>${NOMBRE[bot]}</strong> el más bajo (${fmt(vals[bot], u)}).` });
     }
     out.push({ k: "Media", t: `La media de las ${o.length} comunidades${o.length < IDS.length ? " con dato" : ""} es <strong>${fmt(m, u)}</strong>. ${o.filter((id) => vals[id] > m).length} están por encima.` });
-    if (tieneSerie(ind) && anio > base0()) {
-      const base = valores(ind, base0());
+    if (ind.grupo === "gasto" && anio > base0(ind)) {
+      const base = valores(ind, base0(ind));
       const cambio = {};
       for (const id of IDS) cambio[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
       const oc = ordenados(cambio); const a = oc[0], b = oc[oc.length - 1];
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
-      out.push({ k: `Cambio de ${base0()} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
-    } else if (!tieneSerie(ind)) {
+      out.push({ k: `Cambio de ${base0(ind)} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
+    }
+    return { out, top, bot };
+  }
+
+  function titularesPacientes(ind, anio) {
+    const out = [];
+    if (ind.grupo === "espera") {
       const pac = pacientesDe(ind);
       const con = pac ? IDS.filter((id) => pac[id] != null) : [];
       if (con.length) {
@@ -462,7 +489,18 @@ export function iniciar(DATA: DatosApp): void {
           (pac[S.com] != null ? `; en <strong>${NOMBRE[S.com]}</strong>, ${fmt(pac[S.com], "num")}.` : `. ${NOMBRE[S.com]} no tiene dato en el informe.`) });
       }
     }
-    return { out, top, bot };
+    const anterior = anio - 1;
+    if (ind.grupo === "espera" && anterior >= 0) {
+      const ahora = pacientesDe(ind, anio) || {};
+      const antes = pacientesDe(ind, anterior) || {};
+      const ids = IDS.filter((id) => ahora[id] != null && antes[id] != null);
+      const comparable = ind.tipo !== "consultas" || ![CORTES[anio].id, CORTES[anterior].id].includes("2023-06");
+      const cambio = ids.reduce((s, id) => s + ahora[id] - antes[id], 0);
+      out.push({ k: "Cambio respecto al corte anterior", t: comparable && ids.length
+        ? `<strong>${firmado(cambio, 0)} pacientes</strong> desde ${periodo(ind, anterior)} (${ids.length} comunidades con datos en ambos cortes).`
+        : "Sin cifras comparables de pacientes para los dos cortes." });
+    }
+    return out;
   }
 
   // ---------- DATOS (mapa arriba; ranking, evolución y tabla debajo) ----------
@@ -474,27 +512,45 @@ export function iniciar(DATA: DatosApp): void {
 
   // Cambio desde el primer año: % en euros y otros valores; puntos en porcentajes. Respeta la inflación.
   function cambioInd(ind, anio) {
-    const vals = valores(ind, anio), base = valores(ind, S.desde), u = ind.unidad;
+    const u = ind.unidad;
     const out = {};
-    for (const id of IDS) if (vals[id] != null && base[id] != null) out[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
+    const cambioCiudades = {};
+    if (comparar(ind, S.desde, anio)) {
+      for (const id of [...IDS, ...Object.keys(CIUDADES)]) {
+        const cambio = diferencia(ind, dato(ind, id, S.desde), dato(ind, id, anio));
+        if (cambio != null) (IDS.includes(id) ? out : cambioCiudades)[id] = cambio;
+      }
+    }
     const nombre = u === "pct"
-      ? `${ind.nombre}: cambio de ${S.desde} a ${anio}, en puntos`
-      : `${ind.nombre}: cambio de ${S.desde} a ${anio}, en %${enEuros(ind) ? (S.real ? ", descontada la inflación" : ", sin descontar la inflación") : ""}`;
-    return { ind: { ...ind, id: `${ind.id}~cambio`, unidad: u === "pct" ? "pp" : "var", nombre }, vals: out };
+      ? `${ind.nombre}: cambio de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}, en puntos`
+      : `${ind.nombre}: cambio de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}, en %${enEuros(ind) ? (S.real ? ", descontada la inflación" : ", sin descontar la inflación") : ""}`;
+    return { ind: { ...ind, cambioCiudades, id: `${ind.id}~cambio`, unidad: u === "pct" ? "pp" : "var", nombre }, vals: out };
+  }
+
+  const seleccionPeriodo = {};
+  function cambiarIndicador(id) {
+    const anterior = IND[S.indP], siguiente = IND[id];
+    if (anterior.grupo !== siguiente.grupo) {
+      seleccionPeriodo[anterior.grupo] = { anioP: S.anioP, desde: S.desde, modo: S.modo };
+      Object.assign(S, seleccionPeriodo[siguiente.grupo] || { anioP: ultimo(siguiente), desde: primero(siguiente), modo: "valor" });
+    }
+    S.indP = id;
   }
 
   function renderDatos() {
     const baseInd = IND[S.indP];
     const ind = campoValido(baseInd);
+    if (ind === baseInd) S.campoE = "total";
+    if (!tieneSerie(ind) && S.vistaE === "evolucion") S.vistaE = "ranking";
     if (!tieneSerie(ind)) S.modo = "valor";
-    if (S.modo === "cambio" && S.anioP <= S.desde) { S.anioP = ULT; if (S.desde >= ULT) S.desde = ANIOS[0]; }
-    selector($("#sel-datos"), S.indP, (id) => { pararPlay(); S.indP = id; render(); });
+    if (S.modo === "cambio" && S.anioP <= S.desde) { S.anioP = ultimo(ind); if (S.desde >= S.anioP) S.desde = primero(ind); }
+    selector($("#sel-datos"), S.indP, (id) => { pararPlay(); cambiarIndicador(id); render(); });
     $("#d-campo").innerHTML = ind !== baseInd
       ? `<span>Mapa y gráficos: <b>${esc(ind.campoNombre)}</b>. Las tarjetas siguen mostrando el total.</span><button type="button" class="btn-link" id="d-campo-total">Volver al total</button>`
       : "";
     if ($("#d-campo-total")) $("#d-campo-total").onclick = () => sinMover(() => { S.campoE = "total"; render(); });
 
-    const anio = tieneSerie(ind) ? S.anioP : null;
+    const anio = S.anioP;
     const vals = valores(ind, anio);
     const { out } = titulares(ind, anio);
     const enCambio = S.modo === "cambio";
@@ -505,25 +561,28 @@ export function iniciar(DATA: DatosApp): void {
     const verbo = ind.unidad === "pct" ? "subido" : "crecido";
 
     // «Tu comunidad»: su valor y puesto, o su cambio y puesto en el periodo
-    const ficha = `<a href="#comunidad-${S.com.toLowerCase()}">Ver su ficha completa</a>`;
+    const ficha = `<a href="#comunidad-${S.com.toLowerCase()}${ind.grupo === "espera" ? `?corte=${CORTES[anio].id}` : ""}">Ver su ficha completa</a>`;
     let tuya;
-    if (vals[S.com] == null) tuya = `Sin dato en el informe para esta especialidad. ${ficha}`;
+    if (enCambio && mapa.vals[S.com] == null) tuya = `Sin cambio comparable para ${NOMBRE[S.com]}. ${ficha}`;
+    else if (vals[S.com] == null) tuya = `Sin dato en el informe para esta especialidad. ${ficha}`;
     else if (enCambio) {
       const pos = mo.indexOf(S.com) + 1;
       const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : arriba(pos, mo.length) ? `La ${pos}.ª que más ha ${verbo} de ${mo.length}` : `La ${mo.length - pos + 1}.ª que menos ha ${verbo} de ${mo.length}`;
-      tuya = `${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${S.desde} a ${anio}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
+      tuya = `${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
     } else {
       const ord = ordenados(vals);
-      tuya = `<strong>${fmt(vals[S.com], ind.unidad)}</strong>${tieneSerie(ind) ? ` en ${anio}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
+      tuya = `<strong>${fmt(vals[S.com], ind.unidad)}</strong>${tieneSerie(ind) ? ` en ${periodo(ind, anio)}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
     }
     out.unshift({ k: "Tu comunidad", t: tuya, elegir: true });
-    if (enCambio) {
+    if (enCambio && mo.length) {
       // En «Cambio entre dos años» todos los cuadros hablan del cambio; el valor final queda como contexto.
       const mc = media(mapa.vals), u2 = mapa.ind.unidad;
       out.splice(1, out.length - 1,
-        { k: `Media de las 17, de ${S.desde} a ${anio}`, t: `De media, las comunidades han ${verbo} <strong>${fmt(mc, u2)}</strong>${infl ? ` (${infl})` : ""}. ${mo.filter((id) => mapa.vals[id] > mc).length} están por encima.` },
-        { k: `Para situarse: el valor en ${anio}`, t: `<strong>${NOMBRE[ordenados(vals)[0]]}</strong> está arriba (${fmt(vals[ordenados(vals)[0]], ind.unidad)}) y <strong>${NOMBRE[ordenados(vals).at(-1)]}</strong> abajo (${fmt(vals[ordenados(vals).at(-1)], ind.unidad)}). Para verlo en el mapa, elige «Un año».` });
+        { k: `Media de las ${mo.length}, de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `De media, las comunidades han ${verbo} <strong>${fmt(mc, u2)}</strong>${infl ? ` (${infl})` : ""}. ${mo.filter((id) => mapa.vals[id] > mc).length} están por encima.` },
+        { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `<strong>${NOMBRE[ordenados(vals)[0]]}</strong> está arriba (${fmt(vals[ordenados(vals)[0]], ind.unidad)}) y <strong>${NOMBRE[ordenados(vals).at(-1)]}</strong> abajo (${fmt(vals[ordenados(vals).at(-1)], ind.unidad)}). Para verlo en el mapa, elige «Un año».` });
     }
+    if (enCambio && !mo.length) out.splice(1);
+    out.push(...titularesPacientes(ind, anio));
     // «Tu comunidad» lleva su propio desplegable (además de poder pulsarla en el mapa): sirve para las
     // comunidades pequeñas, en el móvil y con teclado o lector de pantalla.
     const opcionesCom = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.com ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
@@ -534,10 +593,10 @@ export function iniciar(DATA: DatosApp): void {
 
     // Título y subtítulo: dicen exactamente qué muestra el mapa
     if (enCambio) {
-      $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${S.desde} a ${anio}`;
-      $("#p-sub").textContent = `${NOMBRE[top]} es la que más ha ${verbo} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y ${NOMBRE[bot]} la que menos (${fmt(mapa.vals[bot], mapa.ind.unidad)})${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
+      $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`;
+      $("#p-sub").textContent = !mo.length ? "Sin cambios comparables para los cortes seleccionados. Consulta las notas del informe bajo el gráfico." : `${NOMBRE[top]} es la que más ha ${verbo} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y ${NOMBRE[bot]} la que menos (${fmt(mapa.vals[bot], mapa.ind.unidad)})${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
-      $("#p-titulo").textContent = `${ind.nombre} en ${anio}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
+      $("#p-titulo").textContent = `${ind.nombre} en ${periodo(ind, anio)}: ${top ? `${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo` : "sin datos"}`;
       $("#p-sub").textContent = `${esProv(anio) ? "Dato provisional. " : ""}${enEuros(ind) && anio !== ULT ? (S.real ? `En euros de ${ULT}, descontada la inflación. ` : "En euros de ese año. ") : ""}Pulsa una comunidad para elegirla como la tuya.`;
     } else {
       $("#p-titulo").textContent = `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
@@ -547,7 +606,7 @@ export function iniciar(DATA: DatosApp): void {
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); } }));
     botonPNG($("#p-desc"), "Descargar mapa (PNG)", () => descargarPNG($("#p-mapa svg"), `mapa_${mapa.ind.id}`, $("#p-titulo").textContent, $("#p-leyenda"),
       [$("#p-sub").textContent.replace(" Pulsa una comunidad para elegirla como la tuya.", "")]));
-    if (enCambio) barraPeriodo($("#p-anios"), () => { pararPlay(); render(); });
+    if (enCambio) barraPeriodo($("#p-anios"), ind, () => { pararPlay(); render(); });
     else barraAnios($("#p-anios"), ind, S.anioP, (a) => { S.anioP = a; render(); });
 
     renderResumen(baseInd);
@@ -571,42 +630,47 @@ export function iniciar(DATA: DatosApp): void {
   // Una etiqueta por cada elección (dato, especialidad, años, inflación, tu comunidad, gráfico). El resumen va
   // encima del mapa y se queda fijo arriba al bajar. Las etiquetas que no están como al principio se resaltan.
   const POR_DEFECTO = { indP: "gasto_hab", campoE: "total", modo: "valor", desde: ANIOS[0], real: true, vistaE: "ranking" };
+  function restablecer() {
+    delete seleccionPeriodo.gasto;
+    delete seleccionPeriodo.espera;
+    Object.assign(S, POR_DEFECTO, { anioP: ULT });
+  }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
   const opcionesDato = () => ["gasto", "espera"].map((g) => `<optgroup label="${g === "gasto" ? "Gasto sanitario" : "Listas de espera"}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
   const opcionesCampo = (base) => opt("total", "Todas (total)", S.campoE === "total") + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => opt(`${tipo}:${c.id}`, c.nombre, S.campoE === `${tipo}:${c.id}`)).join("")}</optgroup>`).join("");
-  const opcionesAnio = (lista, sel) => lista.map((a) => opt(a, `${a}${esProv(a) ? " (prov.)" : ""}`, a === sel)).join("");
+  const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
   const opcionesGraf = (base) => [["ranking", "Ranking"], ["evolucion", "Evolución"], ["tabla", "Tabla"]].map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
 
   // «31 de diciembre de 2025» -> «dic. 2025» (para que quepa en una etiqueta)
   const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
   function renderResumen(base) {
-    const serie = tieneSerie(base);
+    const serie = tieneSerie(base), fecha = base.grupo === "espera" ? "Corte" : "Año";
     const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}>${et ? `<span class="et">${et}</span>` : ""}${dentro}</span>`;
     const ayuda = (txt) => `title="${esc(txt)}"`;
     let h = chip("", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`, false, ayuda("Qué dato muestran el mapa y los gráficos"));
     if (base.grupo === "espera") h += chip("", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total", ayuda("Las tarjetas de arriba siguen mostrando el total"));
     if (serie) {
       // Una sola etiqueta para el periodo: «Año 2024» o «Periodo 2002 → 2020», con un botón para cambiar de modo
-      const btnModo = `<button type="button" class="rs-modo" id="rs-modo">${S.modo === "cambio" ? "Ver un año" : "Comparar años"}</button>`;
+      const btnModo = `<button type="button" class="rs-modo" id="rs-modo">${S.modo === "cambio" ? (base.grupo === "espera" ? "Ver un corte" : "Ver un año") : "Comparar años"}</button>`;
       h += S.modo === "cambio"
-        ? chip("", `<select id="rs-desde" aria-label="Año de inicio">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select><span class="flecha" aria-hidden="true">→</span><select id="rs-hasta" aria-label="Año final">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select>${btnModo}`, true, ayuda("Cuánto ha cambiado entre dos años. «Ver un año» vuelve al valor de un solo año"))
-        : chip("", `<select id="rs-anio" aria-label="Año">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>${btnModo}`, S.anioP !== ULT, ayuda("El año que muestran el mapa y el ranking. «Comparar años» muestra cuánto ha cambiado entre dos"));
+        ? chip("", `<select id="rs-desde" aria-label="${fecha} inicial">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select><span class="flecha" aria-hidden="true">→</span><select id="rs-hasta" aria-label="${fecha} final">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select>${btnModo}`, true, ayuda("Cuánto ha cambiado entre las fechas elegidas"))
+        : chip("", `<select id="rs-anio" aria-label="${fecha}">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>${btnModo}`, S.anioP !== ultimo(base), ayuda("Fecha del mapa y del ranking. «Comparar años» permite elegir dos fechas"));
     } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
     h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda("Se resalta en el mapa y en los gráficos"));
     h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
     // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
-    const cambiado = Object.entries(POR_DEFECTO).some(([k, v]) => S[k] !== v) || S.anioP !== ULT;
+    const cambiado = Object.entries(POR_DEFECTO).some(([k, v]) => S[k] !== v) || S.anioP !== ultimo(base);
     if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
     $("#rs-chips").innerHTML = h;
-    if (cambiado) $("#rs-reset").onclick = () => aplicar(() => Object.assign(S, POR_DEFECTO, { anioP: ULT }));
+    if (cambiado) $("#rs-reset").onclick = () => aplicar(restablecer);
     // En el móvil, una sola línea con el resumen (lo que no está como al principio, resaltado); al tocarla, Ajustes.
     const parte = (txt, cambiado = false) => `<span class="${cambiado ? "cambiado" : ""}">${esc(txt)}</span>`;
     const partes = [parte(base.corto)];
     if (base.grupo === "espera") partes.push(S.campoE !== "total" ? parte(indDetalle(base, S.campoE).campoNombre || "", true) : parte("total"));
-    if (serie) partes.push(S.modo === "cambio" ? parte(`${S.desde} → ${S.anioP}`, true) : parte(String(S.anioP), S.anioP !== ULT));
+    if (serie) partes.push(S.modo === "cambio" ? parte(`${periodo(base, S.desde, true)} → ${periodo(base, S.anioP, true)}`, true) : parte(periodo(base, S.anioP, true), S.anioP !== ultimo(base)));
     else partes.push(parte(corteCorto()));
     if (enEuros(base)) partes.push(parte(S.real ? "sin inflación" : "con inflación", !S.real));
     partes.push(parte(NOMBRE[S.com]));
@@ -617,7 +681,7 @@ export function iniciar(DATA: DatosApp): void {
     barra.classList.remove("compacta");
     if (innerWidth > 640 && $("#rs-chips").scrollHeight > 46) barra.classList.add("compacta");
     const on = (id, fn) => { const el = $("#" + id); if (el) el.onchange = (e) => aplicar(() => fn(e.target.value)); };
-    on("rs-dato", (v) => { S.indP = v; });
+    on("rs-dato", (v) => { cambiarIndicador(v); });
     on("rs-campo", (v) => { S.campoE = v; });
     if ($("#rs-modo")) $("#rs-modo").onclick = () => aplicar(() => { S.modo = S.modo === "cambio" ? "valor" : "cambio"; });
     on("rs-anio", (v) => { S.anioP = +v; });
@@ -639,10 +703,10 @@ export function iniciar(DATA: DatosApp): void {
     h += fila("Dato", `<select id="aj-dato">${opcionesDato()}</select>`);
     if (base.grupo === "espera") h += fila("Especialidad", `<select id="aj-campo">${opcionesCampo(base)}</select>`, "Las tarjetas siguen mostrando el total.");
     if (serie) {
-      h += fila("¿Qué ver?", radios("modo", S.modo, [["valor", "Un año"], ["cambio", "Cambio entre dos años"]]), "El mapa y el ranking muestran el valor de un año o cuánto ha cambiado entre dos.");
+      h += fila("¿Qué ver?", radios("modo", S.modo, [["valor", base.grupo === "espera" ? "Un corte" : "Un año"], ["cambio", "Comparar años"]]), "El mapa y el ranking muestran el valor en una fecha o el cambio entre dos.");
       h += S.modo === "cambio"
-        ? fila("Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select></span>`)
-        : fila("Año", `<select id="aj-anio">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>`);
+        ? fila(base.grupo === "espera" ? "Cortes" : "Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select></span>`)
+        : fila(base.grupo === "espera" ? "Corte" : "Año", `<select id="aj-anio">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>`);
     } else h += fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
     h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, "Se resalta en el mapa y en los gráficos.");
@@ -650,7 +714,7 @@ export function iniciar(DATA: DatosApp): void {
     h += `<div class="aj-pie"><button type="button" class="btn" id="aj-reset">Restablecer</button><button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
     $("#aj-cuerpo").innerHTML = h;
     const on = (sel, fn) => $("#aj-cuerpo").querySelectorAll(sel).forEach((el) => el.onchange = (e) => { pararPlay(); fn(e.target.value); render(); });
-    on("#aj-dato", (v) => { S.indP = v; });
+    on("#aj-dato", (v) => { cambiarIndicador(v); });
     on("#aj-campo", (v) => { S.campoE = v; });
     on('input[name="aj-modo"]', (v) => { S.modo = v; });
     on("#aj-anio", (v) => { S.anioP = +v; });
@@ -662,7 +726,7 @@ export function iniciar(DATA: DatosApp): void {
     const cerrar = () => $("#ajustes").close();
     $("#aj-cerrar").onclick = cerrar;
     $("#aj-ver").onclick = () => { cerrar(); document.querySelector("#v-datos .portada-grid").scrollIntoView({ behavior: "smooth", block: "start" }); };
-    $("#aj-reset").onclick = () => { pararPlay(); Object.assign(S, POR_DEFECTO, { anioP: ULT }); render(); };
+    $("#aj-reset").onclick = () => { pararPlay(); restablecer(); render(); };
   }
 
   // Pestañas bajo el mapa. El ranking sigue al mapa (valor o cambio); la tabla trae los dos.
@@ -683,10 +747,10 @@ export function iniciar(DATA: DatosApp): void {
 
     const cont = $("#e-chart");
     const vals = valores(ind, anio);
-    const fecha = tieneSerie(ind) ? `${anio}${esProv(anio) ? " (provisional)" : ""}` : DATA.corteListas;
+    const fecha = ind.grupo === "espera" ? CORTES[anio].fecha : `${anio}${esProv(anio) ? " (provisional)" : ""}`;
     if (S.vistaE === "evolucion") {
-      $("#e-titulo").textContent = `${ind.nombre}, ${ANIOS[0]}-${ULT}${sinInfl(ind) ? `, en euros de ${ULT}` : enEuros(ind) ? ", en euros de cada año" : ""}`;
-      $("#e-sub").textContent = "Las 17 comunidades en gris; en color, las que destaques. Pasa el ratón por el gráfico para ver cada año.";
+      $("#e-titulo").textContent = `${ind.nombre}, ${periodo(ind, primero(ind), true)} – ${periodo(ind, ultimo(ind), true)}${sinInfl(ind) ? `, en euros de ${ULT}` : enEuros(ind) ? ", en euros de cada año" : ""}`;
+      $("#e-sub").textContent = "Las 17 comunidades en gris; en color, las que destaques. Pasa el ratón o toca el gráfico para ver cada fecha.";
       lineas(cont, ind);
     } else if (S.vistaE === "tabla") {
       const n = ordenados(vals).length;
@@ -695,31 +759,42 @@ export function iniciar(DATA: DatosApp): void {
       tabla(cont, ind, anio);
     } else {
       const mo = ordenados(mapa.vals);
-      $("#e-titulo").textContent = S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}: ${NOMBRE[mo[0]]} en cabeza`;
+      $("#e-titulo").textContent = S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}${mo.length ? `: ${NOMBRE[mo[0]]} en cabeza` : ""}`;
       $("#e-sub").textContent = tieneSerie(ind) ? "Pulsa una barra para destacar esa comunidad en la evolución." : "Pulsa una barra para destacar esa comunidad.";
       ranking(cont, mapa.vals, mapa.ind);
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
+    else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
       [...document.querySelectorAll("#e-chart .pliegue[open] li")].map((li) => li.textContent.replace(/\s+/g, " ").trim())));
     const sinDato = IDS.filter((k) => vals[k] == null);
     // Debajo del gráfico, a la vista solo la fuente; la definición y los avisos, en un desplegable con su recuento.
-    const conAvisos = tieneSerie(ind) && S.vistaE !== "evolucion";
+    const conAvisos = ind.grupo === "gasto" && S.vistaE !== "evolucion";
     const notasAnio = conAvisos ? NOTAS.filter((n) => n.anio === anio) : [];
     const avisosV = !conAvisos ? [] : S.modo === "cambio" ? avisosDe(ind.id).filter((a) => a.anio > S.desde && a.anio <= anio) : avisosDe(ind.id).filter((a) => a.anio === anio);
     // Al comparar un periodo, avisa si en él cambió la lista de entidades de alguna comunidad.
     const ccEnt = conAvisos && S.modo === "cambio" ? [...new Set(ENTIDADES.filter((e) => e.anio > S.desde && e.anio <= anio).map((e) => e.ccaa))] : [];
+    const cortesConNotas = ind.grupo === "espera"
+      ? (S.vistaE === "evolucion" ? CORTES : S.modo === "cambio" ? CORTES.slice(S.desde, anio + 1) : [CORTES[anio]])
+      : [];
+    const notasSISLE = cortesConNotas.flatMap((c) => c.notas.map((texto) => ({ fecha: c.fecha, texto })));
+    const consulta2023 = ind.tipo === "consultas" && cortesConNotas.some((c) => c.id === "2023-06");
+    const cambioDefinicion = ind.id.split("@")[0] === "c_pct";
     const cuenta = [
+      notasSISLE.length || consulta2023 || cambioDefinicion ? "notas SISLE" : "",
       notasAnio.length ? `${notasAnio.length} ${notasAnio.length === 1 ? "nota" : "notas"} del Ministerio` : "",
       avisosV.length ? `${avisosV.length} ${avisosV.length === 1 ? "variación inusual" : "variaciones inusuales"}` : "",
       ccEnt.length ? "cambios en las entidades" : "",
     ].filter(Boolean);
     const cuerpo = `<p>${esc(ind.desc)}</p>` +
+      (cambioDefinicion ? "<p>Hasta junio de 2024 el indicador se refería a pacientes con cita asignada. Desde diciembre de 2024 se incluyen pacientes sin cita que ya superaban 60 días en el registro. El cambio entre ambas definiciones no se calcula.</p>" : "") +
+      (consulta2023 ? '<p>En junio de 2023, el informe de consultas repite los recuentos, tiempos medios y porcentajes de diciembre de 2022, aunque publica tasas distintas. Se muestran las cifras de la fuente y se omiten los cambios que usan ese corte. <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/ListaEsperaInfAntCCAA.htm">Informes del Ministerio</a>.</p>' : "") +
+      notasSISLE.map((n) => `<p><b>Nota del Ministerio (${n.fecha}):</b> ${esc(n.texto)}</p>`).join("") +
       notasAnio.map((n) => `<p><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</p>`).join("") +
       (avisosV.length ? `<p><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b></p><ul>${avisosV.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul><p><a href="#metodo-calidad">Cómo las detectamos</a>.</p>` : "") +
       (ccEnt.length ? `<p><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${ccEnt.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</p>` : "") +
-      (S.vistaE !== "evolucion" ? `<p><b>Ceuta y Melilla.</b> ${tieneSerie(ind) ? AVISO_GASTO : AVISO_CIUDADES}</p>` : "");
-    $("#e-nota").innerHTML = `Fuente: Ministerio de Sanidad${tieneSerie(ind) ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
+      (S.vistaE !== "evolucion" ? `<p><b>Ceuta y Melilla.</b> ${ind.grupo === "gasto" ? AVISO_GASTO : AVISO_CIUDADES}</p>` : "");
+    $("#e-nota").innerHTML = `Fuente: Ministerio de Sanidad${ind.grupo === "gasto" ? ", Estadística de Gasto Sanitario Público" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
       plegable("e-nota", `Qué mide este dato${cuenta.length ? ` · ${cuenta.join(" · ")}` : ""}`, cuerpo);
   }
@@ -729,9 +804,11 @@ export function iniciar(DATA: DatosApp): void {
     const q = new URLSearchParams();
     if (S.indP !== "gasto_hab") q.set("dato", S.indP);
     if (S.campoE !== "total") q.set("campo", S.campoE);
-    if (S.anioP !== ULT && tieneSerie(IND[S.indP])) q.set("anio", S.anioP);
+    const ind = periodoActual();
+    const fecha = (a) => ind.grupo === "espera" ? CORTES[a].id : a;
+    if (S.anioP !== ultimo(ind) || S.modo === "cambio") q.set("anio", fecha(S.anioP));
     if (S.modo !== "valor") q.set("modo", S.modo);
-    if (S.modo === "cambio" && S.desde !== ANIOS[0]) q.set("desde", S.desde);
+    if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
     if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
     if (!S.real) q.set("inflacion", "no");
     if (S.com !== "AN") q.set("com", S.com.toLowerCase());
@@ -740,19 +817,27 @@ export function iniciar(DATA: DatosApp): void {
   }
   function leerEnlace(qs) {
     const q = new URLSearchParams(qs);
-    const dato = q.get("dato"); if (dato && IND[dato] && !dato.includes("@")) S.indP = dato;
+    const id = q.get("dato");
+    S.indP = id && Object.hasOwn(IND, id) && !id.includes("@") ? id : "gasto_hab";
+    const ind = periodoActual();
+    const leerPeriodo = (clave) => ind.grupo === "espera" ? CORTES.findIndex((c) => c.id === q.get(clave)) : +q.get(clave);
+    S.campoE = "total";
+    S.modo = "valor";
+    S.vistaE = "ranking";
+    S.real = true;
     const campo = q.get("campo"); if (campo && /^\w+:\w+$/.test(campo)) S.campoE = campo;
-    const anio = +q.get("anio"); if (ANIOS.includes(anio)) S.anioP = anio;
+    const anio = leerPeriodo("anio"); S.anioP = periodos(ind).includes(anio) ? anio : ultimo(ind);
     const modo = q.get("modo"); if (modo === "cambio" || modo === "valor") S.modo = modo;
-    const desde = +q.get("desde"); if (ANIOS.includes(desde) && desde < ULT) S.desde = desde;
+    const desde = leerPeriodo("desde"); S.desde = periodos(ind).includes(desde) && desde < ultimo(ind) ? desde : primero(ind);
     const g = q.get("grafico"); if (["ranking", "evolucion", "tabla"].includes(g)) S.vistaE = g;
     if (q.get("inflacion") === "no") S.real = false;
     const com = (q.get("com") || "").toUpperCase(); if (IDS.includes(com)) S.com = com;
   }
 
   function ranking(cont, vals, ind) {
-    const ciu = DATA.ciudades[ind.id] ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
+    const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
     const o = ordenados(vals);
+    if (!o.length && !ciu.length) { cont.innerHTML = '<p class="nota">Sin valores comparables para el ranking.</p>'; return; }
     const W = Math.max(320, cont.clientWidth || 800), fila = 26, top = 8, extra = ciu.length ? 30 + ciu.length * fila : 0, H = top + o.length * fila + 26 + extra;
     const lab = W < 520 ? 92 : 140, der = 70;
     const todos = [...o.map((id) => vals[id]), ...ciu.map((k) => datoCiudad(ind, k))];
@@ -774,8 +859,8 @@ export function iniciar(DATA: DatosApp): void {
         ${destacado ? `<text x="${vals[id] < 0 ? x(0) + 6 : x(vals[id]) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(vals[id], ind.unidad)}</text>` : ""}
       </g>`;
     });
-    const xm = x(m), y17 = top + o.length * fila;
-    s += `<line x1="${xm}" x2="${xm}" y1="${top - 4}" y2="${y17 + 4}" stroke="${fg}" stroke-dasharray="3 3" stroke-width="1.2"/>
+    const xm = Number.isFinite(m) ? x(m) : x(0), y17 = top + o.length * fila;
+    if (o.length) s += `<line x1="${xm}" x2="${xm}" y1="${top - 4}" y2="${y17 + 4}" stroke="${fg}" stroke-dasharray="3 3" stroke-width="1.2"/>
       <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">media de las ${o.length}: ${fmt(m, ind.unidad)}</text>`;
     s += `<line x1="${x(0)}" x2="${x(0)}" y1="${top}" y2="${y17}" stroke="${line}"/>`;
     if (ciu.length) {
@@ -785,7 +870,7 @@ export function iniciar(DATA: DatosApp): void {
         const y = y0 + 14 + i * fila, v = datoCiudad(ind, k);
         s += `<g class="barra-ciu" data-id="${k}"><text x="${lab - 8}" y="${y + fila / 2 + 4}" text-anchor="end" font-size="12.5" fill="${muted}" font-style="italic">${CIUDADES[k]}*</text>
           ${barra(y, v, `fill="none" stroke="${muted}" stroke-dasharray="3 2"`)}
-          <text x="${x(v) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(v, ind.unidad)}</text></g>`;
+          <text x="${v < 0 ? x(0) + 6 : x(v) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(v, ind.unidad)}</text></g>`;
       });
     }
     s += `</svg>`;
@@ -805,36 +890,46 @@ export function iniciar(DATA: DatosApp): void {
   function tabla(cont, ind, anio) {
     const u = ind.unidad, serie = tieneSerie(ind);
     const vals = valores(ind, anio), o = ordenados(vals), m = media(vals);
-    const b0 = base0(), base = serie ? valores(ind, b0) : null;
+    const b0 = base0(ind), base = serie ? valores(ind, b0) : null;
+    const comparable = serie && comparar(ind, b0, anio);
     const signo = (x, txt) => /^0( |$)/.test(txt) ? `<span class="neg">≈ ${txt}</span>` : `<span class="${x < 0 ? "neg" : ""}">${x >= 0 ? "+" : "−"}${txt}</span>`;
     const difMedia = (v) => u === "pct" ? signo(v - m, nf(1).format(Math.abs(v - m)) + " p.") : signo(v - m, nf(0).format(Math.abs(v / m - 1) * 100) + " %");
-    const cambio = (id) => u === "pct" ? signo(vals[id] - base[id], nf(1).format(Math.abs(vals[id] - base[id])) + " p.") : signo(vals[id] - base[id], nf(0).format(Math.abs(vals[id] / base[id] - 1) * 100) + " %");
+    const cambio = (id) => {
+      const d = comparable ? diferencia(ind, dato(ind, id, b0), dato(ind, id, anio)) : null;
+      return d == null ? "—" : signo(d, nf(u === "pct" ? 1 : 0).format(Math.abs(d)) + (u === "pct" ? " p." : " %"));
+    };
     const pac = pacientesDe(ind);
     const celdaPac = (v) => pac ? `<td>${fmt(v, "num")}</td>` : "";
-    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${b0}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${serie ? anio : "Valor"}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? "<th>Pacientes en espera</th>" : ""}</tr>`;
+    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${periodo(ind, b0, true)}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${periodo(ind, anio, true)}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? "<th>Pacientes en espera</th>" : ""}</tr>`;
     const filas = o.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i + 1}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdaPac(pac && pac[id])}</tr>`).join("");
     const totalPac = pac ? o.reduce((s, id) => s + (pac[id] || 0), 0) : 0;
     const pie = `<tr><td></td><td>Media de las ${o.length}</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")} <span style="font-weight:400">en total</span></td>` : ""}</tr>`;
     const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0);
-    const ciu = !serie && DATA.ciudades[ind.id] ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
+    const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
-      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td><td>${fmt(datoCiudad(ind, k), u)}</td><td>${difMedia(datoCiudad(ind, k))}</td>${celdaPac(pac && pac[k])}</tr>`).join("") : "";
+      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td>${serie ? `<td>${fmt(datoCiudad(ind, k, b0), u)}</td>` : ""}<td>${fmt(datoCiudad(ind, k), u)}</td>${serie ? `<td>${cambio(k)}</td>` : ""}<td>${difMedia(datoCiudad(ind, k))}</td>${celdaPac(pac && pac[k])}</tr>`).join("") : "";
     cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
-      <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV${serie ? ` (${ANIOS[0]}-${ULT})` : ""}</button></div>`;
+      <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV${serie ? ` (${periodo(ind, primero(ind), true)} – ${periodo(ind, ultimo(ind), true)})` : ""}</button></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
   }
   function descargarCSV(ind) {
     const n = (v) => v == null ? "" : String(+v.toFixed(3)).replace(".", ",");
     let filas;
-    if (tieneSerie(ind)) {
+    if (ind.grupo === "gasto") {
       const real = enEuros(ind);
       filas = [["indicador", "comunidad", "anio", real ? "valor_euros_corrientes" : "valor", ...(real ? [`valor_euros_${ULT}`] : []), "provisional"]];
       IDS.forEach((id) => ANIOS.forEach((a, i) => filas.push([ind.nombre, NOMBRE[id], a, n((real ? ind.serieNom : ind.serie)[id][i]), ...(real ? [n(ind.serieReal[id][i])] : []), esProv(a) ? "si" : "no"])));
     } else {
-      const pac = pacientesDe(ind) || {};
       filas = [["indicador", "comunidad", "fecha", "valor", "pacientes_en_espera", "nota"]];
-      IDS.forEach((id) => filas.push([ind.nombre, NOMBRE[id], DATA.corteListas, n(ind.valor[id]), n(pac[id]), ind.valor[id] == null ? "sin dato en el informe" : ""]));
-      Object.keys(CIUDADES).forEach((k) => { const v = datoCiudad(ind, k); if (v != null) filas.push([ind.nombre, CIUDADES[k], DATA.corteListas, n(v), n(pac[k]), "ciudad autonoma: fuera de la media de las 17"]); });
+      CORTES.forEach((c, a) => {
+        const pac = pacientesDe(ind, a);
+        for (const id of [...IDS, ...Object.keys(CIUDADES)]) {
+          const v = dato(ind, id, a);
+          const nota = [CIUDADES[id] ? "Ciudad autónoma: fuera de la media" : "", v == null ? "Sin dato en el informe" : "",
+            ind.tipo === "consultas" && c.id === "2023-06" ? "Datos de consultas repetidos respecto a diciembre de 2022 (salvo tasas)" : ""].filter(Boolean).join(". ");
+          filas.push([ind.nombre, NOMBRE[id] || CIUDADES[id], c.id, n(v), n(pac[id]), nota]);
+        }
+      });
     }
     const csv = "\ufeff" + filas.map((f) => f.map((c) => /[;"\n]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(";")).join("\r\n");
     const a = document.createElement("a");
@@ -897,14 +992,21 @@ export function iniciar(DATA: DatosApp): void {
       $("#x-sub").textContent = "Compara el gasto por habitante de cada comunidad con sus listas de espera.";
       $("#x-y").innerHTML = `<button type="button" class="btn sm" id="x-ir">Verlo en Listas de espera</button>`;
       $("#x-y").classList.remove("seg");
-      $("#x-ir").onclick = () => { S.indP = "q_dias"; render(); document.querySelector("#v-datos .xy").scrollIntoView({ behavior: "smooth" }); };
+      $("#x-ir").onclick = () => { cambiarIndicador("q_dias"); render(); document.querySelector("#v-datos .xy").scrollIntoView({ behavior: "smooth" }); };
       $("#x-chart").innerHTML = ""; $("#x-nota").textContent = "";
       return;
     }
     const gy = ind, nombreY = gy.campoNombre ? `${gy.corto} en ${gy.campoNombre.toLowerCase()}` : gy.corto;
     $("#x-y").innerHTML = ""; $("#x-y").classList.remove("seg");
-    const vx = valores(gx, ULT), vy = valores(gy, null);
+    const vx = valores(gx, ULT), vy = valores(gy, S.anioP);
     const ids = IDS.filter((id) => vx[id] != null && vy[id] != null);
+    if (ids.length < 3) {
+      $("#x-titulo").textContent = "¿Van juntos el gasto y la espera?";
+      $("#x-sub").textContent = `Pocos datos de espera para ${periodo(gy, S.anioP)} y la especialidad o el proceso elegido.`;
+      $("#x-chart").innerHTML = "";
+      $("#x-nota").textContent = "Fuente: Ministerio de Sanidad.";
+      return;
+    }
     // Relación descriptiva entre comunidades (no causal). Con tan pocos puntos, solo se habla de relación si la
     // correlación supera el umbral a partir del cual no se puede atribuir fácilmente al azar (95 %).
     const xsR = ids.map((id) => vx[id]), ysR = ids.map((id) => vy[id]);
@@ -915,7 +1017,7 @@ export function iniciar(DATA: DatosApp): void {
     // del 5 % saldría con «relación» solo por azar. Se avisa siempre que aparezca una.
     const combinaciones = DATA.inds.filter((i) => i.grupo === "espera").reduce((n, i) => n + 1 + familias(i).reduce((m, t) => m + DATA.detalle[t].campos.filter((c) => c.id !== "total").length, 0), 0);
     $("#x-titulo").textContent = `¿Van juntos el gasto y la espera? ${respuesta}`;
-    $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${nombreY.toLowerCase()} (${DATA.corteListas}). Cambia la tarjeta o la especialidad de arriba para comparar otra espera.`;
+    $("#x-sub").textContent = `Cada punto es una comunidad: a la derecha, más gasto por habitante (${ULT}); arriba, ${nombreY.toLowerCase()} (${CORTES[S.anioP].fecha}). Cambia la tarjeta o la especialidad de arriba para comparar otra espera.`;
     const cont = $("#x-chart");
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 340 : 420;
     const L = W < 520 ? 54 : 64, R = 24, T = 16, B = 40;
@@ -970,7 +1072,7 @@ export function iniciar(DATA: DatosApp): void {
       <li><b>Qué muestra:</b> cada punto es una comunidad; las líneas discontinuas marcan la media de las ${ids.length}. ${conTuya ? "" : `${esc(NOMBRE[c0])} no aparece: el informe no trae ese dato. `}Sin Ceuta y Melilla (no tienen gasto comparable).</li>
       <li><b>Relación:</b> correlación ${c2(r)} (Pearson) y ${c2(rho)} por rangos (Spearman), en una escala de −1 a 1 en la que 0 es ninguna relación. Con ${ids.length} comunidades, cualquier valor entre −${c2(rc)} y +${c2(rc)} podría deberse al azar, así que ${clara ? `esta relación supera ese umbral. <b>Pero ojo:</b> la web permite mirar ${combinaciones} combinaciones de espera y especialidad, y al mirar tantas, unas ${Math.round(combinaciones * 0.05)} saldrían con «relación» solo por azar. Tómalo como una pista para investigar, no como una conclusión` : "no hay base para hablar de relación entre estos dos datos"}.</li>
       <li><b>Ir juntos no es causar:</b> ${clara ? "esta relación no prueba" : "ni aunque hubiera relación probaría"} que gastar más acorte o alargue la espera. Influyen otros factores que el gráfico no tiene en cuenta: la edad de la población, la dispersión geográfica, las derivaciones a centros concertados, el seguro privado, la organización de cada servicio y cómo registra cada comunidad sus listas.</li>
-      <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${DATA.corteListas}.</li>
+      <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${CORTES[S.anioP].fecha}.</li>
       <li><b>Comunidades, no personas:</b> compara cifras de comunidades enteras; no dice nada de lo que espera cada paciente.</li>
     </ul><a href="#metodo-comparar">Más en «Cómo leer los datos»</a>`);
   }
@@ -993,43 +1095,56 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function lineas(cont, ind) {
+    const fechas = periodos(ind), inicio = primero(ind), fin = ultimo(ind);
+    const salto = (a, b) => !comparar(ind, a, b);
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 300 : 380;
     const L = W < 520 ? 56 : 64, R = W < 520 ? 74 : 120, T = 14, B = 30;
-    const todos = IDS.flatMap((id) => ind.serie[id]).filter((v) => v != null);
+    const todos = IDS.flatMap((id) => (ind.serie[id] || [])).filter((v) => v != null);
+    if (!todos.length) { cont.innerHTML = '<p class="nota">Sin datos para esta serie.</p>'; return; }
     let ymin = Math.min(...todos), ymax = Math.max(...todos);
-    const pad = (ymax - ymin) * 0.06; ymin = Math.max(0, ymin - pad); ymax += pad;
+    const pad = (ymax - ymin) * 0.06 || 1; ymin = Math.max(0, ymin - pad); ymax += pad;
     const tk = ticks(ymin, ymax); ymin = Math.min(ymin, tk[0]); ymax = Math.max(ymax, tk[tk.length - 1]);
-    const x = (a) => L + ((a - ANIOS[0]) / (ULT - ANIOS[0])) * (W - L - R);
+    const x = (a) => L + ((a - inicio) / (fin - inicio)) * (W - L - R);
     const y = (v) => T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), grey = css("--grey-line"), noteBg = css("--note-bg"), note = css("--note");
-    const path = (serie) => serie.map((v, i) => v == null ? "" : `${i === 0 ? "M" : "L"}${x(ANIOS[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
-    const medias = ANIOS.map((a, i) => media(Object.fromEntries(IDS.map((id) => [id, ind.serie[id][i]]))));
+    const path = (serie = []) => serie.map((v, i) => !Number.isFinite(v) ? "" :
+      `${!i || !Number.isFinite(serie[i - 1]) || salto(fechas[i - 1], fechas[i]) ? "M" : "L"}${x(fechas[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    const medias = fechas.map((a, i) => media(Object.fromEntries(IDS.map((id) => [id, ind.serie[id]?.[i]]))));
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de ${esc(ind.nombre)}">`;
-    s += `<rect x="${x(DATA.prov[0]) - (x(2023) - x(2022)) / 2}" y="${T}" width="${x(ULT) - x(DATA.prov[0]) + (x(2023) - x(2022)) / 2}" height="${H - T - B}" fill="${noteBg}"/>
-          <text x="${x(ULT)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
+    if (ind.grupo === "gasto" && DATA.prov.length) s += `<rect x="${x(DATA.prov[0]) - (x(2023) - x(2022)) / 2}" y="${T}" width="${x(fin) - x(DATA.prov[0]) + (x(2023) - x(2022)) / 2}" height="${H - T - B}" fill="${noteBg}"/>
+          <text x="${x(fin)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
     tk.forEach((v) => { s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${line}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, ind.unidad)}</text>`; });
-    aniosEje(W - L - R, 11).forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${a}</text>`; });
+    const paso = Math.max(1, Math.ceil(58 * (fin - inicio) / (W - L - R)));
+    const etiquetasEje = ind.grupo === "gasto" ? aniosEje(W - L - R, 11) :
+      fechas.filter((a) => a === fin || (a - inicio) % paso === 0 && fin - a >= paso);
+    etiquetasEje.forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${periodo(ind, a, true)}</text>`; });
     IDS.filter((id) => !colorSel(id)).forEach((id) => { s += `<path d="${path(ind.serie[id])}" fill="none" stroke="${grey}" stroke-width="1.2"/>`; });
     s += `<path d="${path(medias)}" fill="none" stroke="${fg}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
     // etiquetas finales sin solapar
-    const etiquetas = [{ id: "media", txt: "Media", v: medias[medias.length - 1], c: fg }];
+    const etiquetas = [];
+    if (Number.isFinite(medias.at(-1))) etiquetas.push({ id: "media", txt: "Media", v: medias.at(-1), c: fg });
     S.sel.forEach((sl) => {
       const c = css(SLOTS[sl.slot]);
       s += `<path d="${path(ind.serie[sl.id])}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round"/>`;
-      const v = ind.serie[sl.id][ANIOS.length - 1];
-      s += `<circle cx="${x(ULT)}" cy="${y(v)}" r="4" fill="${c}" stroke="${css("--surface")}" stroke-width="2"/>`;
+      const serie = ind.serie[sl.id] || [];
+      if (ind.grupo === "espera") serie.forEach((v, i) => {
+        if (v != null) s += `<circle cx="${x(fechas[i])}" cy="${y(v)}" r="2.8" fill="${c}"/>`;
+      });
+      const v = serie.at(-1);
+      if (v == null) return;
+      s += `<circle cx="${x(fin)}" cy="${y(v)}" r="4" fill="${c}" stroke="${css("--surface")}" stroke-width="2"/>`;
       etiquetas.push({ id: sl.id, txt: NOMBRE[sl.id], v, c });
     });
     etiquetas.sort((a, b) => y(a.v) - y(b.v));
     let ult = -Infinity;
     etiquetas.forEach((e) => { const yy = Math.max(y(e.v) + 4, ult + 14); ult = yy;
-      s += `<text x="${x(ULT) + 8}" y="${yy}" font-size="12" font-weight="${e.id === "media" ? 400 : 700}" fill="${e.id === "media" ? muted : fg}">${esc(W < 520 ? (ABR[e.id] || e.txt) : e.txt)}</text>`; });
+      s += `<text x="${x(fin) + 8}" y="${yy}" font-size="12" font-weight="${e.id === "media" ? 400 : 700}" fill="${e.id === "media" ? muted : fg}">${esc(W < 520 ? (ABR[e.id] || e.txt) : e.txt)}</text>`; });
     s += `<line id="cruz" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="${muted}" stroke-width="1" visibility="hidden"/>
           <rect id="zona" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/>`;
     // Notas del Ministerio de las comunidades destacadas: un número sobre su línea y la explicación debajo.
     // Notas del Ministerio (círculo continuo) y variaciones inusuales sin explicar (círculo discontinuo)
     // de las comunidades destacadas, numeradas sobre su línea y explicadas debajo.
-    const marcas = S.sel.flatMap((sl) => [
+    const marcas = ind.grupo === "espera" ? [] : S.sel.flatMap((sl) => [
       ...notasDe(sl.id).map((n) => ({ ccaa: n.ccaa, anio: n.anio, tipo: "nota", texto: n.texto, c: css(SLOTS[sl.slot]) })),
       ...avisosDe(ind.id, sl.id).map((a) => ({ ccaa: a.ccaa, anio: a.anio, tipo: "aviso", texto: textoAviso(a, false), c: css(SLOTS[sl.slot]) })),
       ...entidadesDe(sl.id).map((e) => ({ ccaa: e.ccaa, anio: e.anio, tipo: "entidades", texto: textoEntidades(e, false), c: css(SLOTS[sl.slot]) })),
@@ -1039,16 +1154,16 @@ export function iniciar(DATA: DatosApp): void {
     // Nota del Ministerio: círculo; variación inusual: círculo discontinuo; cambio de entidades: cuadrado.
     const apiladas = {};
     marcas.forEach((n) => {
-      const v = ind.serie[n.ccaa][n.anio - ANIOS[0]];
+      const v = ind.serie[n.ccaa][n.anio - inicio];
       if (v == null) return;
       const clave = `${n.ccaa}|${n.anio}`, nivel = apiladas[clave] = (apiladas[clave] ?? -1) + 1;
       s += `<g aria-hidden="true" pointer-events="none">${formaMarca(n.tipo, x(n.anio), y(v) - nivel * 11, n.c, css("--surface"))}</g>`;
     });
     s += `</svg>`;
     const fuera = (k) => !S.sel.some((sl) => sl.id === k);
-    const otrasNotas = [...new Set(NOTAS.map((n) => n.ccaa))].filter(fuera);
+    const otrasNotas = ind.grupo === "espera" ? [] : [...new Set(NOTAS.map((n) => n.ccaa))].filter(fuera);
     const otrosAvisos = [...new Set(avisosDe(ind.id).map((a) => a.ccaa))].filter(fuera);
-    const otrasEntidades = [...new Set(ENTIDADES.map((e) => e.ccaa))].filter(fuera);
+    const otrasEntidades = ind.grupo === "espera" ? [] : [...new Set(ENTIDADES.map((e) => e.ccaa))].filter(fuera);
     const tipos = [...new Set(marcas.map((n) => n.tipo))];
     const leyenda = tipos.map((t) => `<span class="marca-ley">${iconoMarca(t)}${LEYENDA_MARCA[t]}</span>`).join("");
     const otras = (otrasNotas.length ? `<p>El Ministerio explica saltos en las series de ${otrasNotas.map((k) => esc(NOMBRE[k])).join(", ")}.</p>` : "") +
@@ -1069,23 +1184,25 @@ export function iniciar(DATA: DatosApp): void {
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
     svg.querySelector("#zona").onmousemove = (e) => {
       const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * (W / r.width);
-      const i = Math.max(0, Math.min(ANIOS.length - 1, Math.round(((px - L) / (W - L - R)) * (ULT - ANIOS[0]))));
-      const a = ANIOS[i];
+      const i = Math.max(0, Math.min(fechas.length - 1, Math.round(((px - L) / (W - L - R)) * (fin - inicio))));
+      const a = fechas[i];
       cruz.setAttribute("x1", x(a)); cruz.setAttribute("x2", x(a)); cruz.setAttribute("visibility", "visible");
-      const filas = S.sel.map((sl) => `<span style="color:${css(SLOTS[sl.slot])}">●</span> ${esc(NOMBRE[sl.id])}: ${fmt(ind.serie[sl.id][i], ind.unidad)}`);
+      const filas = S.sel.map((sl) => `<span style="color:${css(SLOTS[sl.slot])}">●</span> ${esc(NOMBRE[sl.id])}: ${fmt(ind.serie[sl.id]?.[i], ind.unidad)}`);
       filas.push(`Media: ${fmt(medias[i], ind.unidad)}`);
       const delAnio = marcas.filter((n) => n.anio === a);
       const extra = delAnio.length ? `<div class="tip-marcas">${delAnio.map((n) => `${iconoMarca(n.tipo, n.c)}${TIPO_MARCA[n.tipo]} (${esc(ABR[n.ccaa] || NOMBRE[n.ccaa])})`).join("<br>")}<br><span class="tip-ayuda">Detalle debajo del gráfico</span></div>` : "";
-      showTip(`<b>${a}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);
+      showTip(`<b>${periodo(ind, a)}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);
     };
+    svg.querySelector("#zona").onclick = svg.querySelector("#zona").onmousemove;
     svg.querySelector("#zona").onmouseleave = () => { cruz.setAttribute("visibility", "hidden"); hideTip(); };
   }
 
   // ---------- TU COMUNIDAD ----------
   function filaInd(ind, id, vs = "", anioSel = ULT) {
-    const anio = tieneSerie(ind) ? anioSel : null;
+    const anio = anioSel;
     const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
     const pos = o.indexOf(id) + 1;
+    const hayDato = v != null;
     const dif = ind.unidad === "pct" ? `${v >= m ? "+" : "−"}${nf(1).format(Math.abs(v - m))} puntos frente a la media`
       : `${v >= m ? "+" : "−"}${nf(0).format(Math.abs(v / m - 1) * 100)} % frente a la media`;
     // tira de puntos
@@ -1098,23 +1215,26 @@ export function iniciar(DATA: DatosApp): void {
     strip += `<line x1="${x(m)}" x2="${x(m)}" y1="6" y2="28" stroke="${fg}" stroke-width="1.5"/>`;
     const cvs = css("--s2");
     if (vs && vals[vs] != null) strip += `<circle cx="${x(vals[vs])}" cy="17" r="6" fill="${cvs}" stroke="${surf}" stroke-width="2"><title>${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</title></circle>`;
-    strip += `<circle cx="${x(v)}" cy="17" r="7.5" fill="${acc}" stroke="${surf}" stroke-width="2.5"/>`;
+    if (hayDato) strip += `<circle cx="${x(v)}" cy="17" r="7.5" fill="${acc}" stroke="${surf}" stroke-width="2.5"/>`;
     strip += `<text x="${P}" y="${H}" font-size="9" fill="${muted}">menos</text><text x="${W - P}" y="${H}" font-size="9" fill="${muted}" text-anchor="end">más</text></svg>`;
     // sparkline
     let spark = "";
     if (tieneSerie(ind)) {
+      const fechas = periodos(ind), inicio = primero(ind), fin = ultimo(ind);
       const serie = ind.serie[id]; const sw = 120, sh = 34;
       const otra = vs ? ind.serie[vs] : null;
-      const smin = Math.min(...serie, ...(otra || [])), smax = Math.max(...serie, ...(otra || []));
+      const smin = Math.min(...serie.filter(v => v != null), ...(otra || []).filter(v => v != null)), smax = Math.max(...serie.filter(v => v != null), ...(otra || []).filter(v => v != null));
       const sx = (i) => 2 + (i / (serie.length - 1)) * (sw - 8), sy = (val) => 4 + (1 - (val - smin) / (smax - smin || 1)) * (sh - 8);
-      const d = serie.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("");
-      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${ANIOS[0]}-${ULT}"><path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/>${otra ? `<path d="${otra.map((val, i) => `${i ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("")}" fill="none" stroke="${css("--s2")}" stroke-width="1.5"/>` : ""}<path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/>${(() => { const k = anioSel - ANIOS[0]; return `<line x1="${sx(k)}" x2="${sx(k)}" y1="2" y2="${sh}" stroke="${muted}" stroke-dasharray="2 2"/><circle cx="${sx(k)}" cy="${sy(serie[k])}" r="3.5" fill="${acc}" stroke="${surf}" stroke-width="1.5"/>`; })()}</svg><div class="pos">${ANIOS[0]}-${ULT}${anioSel !== ULT ? ` · marcado ${anioSel}` : ""}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
+      const path = (sr) => sr.map((val, i) => val == null ? "" : `${i && sr[i - 1] != null && comparar(ind, fechas[i - 1], fechas[i]) ? "L" : "M"}${sx(i).toFixed(1)},${sy(val).toFixed(1)}`).join("");
+      const d = path(serie);
+      const k = indice(ind, anioSel);
+      spark = `<svg viewBox="0 0 ${sw} ${sh}" aria-label="Evolución ${periodo(ind, inicio)} – ${periodo(ind, fin)}">${ind.grupo === "gasto" ? `<path d="${d} L${sx(serie.length - 1)},${sh} L${sx(0)},${sh} Z" fill="${css("--accent-soft")}"/>` : ""}${otra ? `<path d="${path(otra)}" fill="none" stroke="${css("--s2")}" stroke-width="1.5"/>` : ""}<path d="${d}" fill="none" stroke="${acc}" stroke-width="1.8"/>${(() => { return `<line x1="${sx(k)}" x2="${sx(k)}" y1="2" y2="${sh}" stroke="${muted}" stroke-dasharray="2 2"/>${hayDato ? `<circle cx="${sx(k)}" cy="${sy(serie[k])}" r="3.5" fill="${acc}" stroke="${surf}" stroke-width="1.5"/>` : ""}`; })()}</svg><div class="pos">${periodo(ind, inicio, true)} – ${periodo(ind, fin, true)}${anioSel !== fin ? ` · marcado ${periodo(ind, anioSel, true)}` : ""}${sinInfl(ind) ? ` · € de ${ULT}` : ""}</div>`;
     } else {
       spark = `<div class="pos">Evolución: con más informes</div>`;
     }
     return `<div class="ind">
-      <div><div class="n">${esc(ind.corto)}</div><div class="pos">${puestoTxt(ind, pos, o.length)}</div></div>
-      <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${dif}</div>${vs ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</div>` : ""}</div>
+      <div><div class="n">${esc(ind.corto)}</div><div class="pos">${hayDato ? puestoTxt(ind, pos, o.length) : "Sin dato en el informe"}</div></div>
+      <div><div class="val">${fmt(v, ind.unidad)}</div><div class="delta">${hayDato ? dif : ""}</div>${vs ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(vals[vs], ind.unidad)}</div>` : ""}</div>
       <div class="strip">${strip}</div>
       <div class="spark">${spark}</div>
     </div>`;
@@ -1125,6 +1245,7 @@ export function iniciar(DATA: DatosApp): void {
     // La dirección refleja la comunidad elegida, para poder compartir el enlace (sin volver a dibujar).
     const params = new URLSearchParams();
     if (S.vs) params.set("vs", S.vs.toLowerCase());
+    if (S.corteC !== ULT_CORTE) params.set("corte", CORTES[S.corteC].id);
     if (S.anioC !== ULT) params.set("anio", S.anioC);
     const hash = "#comunidad-" + id.toLowerCase() + (params.toString() ? "?" + params.toString() : "");
     if (location.hash !== hash) history.replaceState(null, "", hash);
@@ -1134,12 +1255,12 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-nombre").textContent = NOMBRE[id];
     const aC = S.anioC;
     const g = IND.gasto_hab, gv = valores(g, aC), go = ordenados(gv);
-    const q = IND.q_dias, qv = valores(q, null), qo = ordenados(qv);
+    const q = IND.q_dias, qv = valores(q, S.corteC), qo = ordenados(qv);
     const gp = go.indexOf(id) + 1, qp = qo.indexOf(id) + 1;
     const gtx = gp === 1 ? "la que más de las 17" : gp === 17 ? "la que menos de las 17" : arriba(gp, 17) ? `la ${gp}.ª que más gasta de 17` : `la ${18 - gp}.ª que menos gasta de 17`;
     const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : arriba(qp, 17) ? `la ${qp}.ª espera más larga de 17` : `la ${18 - qp}.ª espera más corta de 17`;
     const enQueEuros = aC !== ULT ? (S.real ? ` (en euros de ${ULT}, descontada la inflación)` : " (en euros de ese año)") : "";
-    $("#c-resumen").innerHTML = `En ${aC} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública${enQueEuros}: ${gtx}. Sus pacientes llevan de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
+    $("#c-resumen").innerHTML = `En ${aC} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública${enQueEuros}: ${gtx}. En ${periodo(q, S.corteC)} sus pacientes llevaban de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
     $("#c-gasto-sub").innerHTML = `<label class="periodo" for="c-anio">Año <select id="c-anio">${ANIOS.slice().reverse().map((a) => `<option value="${a}" ${a === aC ? "selected" : ""}>${a}${esProv(a) ? " (provisional)" : ""}</option>`).join("")}</select></label>
       <span class="seg sm" role="group" aria-label="Inflación"><button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button><button type="button" data-r="0" aria-pressed="${!S.real}">Sin descontar</button></span>
       <span class="sub-ficha">${S.real ? `Los euros de cada año están en euros de ${ULT}.` : "Cada año, en los euros de entonces."} Cada punto gris es otra comunidad; la raya marca la media de las 17. La línea de la derecha es la evolución desde ${ANIOS[0]}, con el año elegido marcado.</span>`;
@@ -1159,10 +1280,12 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-notas").innerHTML = !cuentaC.length ? "" : plegable("ficha", `Notas sobre estas cifras: ${cuentaC.join(" · ")}`, (nts.length ? `<b>Notas del Ministerio sobre la serie de gasto de ${esc(NOMBRE[id])}:</b><ul>${nts.map((n) => `<li><b>${n.anio}.</b> ${esc(n.texto)}</li>`).join("")}</ul>` : "") +
       (avs.length ? `<b>Variaciones inusuales sin explicación oficial:</b><ul>${avs.map((a) => `<li><b>${esc(IND[a.indicador].corto)}, ${a.anio}.</b> ${esc(textoAviso(a, false))}</li>`).join("")}</ul><a href="#metodo-calidad">Cómo las detectamos</a>` : "") +
       (ents.length ? `<p><b>Entidades que cuenta la estadística en ${esc(NOMBRE[id])}.</b> La estadística suma el gasto de las entidades públicas que gestionan la sanidad de cada comunidad, y esa lista cambia con los años. Cambios que pesan al menos un ${UMBRAL_ENT} % del gasto:</p><ul>${ents.map((e) => `<li><b>${e.anio}.</b> ${esc(textoEntidades(e, false))}</li>`).join("")}</ul><p>${esc(AVISO_ENTIDADES)} <a href="#metodo-entidades">Más información</a></p>` : ""));
-    $("#c-espera-sub").textContent = `Situación a ${DATA.corteListas}. Un valor más alto significa más espera.`;
-    $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs)).join("");
-    const esp = Object.entries(DATA.especQuir).map(([n, o]) => [n, o[id]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
-    $("#c-extra").innerHTML = `Especialidad quirúrgica con más espera en ${esc(NOMBRE[id])}: <strong>${esc(esp[0][0])}</strong> (${fmt(esp[0][1], "dias")} de media). Con menos: <strong>${esc(esp[esp.length - 1][0])}</strong> (${fmt(esp[esp.length - 1][1], "dias")}).`;
+    $("#c-espera-sub").innerHTML = `<label class="periodo" for="c-corte">Corte <select id="c-corte">${opcionesAnio(q, PERIODOS_ESPERA.slice().reverse(), S.corteC)}</select></label> <span class="sub-ficha">Un valor más alto significa más espera.${CORTES[S.corteC].id === "2023-06" ? ' Las cifras de consultas de este corte llevan un aviso en <a href="#metodo">Cómo leer los datos</a>.' : ""}</span>`;
+    $("#c-corte").onchange = (e) => { S.corteC = +e.target.value; render(); };
+    $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs, S.corteC)).join("");
+    const quir = DATA.detalle.quirurgica;
+    const esp = quir.campos.filter((c) => c.id !== "total").map((c) => [c.nombre, quir.v[c.id].dias[id]?.[S.corteC]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
+    $("#c-extra").innerHTML = esp.length ? `Especialidad quirúrgica con más espera en ${esc(NOMBRE[id])}: <strong>${esc(esp[0][0])}</strong> (${fmt(esp[0][1], "dias")} de media). Con menos: <strong>${esc(esp[esp.length - 1][0])}</strong> (${fmt(esp[esp.length - 1][1], "dias")}).` : "";
   }
 
 
@@ -1185,7 +1308,9 @@ export function iniciar(DATA: DatosApp): void {
       <dl>${lista("gasto")}</dl>
 
       <h2 id="metodo-espera">Listas de espera</h2>
-      <p>Fuente: Ministerio de Sanidad, Sistema de Información sobre Listas de Espera del SNS (SISLE-SNS), situación a ${DATA.corteListas}. Es una foto de un día concreto: cuántas personas esperan y cuánto llevan esperando, no cuánto tardaron las que ya fueron atendidas.</p>
+      <p>Fuente: Ministerio de Sanidad, Sistema de Información sobre Listas de Espera del SNS (SISLE-SNS), cortes de ${CORTES[0].fecha} a ${DATA.corteListas}. Cada corte es una foto de un día concreto: cuántas personas esperan y cuánto llevan esperando, no cuánto tardaron las que ya fueron atendidas.</p>
+      <p>Para el porcentaje de consultas de más de 60 días, desde diciembre de 2024 el Ministerio incluye también a quienes superaban ese plazo y seguían sin cita. En junio de 2023, el informe de consultas repite los recuentos, los días y los porcentajes de diciembre de 2022, aunque cambian las tasas. En ambos casos se omiten los cambios entre cortes afectados.</p>
+      <p><a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/ListaEsperaInfAntCCAA.htm">Informes de las comunidades autónomas</a> · <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEsperaInfAnt.htm">Informes resumen del SNS</a>. Usamos las tablas de indicadores globales del informe resumen para los totales quirúrgicos anteriores a 2025.</p>
       <dl>${lista("espera")}</dl>
       <p>Las listas de espera se pueden ver también por <b>especialidad</b> (Traumatología, Oftalmología…) y por <b>proceso</b> (cataratas, prótesis de cadera…). Si una comunidad no aparece en una especialidad es porque el informe no trae ese dato; se muestra en gris y no cuenta para la media.</p>
 
@@ -1281,6 +1406,7 @@ export function iniciar(DATA: DatosApp): void {
       S.com = m[1].toUpperCase(); S.vista = "comunidad";
       const qq = new URLSearchParams(qs || "");
       const vs = (qq.get("vs") || "").toUpperCase(); S.vs = IDS.includes(vs) ? vs : "";
+      const corte = CORTES.findIndex((c) => c.id === qq.get("corte")); S.corteC = corte < 0 ? ULT_CORTE : corte;
       const an = +qq.get("anio"); S.anioC = ANIOS.includes(an) ? an : ULT;
     }
     else if (h === "comunidad") S.vista = "comunidad";
@@ -1290,7 +1416,7 @@ export function iniciar(DATA: DatosApp): void {
     pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
-  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera a ${DATA.corteListas}.`;
+  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
   addEventListener("hashchange", leerHash);

@@ -139,10 +139,60 @@ def tablas_pagina(pagina) -> list[list[list[str]]]:
 
 def corte_de(pdf) -> str:
     texto = pdf.pages[0].extract_text() + "\n" + pdf.pages[2].extract_text()
-    m = re.search(r"(\d{1,2}) de (junio|diciembre) de (\d{4})", texto, re.I)
+    m = re.search(r"(\d{1,2}) (?:de )?(junio|diciembre) (?:de )?(\d{4})", texto, re.I)
     if not m:
         raise SystemExit("No se encuentra la fecha de corte")
     return f"{m.group(3)}-{MESES[m.group(2).lower()]}"
+
+
+def tablas_historicas(pagina, ids: list[str]) -> list[list[list[str]]]:
+    """Mantiene las celdas vacías en su fila usando las coordenadas de la cuadrícula."""
+    bordes = next(
+        [c[0] for c in fila.cells] + [fila.cells[-1][2]]
+        for tabla in pagina.find_tables()
+        for fila in tabla.rows
+        if all(fila.cells) and len(fila.cells) == len(ids) + 1
+        and norm(pagina.crop(fila.cells[0]).extract_text()).startswith("ANDALUCIA")
+    )
+    nombres = {n.replace(" ", ""): n for n, _ in FILAS}
+    filas = []
+    for linea in pagina.extract_text_lines():
+        chars = linea["chars"]
+        nombre = norm("".join(c["text"] for c in chars if c["x0"] < bordes[1])).replace(" ", "")
+        if nombre not in nombres:
+            continue
+        columnas = ["".join(c["text"] for c in chars if izq <= (c["x0"] + c["x1"]) / 2 < der)
+                    for izq, der in zip(bordes[1:], bordes[2:])]
+        filas.append((nombres[nombre], columnas))
+    if [n for n, _ in filas] != [n for n, _ in FILAS] * 2:
+        raise SystemExit(f"Filas históricas inesperadas en pág. {pagina.page_number}")
+    return [list(zip(*(c for _, c in filas[i:i + len(FILAS)]))) for i in (0, len(FILAS))]
+
+
+RESUMENES = {
+    "2021-12": "dic21", "2022-06": "jun2022", "2022-12": "dic_2022",
+    "2023-06": "jun2023", "2023-12": "dic2023", "2024-06": "jun2024", "2024-12": "dic2024",
+}
+
+
+def totales_quirurgicos(corte: str, carpeta: Path) -> list[dict]:
+    nombre = f"LISTAS_PUBLICACION_{RESUMENES[corte]}.pdf"
+    ruta = carpeta / nombre
+    if not ruta.is_file():
+        raise SystemExit(f"Falta {nombre} con los totales quirúrgicos de {corte}")
+    with pdfplumber.open(ruta) as pdf:
+        if corte_de(pdf) != corte:
+            raise SystemExit(f"Corte incorrecto en el informe complementario {nombre}")
+        texto = norm(pdf.pages[7].extract_text())
+    filas = []
+    for nombre_ccaa, ccaa in FILAS:
+        m = re.search(rf"^{re.escape(nombre_ccaa)} +([\d.]+) +([\d,]+) +([\d,]+) +(\d+)(?: +SNS:.*)?$", texto, re.M)
+        if not m:
+            raise SystemExit(f"Falta el total quirúrgico de {ccaa} en {nombre}")
+        for medida, dato in zip(("pacientes", "tasa", "pct_largo", "dias"), m.groups()):
+            filas.append({"corte": corte, "tipo": "quirurgica", "campo": "total",
+                          "medida": medida, "ccaa": ccaa, "valor": valor(dato)})
+    return filas
 
 
 def extraer(ruta: Path) -> tuple[str, list[dict]]:
@@ -150,10 +200,17 @@ def extraer(ruta: Path) -> tuple[str, list[dict]]:
     with pdfplumber.open(str(ruta)) as pdf:
         corte = corte_de(pdf)
         for num, tipo, medidas, campos, con_total in PAGINAS:
-            tablas = tablas_pagina(pdf.pages[num - 1])
+            ids = [c for c, _ in campos] + (["total"] if con_total else [])
+            if corte in RESUMENES:
+                if tipo == "quirurgica":
+                    ids.remove("total")
+                elif tipo == "consultas":
+                    ids = ["total", *ids[:-1]]
+                tablas = tablas_historicas(pdf.pages[num - 1], ids)
+            else:
+                tablas = tablas_pagina(pdf.pages[num - 1])
             if len(tablas) != 2:
                 raise SystemExit(f"Pág. {num}: se esperaban 2 tablas y hay {len(tablas)}")
-            ids = [c for c, _ in campos] + (["total"] if con_total else [])
             for medida, cols in zip(medidas, tablas):
                 if len(cols) != len(ids):
                     raise SystemExit(f"Pág. {num} {medida}: {len(cols)} columnas, esperadas {len(ids)}")
@@ -163,12 +220,20 @@ def extraer(ruta: Path) -> tuple[str, list[dict]]:
                         if v is not None:
                             filas.append({"corte": corte, "tipo": tipo, "campo": campo,
                                           "medida": medida, "ccaa": ccaa, "valor": v})
+    if corte in RESUMENES:
+        filas.extend(totales_quirurgicos(corte, ruta.parent))
     return corte, filas
 
 
 def comprobar(filas: list[dict]) -> None:
     idx = {(f["corte"], f["tipo"], f["campo"], f["medida"], f["ccaa"]): f["valor"] for f in filas}
-    cortes = {f["corte"] for f in filas}
+    if len(idx) != len(filas):
+        raise SystemExit("Hay valores duplicados para el mismo corte, territorio y medida")
+    for f in filas:
+        v, medida = f["valor"], f["medida"]
+        if v < 0 or (medida == "pct_largo" and v > 100) or (medida == "pacientes" and not v.is_integer()):
+            raise SystemExit(f"Valor fuera del rango esperado: {f}")
+    cortes = sorted({f["corte"] for f in filas})
     for corte in cortes:
         for tipo, campos in (("quirurgica", QUIRURGICA), ("consultas", CONSULTAS)):
             for _, ccaa in FILAS:
@@ -184,22 +249,18 @@ def comprobar(filas: list[dict]) -> None:
             if suma != tot:
                 raise SystemExit(f"{corte} procesos {ccaa}: suma {suma} != total {tot}")
         # Población implícita = pacientes / tasa * 1000, tomada de la columna con más pacientes
-        # (la más precisa). No se usan los totales: en quirúrgica y procesos la tasa total es la
-        # suma de las tasas ya redondeadas de cada columna.
-        for _, ccaa in FILAS:
-            pac_campos = [(pac, k) for k, pac in idx.items()
-                          if k[0] == corte and k[4] == ccaa and k[3] == "pacientes" and k[2] != "total"]
-            pac, k = max(pac_campos)
-            pob = pac / idx[(corte, k[1], k[2], "tasa", ccaa)] * 1000
-            print(f"  {corte} {ccaa}: población implícita {pob:,.0f}")
-            # Cada columna de pacientes debe dar la tasa publicada con esa población:
-            # detecta columnas desplazadas al leer el PDF.
-            for (c2, tipo, campo, medida, cc), pac in idx.items():
-                if c2 != corte or cc != ccaa or medida != "pacientes" or campo == "total":
-                    continue
-                tasa = idx.get((corte, tipo, campo, "tasa", ccaa))
-                if tasa is not None and abs(pac / pob * 1000 - tasa) > 0.011:
-                    raise SystemExit(f"{corte} {tipo}/{campo} {ccaa}: pacientes {pac} no cuadra con tasa {tasa}")
+        # (la más precisa) dentro de cada bloque. Los denominadores de bloques de
+        # informes históricos pueden diferir. No se usan las tasas de las columnas de totales.
+        for tipo in ("quirurgica", "procesos", "consultas"):
+            for _, ccaa in FILAS:
+                pares = [(pac, idx.get((corte, tipo, campo, "tasa", ccaa)), campo)
+                         for (c2, t, campo, m, cc), pac in idx.items()
+                         if (c2, t, m, cc) == (corte, tipo, "pacientes", ccaa) and campo != "total"]
+                pac, tasa, _ = max((p, t, c) for p, t, c in pares if t)
+                pob = pac / tasa * 1000
+                for pac, tasa, campo in pares:
+                    if tasa is not None and abs(pac / pob * 1000 - tasa) > 0.011:
+                        raise SystemExit(f"{corte} {tipo}/{campo} {ccaa}: pacientes {pac} no cuadra con tasa {tasa}")
 
 
 def info_pdf(ruta: Path) -> tuple[dict, list[str]]:
@@ -207,33 +268,26 @@ def info_pdf(ruta: Path) -> tuple[dict, list[str]]:
     (líneas que empiezan por "(1)" o "*"), para avisar en la web de qué fichero salen los datos."""
     with pdfplumber.open(ruta) as pdf:
         fecha = (pdf.metadata or {}).get("ModDate") or (pdf.metadata or {}).get("CreationDate") or ""
-        notas: list[str] = []
+        notas: list[list[str]] = []
         for pagina in pdf.pages:
             actual = None
             for linea in (pagina.extract_text() or "").split(SALTO):
                 l = linea.strip()
                 if re.match(r"^(\(\d\)|\*)\s*\S", l):
                     actual = [l]
-                    notas.append(actual)  # type: ignore[arg-type]
+                    notas.append(actual)
                 elif actual is not None and l and not l.lower().startswith(("fuente", "secretar")):
                     actual.append(l)  # la nota sigue en la línea siguiente
                 else:
                     actual = None
-        # Una entrada por nota (la misma llamada puede repetirse en varias páginas con matices)
-        unicas: dict[str, str] = {}
-        for partes in notas:
-            texto = " ".join(partes)  # type: ignore[arg-type]
-            clave = texto.split(")")[0] if texto.startswith("(") else texto[:1]
-            if len(texto) > len(unicas.get(clave, "")):
-                unicas[clave] = texto
-        notas = list(unicas.values())
+        textos = list(dict.fromkeys(" ".join(partes) for partes in notas))
     m = re.match(r"D:(\d{4})(\d{2})(\d{2})", fecha)
     version = {
         "fichero": ruta.name,
         "rectificado": "rectific" in ruta.name.lower(),
         "fecha_pdf": f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None,
     }
-    return version, notas
+    return version, textos
 
 
 def main() -> None:
@@ -241,15 +295,26 @@ def main() -> None:
     if not rutas:
         raise SystemExit("No hay PDFs del SISLE en datos-originales/")
     filas: list[dict] = []
-    cortes = []
-    versiones, notas_pdf = {}, []
+    informes = {}
     for r in rutas:
+        with pdfplumber.open(r) as pdf:
+            corte = corte_de(pdf)
+        version, notas = info_pdf(r)
+        prioridad = (version["rectificado"], version["fecha_pdf"] or "")
+        anterior = informes.get(corte)
+        if anterior and prioridad == anterior[0]:
+            raise SystemExit(f"No se puede determinar qué versión del corte {corte} es la más reciente")
+        if anterior is None or prioridad > anterior[0]:
+            informes[corte] = (prioridad, r, version, notas)
+    cortes = sorted(informes)
+    versiones, notas_pdf = {}, []
+    for corte in cortes:
+        _, r, version, notas = informes[corte]
         corte, f = extraer(r)
-        versiones[corte], notas = info_pdf(r)
+        if corte in RESUMENES:
+            version["resumen"] = f"LISTAS_PUBLICACION_{RESUMENES[corte]}.pdf"
+        versiones[corte] = version
         notas_pdf += [{"corte": corte, "texto": t} for t in notas]
-        if corte in cortes:
-            raise SystemExit(f"Corte {corte} repetido ({r.name})")
-        cortes.append(corte)
         filas += f
         print(f"{r.name}: corte {corte}, {len(f)} valores")
     comprobar(filas)
@@ -260,7 +325,7 @@ def main() -> None:
     meta = {
         "fuente": "Ministerio de Sanidad — Sistema de Información sobre Listas de Espera en el SNS (SISLE-SNS), datos por comunidad autónoma",
         "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm",
-        "cortes": sorted(cortes),
+        "cortes": cortes,
         "versiones": versiones,
         "notas_pdf": notas_pdf,
         "tipos": TIPOS,
