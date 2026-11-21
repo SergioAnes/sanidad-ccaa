@@ -330,3 +330,9 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .rs-aj-txt { display: none; }
   .rs-ajustes { width: 42px; height: 42px; padding: 0; font-size: 1.1rem; }
 }
+
+/* Ordenador: las etiquetas ya son los ajustes; solo «Restablecer» cuando algo ha cambiado. Móvil: resumen + ⚙ */
+.rs-reset { flex: none; height: 36px; padding: 0 6px; border: 0; background: none; color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.rs-reset[hidden] { display: none; }
+@media (min-width: 641px) { .rs-ajustes { display: none; } }
+@media (max-width: 640px) { .rs-reset { display: none; } }

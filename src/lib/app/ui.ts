@@ -536,18 +536,23 @@ export function iniciar(DATA: DatosApp): void {
   function renderResumen(base) {
     const serie = tieneSerie(base);
     const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}><span class="et">${et}</span>${dentro}</span>`;
-    let h = chip("Dato", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`);
-    if (base.grupo === "espera") h += chip("Especialidad", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total");
+    const ayuda = (txt) => `title="${esc(txt)}"`;
+    let h = chip("Dato", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`, false, ayuda("Qué dato muestran el mapa y los gráficos"));
+    if (base.grupo === "espera") h += chip("Especialidad", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total", ayuda("Las tarjetas de arriba siguen mostrando el total"));
     if (serie) {
-      h += chip("Ver", `<select id="rs-modo" aria-label="Qué quieres ver">${opt("valor", "Un año", S.modo === "valor")}${opt("cambio", "Cambio entre dos años", S.modo === "cambio")}</select>`, S.modo !== POR_DEFECTO.modo);
+      h += chip("Ver", `<select id="rs-modo" aria-label="Qué quieres ver">${opt("valor", "Un año", S.modo === "valor")}${opt("cambio", "Cambio entre dos años", S.modo === "cambio")}</select>`, S.modo !== POR_DEFECTO.modo, ayuda("El mapa y el ranking muestran el valor de un año o cuánto ha cambiado entre dos"));
       h += S.modo === "cambio"
         ? chip("Años", `<select id="rs-desde" aria-label="Año de inicio">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select><span aria-hidden="true">→</span><select id="rs-hasta" aria-label="Año final">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select>`, true)
         : chip("Año", `<select id="rs-anio" aria-label="Año">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>`, S.anioP !== ULT);
     } else h += chip("Fecha", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
-    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`);
-    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`);
+    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda("Se resalta en el mapa y en los gráficos"));
+    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
+    // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
+    const cambiado = Object.entries(POR_DEFECTO).some(([k, v]) => S[k] !== v) || S.anioP !== ULT;
+    if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
     $("#rs-chips").innerHTML = h;
+    if (cambiado) $("#rs-reset").onclick = () => aplicar(() => Object.assign(S, POR_DEFECTO, { anioP: ULT }));
     // En el móvil, una sola línea con el resumen (lo que no está como al principio, resaltado); al tocarla, Ajustes.
     const parte = (txt, cambiado = false) => `<span class="${cambiado ? "cambiado" : ""}">${esc(txt)}</span>`;
     const partes = [parte(base.corto)];
