@@ -55,7 +55,8 @@ export function iniciar(DATA: DatosApp): void {
   const periodo = (ind, a, corto = false) => {
     if (ind.grupo === "gasto") return String(a);
     const [anio, mes] = CORTES[a].id.split("-");
-    return `${mes === "06" ? (corto ? "jun." : "Junio") : (corto ? "dic." : "Diciembre")} ${anio}`;
+    // En minúscula y con «de», como se escribe en español en mitad de una frase: «diciembre de 2025».
+    return mes === "06" ? (corto ? `jun. ${anio}` : `junio de ${anio}`) : (corto ? `dic. ${anio}` : `diciembre de ${anio}`);
   };
   const periodoActual = () => IND[S.indP];
   const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
@@ -249,6 +250,16 @@ export function iniciar(DATA: DatosApp): void {
     if (ind.grupo !== "espera") return null;
     const series = DATA.detalle[ind.tipo]?.v[ind.campo || "total"]?.pacientes;
     return series ? Object.fromEntries(Object.entries(series).map(([id, sr]) => [id, sr[a]])) : null;
+  }
+  function cambioPacientes(ind, desde, hasta, actuales = pacientesDe(ind, hasta)) {
+    if (desde >= hasta || !actuales || motivoComparacion(ind, desde, hasta, "pacientes")) return null;
+    const anteriores = pacientesDe(ind, desde);
+    const cambios = Object.fromEntries(Object.entries(actuales)
+      .filter(([id, valor]) => valor != null && anteriores?.[id] != null)
+      .map(([id, valor]) => [id, valor - anteriores[id]]));
+    const comunidades = IDS.filter((id) => cambios[id] != null);
+    const total = comunidades.length ? comunidades.reduce((suma, id) => suma + cambios[id], 0) : null;
+    return { cambios, total, n: comunidades.length };
   }
   const queEspera = (ind) => (ind.tipo === "consultas" ? "una primera consulta con el especialista" : "una operación") +
     (ind.campoNombre ? ` (${ind.campoNombre})` : "");
@@ -490,25 +501,21 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function titularesPacientes(ind, anio) {
+    if (ind.grupo !== "espera") return [];
     const out = [];
-    if (ind.grupo === "espera") {
-      const pac = pacientesDe(ind);
-      const con = pac ? IDS.filter((id) => pac[id] != null) : [];
-      if (con.length) {
-        const total = con.reduce((s, id) => s + pac[id], 0);
-        out.push({ k: "Pacientes en espera", t: `<strong>${fmt(total, "num")}</strong> personas esperan ${esc(queEspera(ind))} en ${con.length < IDS.length ? `las ${con.length} comunidades con dato` : "las 17 comunidades"}` +
-          (pac[S.com] != null ? `; en <strong>${NOMBRE[S.com]}</strong>, ${fmt(pac[S.com], "num")}.` : `. ${NOMBRE[S.com]} no tiene dato en el informe.`) });
-      }
+    const pac = pacientesDe(ind, anio);
+    const con = IDS.filter((id) => pac?.[id] != null);
+    if (con.length) {
+      const total = con.reduce((s, id) => s + pac[id], 0);
+      out.push({ k: "Pacientes en espera", t: `En ${periodo(ind, anio, true)}, <strong>${fmt(total, "num")}</strong> personas esperan ${esc(queEspera(ind))} en ${con.length < IDS.length ? `las ${con.length} comunidades con dato` : "las 17 comunidades"}` +
+        (pac[S.com] != null ? `; en <strong>${NOMBRE[S.com]}</strong>, ${fmt(pac[S.com], "num")}.` : `. ${NOMBRE[S.com]} no tiene dato en el informe.`) });
     }
-    const anterior = anio - 1;
-    if (ind.grupo === "espera" && anterior >= 0) {
-      const ahora = pacientesDe(ind, anio) || {};
-      const antes = pacientesDe(ind, anterior) || {};
-      const ids = IDS.filter((id) => ahora[id] != null && antes[id] != null);
-      const comparable = !motivoComparacion(ind, anterior, anio, "pacientes");
-      const cambio = ids.reduce((s, id) => s + ahora[id] - antes[id], 0);
-      out.push({ k: "Cambio respecto al corte anterior", t: comparable && ids.length
-        ? `<strong>${firmado(cambio, 0)} pacientes</strong> desde ${periodo(ind, anterior)} (${ids.length} comunidades con datos en ambos cortes).`
+    const compararFechas = S.modo === "cambio";
+    const desde = compararFechas ? S.desde : anio - 1;
+    if (desde >= 0) {
+      const cambio = cambioPacientes(ind, desde, anio, pac);
+      out.push({ k: compararFechas ? "Cambio de pacientes entre cortes" : "Cambio respecto al corte anterior", t: cambio?.total != null
+        ? `<strong>${firmado(cambio.total, 0)} pacientes</strong> desde ${periodo(ind, desde)} (${cambio.n} ${cambio.n === 1 ? "comunidad con dato" : "comunidades con datos"} en ambos cortes).`
         : "Sin cifras comparables de pacientes para los dos cortes." });
     }
     return out;
@@ -681,7 +688,7 @@ export function iniciar(DATA: DatosApp): void {
   const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
   const avisoComparacion = (ind) => {
     const motivo = S.modo === "cambio" ? motivoComparacion(ind, S.desde, S.anioP) : "";
-    return motivo ? `Cambio sin calcular. ${motivo}` : "";
+    return motivo ? `Cambio del indicador sin calcular. ${motivo}` : "";
   };
   function renderResumen(base, ind) {
     const serie = tieneSerie(base), fecha = base.grupo === "espera" ? "Corte" : "Año";
@@ -811,7 +818,9 @@ export function iniciar(DATA: DatosApp): void {
       lineas(cont, ind);
     } else if (S.vistaE === "tabla") {
       const enCambio = S.modo === "cambio";
-      $("#e-titulo").textContent = `${ind.nombre}, ${fecha}`;
+      const fechasTabla = ind.grupo === "espera" && enCambio
+        ? `de ${periodo(ind, S.desde, true)} a ${periodo(ind, anio, true)}` : fecha;
+      $("#e-titulo").textContent = `${ind.nombre}, ${fechasTabla}`;
       $("#e-sub").textContent = `Ordenada por ${enCambio ? "cambio entre las fechas elegidas" : "valor en la fecha elegida"}. Tu comunidad va resaltada.`;
       tabla(cont, ind, anio, mapa.vals);
     } else {
@@ -964,17 +973,23 @@ export function iniciar(DATA: DatosApp): void {
       const d = comparable ? diferencia(ind, dato(ind, id, b0), dato(ind, id, anio)) : null;
       return d == null ? "—" : signo(d, nf(u === "pct" ? 1 : 0).format(Math.abs(d)) + (u === "pct" ? " p." : " %"));
     };
-    const pac = pacientesDe(ind);
-    const celdaPac = (v) => pac ? `<td>${fmt(v, "num")}</td>` : "";
-    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${periodo(ind, b0, true)}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${periodo(ind, anio, true)}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? "<th>Pacientes en espera</th>" : ""}</tr>`;
-    const filas = ids.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i < o.length ? i + 1 : "—"}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdaPac(pac && pac[id])}</tr>`).join("");
+    const pac = pacientesDe(ind, anio);
+    const mostrarCambioPac = !!pac && S.modo === "cambio";
+    const cambioPac = mostrarCambioPac ? cambioPacientes(ind, b0, anio, pac) : null;
+    const deltaPac = (v) => v == null ? "—" : firmado(v, 0);
+    const celdasPac = (id) => pac
+      ? `<td>${fmt(pac[id], "num")}</td>${mostrarCambioPac ? `<td>${deltaPac(cambioPac?.cambios[id])}</td>` : ""}` : "";
+    const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${periodo(ind, b0, true)}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${periodo(ind, anio, true)}</th>${serie ? `<th>Cambio${mostrarCambioPac ? " del indicador" : sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? `<th>Pacientes en espera (${periodo(ind, anio, true)})</th>` : ""}${mostrarCambioPac ? "<th>Cambio de pacientes</th>" : ""}</tr>`;
+    const filas = ids.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i < o.length ? i + 1 : "—"}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdasPac(id)}</tr>`).join("");
     const recuentos = pac ? IDS.map((id) => pac[id]).filter((v) => v != null) : [];
     const totalPac = recuentos.length ? recuentos.reduce((s, v) => s + v, 0) : null;
-    const pie = `<tr><td></td><td>Media de las comunidades con dato</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")}${totalPac != null ? ' <span style="font-weight:400">en total</span>' : ""}</td>` : ""}</tr>`;
-    const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0);
+    const cobertura = cambioPac?.total != null
+      ? ` <span style="font-weight:400">${cambioPac.n === IDS.length ? "en total" : `en ${cambioPac.n} ${cambioPac.n === 1 ? "comunidad" : "comunidades"}`}</span>` : "";
+    const pie = `<tr><td></td><td>Media de las comunidades con dato</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")}${totalPac != null ? ' <span style="font-weight:400">en total</span>' : ""}</td>` : ""}${mostrarCambioPac ? `<td>${deltaPac(cambioPac?.total)}${cobertura}</td>` : ""}</tr>`;
+    const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0) + (mostrarCambioPac ? 1 : 0);
     const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null || pac?.[k] != null || serie && datoCiudad(ind, k, b0) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
-      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td>${serie ? `<td>${fmt(datoCiudad(ind, k, b0), u)}</td>` : ""}<td>${fmt(datoCiudad(ind, k), u)}</td>${serie ? `<td>${cambio(k)}</td>` : ""}<td>${difMedia(datoCiudad(ind, k))}</td>${celdaPac(pac && pac[k])}</tr>`).join("") : "";
+      ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td>${serie ? `<td>${fmt(datoCiudad(ind, k, b0), u)}</td>` : ""}<td>${fmt(datoCiudad(ind, k), u)}</td>${serie ? `<td>${cambio(k)}</td>` : ""}<td>${difMedia(datoCiudad(ind, k))}</td>${celdasPac(k)}</tr>`).join("") : "";
     cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
       <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV${serie ? ` (${periodo(ind, primero(ind), true)} – ${periodo(ind, ultimo(ind), true)})` : ""}</button></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
@@ -1494,7 +1509,13 @@ export function iniciar(DATA: DatosApp): void {
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
-  $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
+  {
+    const rect = DATA.versionListas && DATA.versionListas.rectificado
+      ? `versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "";
+    $("#f-listas").textContent = CORTES.length > 1
+      ? `cortes semestrales del ${CORTES[0].fecha} al ${DATA.corteListas}${rect ? `; el último, ${rect}` : ""}`
+      : `a ${DATA.corteListas}${rect ? `, ${rect}` : ""}`;
+  }
   addEventListener("hashchange", leerHash);
   let rz, anchoPrevio = innerWidth;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== anchoPrevio) { anchoPrevio = innerWidth; render(); } }, 150); });
