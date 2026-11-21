@@ -55,7 +55,8 @@ export function iniciar(DATA: DatosApp): void {
   const periodo = (ind, a, corto = false) => {
     if (ind.grupo === "gasto") return String(a);
     const [anio, mes] = CORTES[a].id.split("-");
-    return `${mes === "06" ? (corto ? "jun." : "Junio") : (corto ? "dic." : "Diciembre")} ${anio}`;
+    // En minúscula y con «de», como se escribe en español en mitad de una frase: «diciembre de 2025».
+    return mes === "06" ? (corto ? `jun. ${anio}` : `junio de ${anio}`) : (corto ? `dic. ${anio}` : `diciembre de ${anio}`);
   };
   const periodoActual = () => IND[S.indP];
   const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
@@ -1508,7 +1509,13 @@ export function iniciar(DATA: DatosApp): void {
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT} y listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
-  $("#f-listas").textContent = `a ${DATA.corteListas}` + (DATA.versionListas && DATA.versionListas.rectificado ? `, versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "");
+  {
+    const rect = DATA.versionListas && DATA.versionListas.rectificado
+      ? `versión rectificada${DATA.versionListas.fecha_pdf ? " del " + DATA.versionListas.fecha_pdf.split("-").reverse().join("/") : ""}` : "";
+    $("#f-listas").textContent = CORTES.length > 1
+      ? `cortes semestrales del ${CORTES[0].fecha} al ${DATA.corteListas}${rect ? `; el último, ${rect}` : ""}`
+      : `a ${DATA.corteListas}${rect ? `, ${rect}` : ""}`;
+  }
   addEventListener("hashchange", leerHash);
   let rz, anchoPrevio = innerWidth;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== anchoPrevio) { anchoPrevio = innerWidth; render(); } }, 150); });

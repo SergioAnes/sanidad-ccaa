@@ -250,7 +250,7 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .anios .linea { position: relative; flex: 1 1 240px; min-width: 200px; height: 44px; }
 .anios .linea input[type=range] { position: absolute; left: 0; top: 4px; width: 100%; height: 24px; margin: 0; background: none; accent-color: var(--accent); }
 .anios .linea .marcas { position: absolute; left: 0; right: 0; top: 30px; height: 14px; font-size: 0.68rem; color: var(--muted); }
-.anios .linea .marcas span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+.anios .linea .marcas span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .anios .rango .pista, .anios .rango .tramo { position: absolute; top: 13px; height: 6px; border-radius: 3px; }
 .anios .rango .pista { left: 10px; right: 10px; background: var(--line); }
 .anios .rango .tramo { background: var(--accent); }
