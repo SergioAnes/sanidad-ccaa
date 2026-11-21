@@ -36,8 +36,11 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "por_mil") return nf(1).format(v) + " ‰";
     if (u === "dias") return nf(0).format(v) + " días";
     if (u === "num") return nf(0).format(v);
-    if (u === "var") return (v > 0 ? "+" : v < 0 ? "−" : "") + nf(0).format(Math.abs(v)) + " %";
-    if (u === "pp") return (v > 0 ? "+" : v < 0 ? "−" : "") + nf(1).format(Math.abs(v)) + " p.";
+    if (u === "var" || u === "pp") {
+      const d = u === "pp" ? 1 : 0;
+      const signo = v === 0 ? "" : Math.abs(v) < (u === "pp" ? 0.05 : 0.5) ? "≈ " : v > 0 ? "+" : "−";
+      return signo + nf(d).format(Math.abs(v)) + (u === "pp" ? " p." : " %");
+    }
     return nf(1).format(v);
   }
   const fmtCorto = (v, u) => u === "dias" ? nf(0).format(v) + " d" : fmt(v, u).replace(" %", "%");
@@ -388,11 +391,12 @@ export function iniciar(DATA: DatosApp): void {
     if (cont.dataset.tipo !== `anio-${ind.grupo}`) {
       cont.dataset.tipo = `anio-${ind.grupo}`;
       cont.innerHTML = `<button type="button" class="play"></button><span class="anio"></span><span class="prov">provisional</span>
-        <div class="linea"><input type="range" min="${primero(ind)}" max="${ultimo(ind)}" step="1" aria-label="Año">${marcasAnios(ind)}</div>
+        <div class="linea"><input type="range" min="${primero(ind)}" max="${ultimo(ind)}" step="1" aria-label="${ind.grupo === "espera" ? "Corte" : "Año"}">${marcasAnios(ind)}</div>
         <span class="ayuda-rango">Mueve el punto para elegir la fecha. Pulsa ▶ para reproducir la serie.</span>`;
     }
     const inp = cont.querySelector("input"), play = cont.querySelector(".play");
     if (+inp.value !== anio) inp.value = anio;
+    inp.setAttribute("aria-valuetext", periodo(ind, anio));
     cont.querySelector(".anio").textContent = periodo(ind, anio);
     cont.querySelector(".prov").hidden = !esProv(anio);
     play.textContent = timer ? "❚❚" : "▶";
@@ -423,6 +427,8 @@ export function iniciar(DATA: DatosApp): void {
     const pintar = () => {
       if (+d.value !== S.desde) d.value = S.desde;
       if (+h.value !== S.anioP) h.value = S.anioP;
+      d.setAttribute("aria-valuetext", periodo(ind, S.desde));
+      h.setAttribute("aria-valuetext", periodo(ind, S.anioP));
       cont.querySelector(".rango-txt").textContent = `${periodo(ind, S.desde, true)} → ${periodo(ind, S.anioP, true)}`;
       cont.querySelector(".prov").hidden = !esProv(S.anioP) && !esProv(S.desde);
       const t = cont.querySelector(".tramo");
@@ -442,6 +448,7 @@ export function iniciar(DATA: DatosApp): void {
   // que «14.ª con más espera de 17». En listas de espera, la que más espera es la peor.
   const arriba = (pos, n) => pos <= Math.ceil(n / 2);
   function puestoTxt(ind, pos, n = 17) {
+    if (ind.unidad === "pp" || ind.unidad === "var") return `Puesto ${pos} de ${n} por variación`;
     if (ind.grupo === "espera") {
       if (pos === 1) return `La peor de las ${n}: la que más espera`;
       if (pos === n) return `La mejor de las ${n}: la que menos espera`;
@@ -473,7 +480,7 @@ export function iniciar(DATA: DatosApp): void {
       for (const id of IDS) cambio[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
       const oc = ordenados(cambio); const a = oc[0], b = oc[oc.length - 1];
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
-      out.push({ k: `Cambio de ${base0(ind)} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `<strong>${NOMBRE[a]}</strong> es la que más ha cambiado (${f(cambio[a])}); <strong>${NOMBRE[b]}</strong>, la que menos (${f(cambio[b])}).` });
+      out.push({ k: `Cambio de ${base0(ind)} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `El cambio más alto es el de <strong>${NOMBRE[a]}</strong> (${f(cambio[a])}); el más bajo, el de <strong>${NOMBRE[b]}</strong> (${f(cambio[b])}).` });
     }
     return { out, top, bot };
   }
@@ -531,6 +538,7 @@ export function iniciar(DATA: DatosApp): void {
   function cambiarIndicador(id) {
     const anterior = IND[S.indP], siguiente = IND[id];
     if (anterior.grupo !== siguiente.grupo) {
+      pararPlay();
       seleccionPeriodo[anterior.grupo] = { anioP: S.anioP, desde: S.desde, modo: S.modo };
       Object.assign(S, seleccionPeriodo[siguiente.grupo] || { anioP: ultimo(siguiente), desde: primero(siguiente), modo: "valor" });
     }
@@ -543,7 +551,10 @@ export function iniciar(DATA: DatosApp): void {
     if (ind === baseInd) S.campoE = "total";
     if (!tieneSerie(ind) && S.vistaE === "evolucion") S.vistaE = "ranking";
     if (!tieneSerie(ind)) S.modo = "valor";
-    if (S.modo === "cambio" && S.anioP <= S.desde) { S.anioP = ultimo(ind); if (S.desde >= S.anioP) S.desde = primero(ind); }
+    if (S.modo === "cambio" && S.anioP <= S.desde) {
+      if (S.anioP === primero(ind)) S.anioP = periodos(ind)[1];
+      S.desde = primero(ind);
+    }
     selector($("#sel-datos"), S.indP, (id) => { pararPlay(); cambiarIndicador(id); render(); });
     $("#d-campo").innerHTML = ind !== baseInd
       ? `<span>Mapa y gráficos: <b>${esc(ind.campoNombre)}</b>. Las tarjetas siguen mostrando el total.</span><button type="button" class="btn-link" id="d-campo-total">Volver al total</button>`
@@ -558,7 +569,7 @@ export function iniciar(DATA: DatosApp): void {
     const mapa = enCambio ? cambioInd(ind, anio) : { ind, vals };
     const mo = ordenados(mapa.vals), top = mo[0], bot = mo[mo.length - 1];
     const infl = enEuros(ind) ? (S.real ? "descontada la inflación" : "sin descontar la inflación") : "";
-    const verbo = ind.unidad === "pct" ? "subido" : "crecido";
+    const volver = ind.grupo === "espera" ? "Ver un corte" : "Ver un año";
 
     // «Tu comunidad»: su valor y puesto, o su cambio y puesto en el periodo
     const ficha = `<a href="#comunidad-${S.com.toLowerCase()}${ind.grupo === "espera" ? `?corte=${CORTES[anio].id}` : ""}">Ver su ficha completa</a>`;
@@ -567,7 +578,7 @@ export function iniciar(DATA: DatosApp): void {
     else if (vals[S.com] == null) tuya = `Sin dato en el informe para esta especialidad. ${ficha}`;
     else if (enCambio) {
       const pos = mo.indexOf(S.com) + 1;
-      const puesto = pos === 1 ? `La que más ha ${verbo} de las ${mo.length}` : pos === mo.length ? `La que menos ha ${verbo} de las ${mo.length}` : arriba(pos, mo.length) ? `La ${pos}.ª que más ha ${verbo} de ${mo.length}` : `La ${mo.length - pos + 1}.ª que menos ha ${verbo} de ${mo.length}`;
+      const puesto = puestoTxt(mapa.ind, pos, mo.length);
       tuya = `${fmt(mapa.vals[S.com], mapa.ind.unidad)} de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}${infl ? ` (${infl})` : ""}. ${puesto}. ${ficha}`;
     } else {
       const ord = ordenados(vals);
@@ -577,9 +588,15 @@ export function iniciar(DATA: DatosApp): void {
     if (enCambio && mo.length) {
       // En «Cambio entre dos años» todos los cuadros hablan del cambio; el valor final queda como contexto.
       const mc = media(mapa.vals), u2 = mapa.ind.unidad;
+      const enPuntos = u2 === "pp";
+      const valor = nf(enPuntos ? 1 : 0).format(Math.abs(mc));
+      const resumenCambio = Math.abs(mc) < (enPuntos ? 0.05 : 0.5)
+        ? "El valor apenas varió de media entre las comunidades"
+        : `El valor ${mc < 0 ? "bajó" : "subió"}${enPuntos ? "" : " un"} <strong>${valor}${enPuntos ? " puntos porcentuales" : " %"}</strong> de media entre las comunidades`;
+      const orden = ordenados(vals);
       out.splice(1, out.length - 1,
-        { k: `Media de las ${mo.length}, de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `De media, las comunidades han ${verbo} <strong>${fmt(mc, u2)}</strong>${infl ? ` (${infl})` : ""}. ${mo.filter((id) => mapa.vals[id] > mc).length} están por encima.` },
-        { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `<strong>${NOMBRE[ordenados(vals)[0]]}</strong> está arriba (${fmt(vals[ordenados(vals)[0]], ind.unidad)}) y <strong>${NOMBRE[ordenados(vals).at(-1)]}</strong> abajo (${fmt(vals[ordenados(vals).at(-1)], ind.unidad)}). Para verlo en el mapa, elige «Un año».` });
+        { k: `Media de las ${mo.length}, de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `${resumenCambio}${infl ? ` (${infl})` : ""}.` },
+        { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `<strong>${NOMBRE[orden[0]]}</strong> está arriba (${fmt(vals[orden[0]], ind.unidad)}) y <strong>${NOMBRE[orden.at(-1)]}</strong> abajo (${fmt(vals[orden.at(-1)], ind.unidad)}). Para verlo en el mapa, elige «${volver}».` });
     }
     if (enCambio && !mo.length) out.splice(1);
     out.push(...titularesPacientes(ind, anio));
@@ -594,7 +611,13 @@ export function iniciar(DATA: DatosApp): void {
     // Título y subtítulo: dicen exactamente qué muestra el mapa
     if (enCambio) {
       $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`;
-      $("#p-sub").textContent = !mo.length ? "Sin cambios comparables para los cortes seleccionados. Consulta las notas del informe bajo el gráfico." : `${NOMBRE[top]} es la que más ha ${verbo} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y ${NOMBRE[bot]} la que menos (${fmt(mapa.vals[bot], mapa.ind.unidad)})${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
+      const extremos = mapa.vals[top] === mapa.vals[bot]
+        ? `Mismo cambio en las ${mo.length} comunidades con datos comparables (${fmt(mapa.vals[top], mapa.ind.unidad)})`
+        : `El cambio más alto es el de ${NOMBRE[top]} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y el más bajo, el de ${NOMBRE[bot]} (${fmt(mapa.vals[bot], mapa.ind.unidad)})`;
+      $("#p-sub").textContent = !comparar(ind, S.desde, anio)
+        ? "Sin cambios comparables para los cortes seleccionados. Consulta las notas del informe bajo el gráfico."
+        : !mo.length ? "Ninguna comunidad tiene valores que permitan calcular el cambio entre los dos cortes."
+        : `${extremos}${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
       $("#p-titulo").textContent = `${ind.nombre} en ${periodo(ind, anio)}: ${top ? `${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo` : "sin datos"}`;
       $("#p-sub").textContent = `${esProv(anio) ? "Dato provisional. " : ""}${enEuros(ind) && anio !== ULT ? (S.real ? `En euros de ${ULT}, descontada la inflación. ` : "En euros de ese año. ") : ""}Pulsa una comunidad para elegirla como la tuya.`;
@@ -750,10 +773,10 @@ export function iniciar(DATA: DatosApp): void {
       $("#e-sub").textContent = "Las 17 comunidades en gris; en color, las que destaques. Pasa el ratón o toca el gráfico para ver cada fecha.";
       lineas(cont, ind);
     } else if (S.vistaE === "tabla") {
-      const n = ordenados(vals).length;
+      const enCambio = S.modo === "cambio";
       $("#e-titulo").textContent = `${ind.nombre}, ${fecha}`;
-      $("#e-sub").textContent = `Las ${n} comunidades${n < IDS.length ? " con dato" : ""}, de más a menos. Tu comunidad va resaltada.`;
-      tabla(cont, ind, anio);
+      $("#e-sub").textContent = `Ordenada por ${enCambio ? "cambio entre las fechas elegidas" : "valor en la fecha elegida"}. Tu comunidad va resaltada.`;
+      tabla(cont, ind, anio, mapa.vals);
     } else {
       const mo = ordenados(mapa.vals);
       $("#e-titulo").textContent = S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}${mo.length ? `: ${NOMBRE[mo[0]]} en cabeza` : ""}`;
@@ -764,7 +787,7 @@ export function iniciar(DATA: DatosApp): void {
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
       [...document.querySelectorAll("#e-chart .pliegue[open] li")].map((li) => li.textContent.replace(/\s+/g, " ").trim())));
-    const sinDato = IDS.filter((k) => vals[k] == null);
+    const sinDato = S.vistaE === "evolucion" ? [] : IDS.filter((k) => vals[k] == null);
     // Debajo del gráfico, a la vista solo la fuente; la definición y los avisos, en un desplegable con su recuento.
     const conAvisos = ind.grupo === "gasto" && S.vistaE !== "evolucion";
     const notasAnio = conAvisos ? NOTAS.filter((n) => n.anio === anio) : [];
@@ -877,20 +900,29 @@ export function iniciar(DATA: DatosApp): void {
       g.onclick = () => { alternarSel(id); render(); };
       g.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alternarSel(id); render(); } };
       const enPuntos = ["pct", "pp", "var"].includes(ind.unidad);
-      const dif = enPuntos ? `${vals[id] >= m ? "+" : "−"}${nf(1).format(Math.abs(vals[id] - m))} puntos frente a la media`
+      const dif = enPuntos ? `${vals[id] >= m ? "+" : "−"}${nf(1).format(Math.abs(vals[id] - m))} puntos porcentuales frente a la media`
+        : m === 0 ? "Igual a la media"
         : `${vals[id] >= m ? "+" : "−"}${nf(0).format(Math.abs(vals[id] / m - 1) * 100)} % frente a la media`;
       g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>${fmt(vals[id], ind.unidad)}<br>${puestoTxt(ind, o.indexOf(id) + 1, o.length)}<br>${dif}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
   }
 
-  function tabla(cont, ind, anio) {
-    const u = ind.unidad, serie = tieneSerie(ind);
-    const vals = valores(ind, anio), o = ordenados(vals), m = media(vals);
-    const b0 = base0(ind), base = serie ? valores(ind, b0) : null;
+  function tabla(cont, ind, anio, ordenMapa) {
+    const u = ind.unidad, b0 = base0(ind);
+    const serie = tieneSerie(ind) && b0 < anio;
+    const vals = valores(ind, anio), m = media(vals);
+    const o = ordenados(ordenMapa);
+    const territorios = ind.grupo === "espera" ? IDS : ordenados(vals);
+    const ids = [...o, ...territorios.filter((id) => ordenMapa[id] == null)];
+    const base = serie ? valores(ind, b0) : null;
     const comparable = serie && comparar(ind, b0, anio);
     const signo = (x, txt) => /^0( |$)/.test(txt) ? `<span class="neg">≈ ${txt}</span>` : `<span class="${x < 0 ? "neg" : ""}">${x >= 0 ? "+" : "−"}${txt}</span>`;
-    const difMedia = (v) => u === "pct" ? signo(v - m, nf(1).format(Math.abs(v - m)) + " p.") : signo(v - m, nf(0).format(Math.abs(v / m - 1) * 100) + " %");
+    const difMedia = (v) => {
+      if (v == null || !Number.isFinite(m)) return "—";
+      if (u === "pct") return signo(v - m, nf(1).format(Math.abs(v - m)) + " p.");
+      return m === 0 ? "—" : signo(v - m, nf(0).format(Math.abs(v / m - 1) * 100) + " %");
+    };
     const cambio = (id) => {
       const d = comparable ? diferencia(ind, dato(ind, id, b0), dato(ind, id, anio)) : null;
       return d == null ? "—" : signo(d, nf(u === "pct" ? 1 : 0).format(Math.abs(d)) + (u === "pct" ? " p." : " %"));
@@ -898,11 +930,12 @@ export function iniciar(DATA: DatosApp): void {
     const pac = pacientesDe(ind);
     const celdaPac = (v) => pac ? `<td>${fmt(v, "num")}</td>` : "";
     const cab = `<tr><th>#</th><th>Comunidad</th>${serie ? `<th>${periodo(ind, b0, true)}${sinInfl(ind) ? ` <span style="font-weight:400">(en € de ${ULT})</span>` : ""}</th>` : ""}<th>${periodo(ind, anio, true)}</th>${serie ? `<th>Cambio${sinInfl(ind) ? " real" : ""}</th>` : ""}<th>Frente a la media</th>${pac ? "<th>Pacientes en espera</th>" : ""}</tr>`;
-    const filas = o.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i + 1}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdaPac(pac && pac[id])}</tr>`).join("");
-    const totalPac = pac ? o.reduce((s, id) => s + (pac[id] || 0), 0) : 0;
-    const pie = `<tr><td></td><td>Media de las ${o.length}</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")} <span style="font-weight:400">en total</span></td>` : ""}</tr>`;
+    const filas = ids.map((id, i) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${i < o.length ? i + 1 : "—"}</td><td>${esc(NOMBRE[id])}</td>${serie ? `<td>${fmt(base[id], u)}</td>` : ""}<td>${fmt(vals[id], u)}</td>${serie ? `<td>${cambio(id)}</td>` : ""}<td>${difMedia(vals[id])}</td>${celdaPac(pac && pac[id])}</tr>`).join("");
+    const recuentos = pac ? IDS.map((id) => pac[id]).filter((v) => v != null) : [];
+    const totalPac = recuentos.length ? recuentos.reduce((s, v) => s + v, 0) : null;
+    const pie = `<tr><td></td><td>Media de las comunidades con dato</td>${serie ? `<td>${fmt(media(base), u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? "<td></td>" : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")}${totalPac != null ? ' <span style="font-weight:400">en total</span>' : ""}</td>` : ""}</tr>`;
     const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0);
-    const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
+    const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null || pac?.[k] != null || serie && datoCiudad(ind, k, b0) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
       ciu.map((k) => `<tr class="ciudad"><td>—</td><td>${CIUDADES[k]}*</td>${serie ? `<td>${fmt(datoCiudad(ind, k, b0), u)}</td>` : ""}<td>${fmt(datoCiudad(ind, k), u)}</td>${serie ? `<td>${cambio(k)}</td>` : ""}<td>${difMedia(datoCiudad(ind, k))}</td>${celdaPac(pac && pac[k])}</tr>`).join("") : "";
     cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
@@ -923,7 +956,9 @@ export function iniciar(DATA: DatosApp): void {
         for (const id of [...IDS, ...Object.keys(CIUDADES)]) {
           const v = dato(ind, id, a);
           const nota = [CIUDADES[id] ? "Ciudad autónoma: fuera de la media" : "", v == null ? "Sin dato en el informe" : "",
-            ind.tipo === "consultas" && c.id === "2023-06" ? "Datos de consultas repetidos respecto a diciembre de 2022 (salvo tasas)" : ""].filter(Boolean).join(". ");
+            ind.tipo === "consultas" && c.id === "2023-06" ? "Datos de consultas repetidos respecto a diciembre de 2022 (salvo tasas)" : "",
+            ind.tipo === "consultas" && ind.medida === "pct_largo"
+              ? (c.id < "2024-12" ? "Porcentaje referido a pacientes con cita asignada" : "El porcentaje incluye también a pacientes sin cita que superaban 60 días") : ""].filter(Boolean).join(". ");
           filas.push([ind.nombre, NOMBRE[id] || CIUDADES[id], c.id, n(v), n(pac[id]), nota]);
         }
       });
@@ -1019,7 +1054,7 @@ export function iniciar(DATA: DatosApp): void {
     const W = Math.max(320, cont.clientWidth || 800), H = W < 520 ? 340 : 420;
     const L = W < 520 ? 54 : 64, R = 24, T = 16, B = 40;
     const xs = ids.map((id) => vx[id]), ys = ids.map((id) => vy[id]);
-    const px = (Math.max(...xs) - Math.min(...xs)) * 0.08, py = (Math.max(...ys) - Math.min(...ys)) * 0.1;
+    const px = (Math.max(...xs) - Math.min(...xs)) * 0.08 || 1, py = (Math.max(...ys) - Math.min(...ys)) * 0.1 || 1;
     const x0 = Math.min(...xs) - px, x1 = Math.max(...xs) + px, y0 = Math.max(0, Math.min(...ys) - py), y1 = Math.max(...ys) + py;
     const X = (v) => L + (v - x0) / (x1 - x0) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), grey = css("--grey-line"), acc = css("--accent"), surf = css("--surface");
@@ -1064,10 +1099,13 @@ export function iniciar(DATA: DatosApp): void {
       g.onmousemove = (e) => showTip(`<b>${esc(NOMBRE[id])}</b><br>Gasto: ${fmt(vx[id], "eur_hab")}<br>${esc(nombreY)}: ${fmt(vy[id], gy.unidad)}`, e.clientX, e.clientY);
       g.onmouseleave = hideTip;
     });
-    const c2 = (v) => (v < 0 ? "−" : "") + nf(2).format(Math.abs(v));
+    const c2 = (v) => Number.isFinite(v) ? (v < 0 ? "−" : "") + nf(2).format(Math.abs(v)) : "—";
+    const relacion = Number.isFinite(r) && Number.isFinite(rho)
+      ? `Correlación ${c2(r)} (Pearson) y ${c2(rho)} por rangos (Spearman), en una escala de −1 a 1. Con ${ids.length} comunidades, cualquier valor entre −${c2(rc)} y +${c2(rc)} podría deberse al azar. ${clara ? `En este corte puedes explorar hasta ${combinaciones} combinaciones. A un nivel del 5 %, algunas podrían superar el umbral por azar.` : "Las cifras no ofrecen evidencia clara de relación."}`
+      : "Los datos de este corte no permiten calcular la correlación porque una de las variables tiene el mismo valor en todas las comunidades con dato.";
     $("#x-nota").innerHTML = plegable("xy", "Cómo leer este gráfico: correlación, causas y fechas", `<ul class="leer">
       <li><b>Qué muestra:</b> cada punto es una comunidad; las líneas discontinuas marcan la media de las ${ids.length}. ${conTuya ? "" : `${esc(NOMBRE[c0])} no aparece: el informe no trae ese dato. `}Sin Ceuta y Melilla (no tienen gasto comparable).</li>
-      <li><b>Relación:</b> correlación ${c2(r)} (Pearson) y ${c2(rho)} por rangos (Spearman), en una escala de −1 a 1 en la que 0 es ninguna relación. Con ${ids.length} comunidades, cualquier valor entre −${c2(rc)} y +${c2(rc)} podría deberse al azar, así que ${clara ? `esta relación supera ese umbral. <b>Pero ojo:</b> la web permite mirar ${combinaciones} combinaciones de espera y especialidad, y al mirar tantas, unas ${Math.round(combinaciones * 0.05)} saldrían con «relación» solo por azar. Tómalo como una pista para investigar, no como una conclusión` : "no hay base para hablar de relación entre estos dos datos"}.</li>
+      <li><b>Relación</b> ${relacion}</li>
       <li><b>Ir juntos no es causar:</b> ${clara ? "esta relación no prueba" : "ni aunque hubiera relación probaría"} que gastar más acorte o alargue la espera. Influyen otros factores que el gráfico no tiene en cuenta: la edad de la población, la dispersión geográfica, las derivaciones a centros concertados, el seguro privado, la organización de cada servicio y cómo registra cada comunidad sus listas.</li>
       <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${CORTES[S.anioP].fecha}.</li>
       <li><b>Comunidades, no personas:</b> compara cifras de comunidades enteras; no dice nada de lo que espera cada paciente.</li>
@@ -1346,7 +1384,7 @@ export function iniciar(DATA: DatosApp): void {
       <p>Además de las notas del Ministerio, revisamos los datos de forma automática cada vez que se actualiza la web:</p>
       <ul>
         <li><b>Que se han leído bien.</b> Al extraer el Excel comprobamos que los porcentajes cuadran con los importes y que la población implícita (gasto total entre gasto por habitante) cambia con suavidad cada año. Al extraer el PDF de listas de espera comprobamos que los totales cuadran con la suma de especialidades y que pacientes y tasas son coherentes.</li>
-        <li><b>Que son coherentes.</b> No faltan comunidades ni años, los porcentajes están entre 0 y 100 y la farmacia nunca supera al gasto total.</li>
+        <li><b>Que son coherentes.</b> Las series de gasto cubren las 17 comunidades en todos los años. Los porcentajes están entre 0 y 100 y la farmacia nunca supera al gasto total. En las listas de espera, los informes pueden dejar huecos por comunidad, especialidad o proceso.</li>
         <li><b>Variaciones inusuales.</b> Para cada dato y año comparamos el cambio de cada comunidad con el de las demás. Si se aleja mucho de lo normal ese año (más de 4 veces la dispersión típica y más de ${CRIT_TXT}), lo señalamos. Si el Ministerio tiene una nota para ese año, mostramos la nota; si no, avisamos de que la cifra es la oficial pero no tiene explicación publicada.</li>
       </ul>
       <p>Estas son las variaciones inusuales que el Ministerio no explica (${AVISOS.length}). No significan que el dato esté mal: puede deberse a cambios contables, a pagos extraordinarios o a otras causas que la estadística no detalla.</p>
