@@ -535,16 +535,17 @@ export function iniciar(DATA: DatosApp): void {
   const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
   function renderResumen(base) {
     const serie = tieneSerie(base);
-    const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}><span class="et">${et}</span>${dentro}</span>`;
+    const chip = (et, dentro, cambiado = false, extra = "") => `<span class="chip-s${cambiado ? " cambiado" : ""}" ${extra}>${et ? `<span class="et">${et}</span>` : ""}${dentro}</span>`;
     const ayuda = (txt) => `title="${esc(txt)}"`;
-    let h = chip("Dato", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`, false, ayuda("Qué dato muestran el mapa y los gráficos"));
-    if (base.grupo === "espera") h += chip("Especialidad", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total", ayuda("Las tarjetas de arriba siguen mostrando el total"));
+    let h = chip("", `<select id="rs-dato" aria-label="Dato">${opcionesDato()}</select>`, false, ayuda("Qué dato muestran el mapa y los gráficos"));
+    if (base.grupo === "espera") h += chip("", `<select id="rs-campo" aria-label="Especialidad o proceso">${opcionesCampo(base)}</select>`, S.campoE !== "total", ayuda("Las tarjetas de arriba siguen mostrando el total"));
     if (serie) {
-      h += chip("Ver", `<select id="rs-modo" aria-label="Qué quieres ver">${opt("valor", "Un año", S.modo === "valor")}${opt("cambio", "Cambio entre dos años", S.modo === "cambio")}</select>`, S.modo !== POR_DEFECTO.modo, ayuda("El mapa y el ranking muestran el valor de un año o cuánto ha cambiado entre dos"));
+      // Una sola etiqueta para el periodo: «Año 2024» o «Periodo 2002 → 2020», con un botón para cambiar de modo
+      const btnModo = `<button type="button" class="rs-modo" id="rs-modo">${S.modo === "cambio" ? "Ver un año" : "Comparar años"}</button>`;
       h += S.modo === "cambio"
-        ? chip("Años", `<select id="rs-desde" aria-label="Año de inicio">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select><span aria-hidden="true">→</span><select id="rs-hasta" aria-label="Año final">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select>`, true)
-        : chip("Año", `<select id="rs-anio" aria-label="Año">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>`, S.anioP !== ULT);
-    } else h += chip("Fecha", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
+        ? chip("", `<select id="rs-desde" aria-label="Año de inicio">${opcionesAnio(ANIOS.filter((a) => a < S.anioP), S.desde)}</select><span class="flecha" aria-hidden="true">→</span><select id="rs-hasta" aria-label="Año final">${opcionesAnio(ANIOS.filter((a) => a > S.desde), S.anioP)}</select>${btnModo}`, true, ayuda("Cuánto ha cambiado entre dos años. «Ver un año» vuelve al valor de un solo año"))
+        : chip("", `<select id="rs-anio" aria-label="Año">${opcionesAnio(ANIOS.slice().reverse(), S.anioP)}</select>${btnModo}`, S.anioP !== ULT, ayuda("El año que muestran el mapa y el ranking. «Comparar años» muestra cuánto ha cambiado entre dos"));
+    } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
     h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda("Se resalta en el mapa y en los gráficos"));
     h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
@@ -564,10 +565,13 @@ export function iniciar(DATA: DatosApp): void {
     $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas" aria-hidden="true">▾</span>`;
     $("#rs-texto").setAttribute("aria-label", `Estás viendo: ${$("#rs-texto").textContent.replace("▾", "")}. Pulsa para cambiarlo`);
     $("#rs-texto").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
+    const barra = $("#resumen");
+    barra.classList.remove("compacta");
+    if (innerWidth > 640 && $("#rs-chips").scrollHeight > 46) barra.classList.add("compacta");
     const on = (id, fn) => { const el = $("#" + id); if (el) el.onchange = (e) => aplicar(() => fn(e.target.value)); };
     on("rs-dato", (v) => { S.indP = v; });
     on("rs-campo", (v) => { S.campoE = v; });
-    on("rs-modo", (v) => { S.modo = v; });
+    if ($("#rs-modo")) $("#rs-modo").onclick = () => aplicar(() => { S.modo = S.modo === "cambio" ? "valor" : "cambio"; });
     on("rs-anio", (v) => { S.anioP = +v; });
     on("rs-desde", (v) => { S.desde = +v; });
     on("rs-hasta", (v) => { S.anioP = +v; });

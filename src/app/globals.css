@@ -278,8 +278,8 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 
 
 /* Resumen de lo que estás viendo: encima del mapa y fijo arriba al bajar */
-.resumen { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; margin-top: 18px;
-  padding: 8px 0; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+.rs-barra { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 8px; margin-top: 18px;
+  padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 8px 12px -10px rgb(0 0 0 / 0.3); }
 .rs-chips { display: flex; gap: 6px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
 .chip-s { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 36px; padding: 0 4px 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); white-space: nowrap; font-size: 0.85rem; color: var(--fg); }
 .chip-s .et { font-size: 0.7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
@@ -336,3 +336,15 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .rs-reset[hidden] { display: none; }
 @media (min-width: 641px) { .rs-ajustes { display: none; } }
 @media (max-width: 640px) { .rs-reset { display: none; } }
+.rs-modo { flex: none; margin-left: 4px; height: 26px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--accent); font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.chip-s .flecha { color: var(--muted); }
+
+/* Barra compacta en el ordenador cuando las etiquetas no caben en una fila */
+.rs-barra.compacta .rs-chips { display: none; }
+.rs-barra.compacta .rs-ajustes { display: inline-flex; align-items: center; }
+.rs-barra.compacta .rs-texto { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; min-height: 40px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font-weight: 600; font-size: 0.9rem; text-align: left; cursor: pointer; }
+.rs-barra.compacta .rs-linea { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-barra.compacta .rs-linea .cambiado { color: var(--note); }
+.rs-barra.compacta .rs-linea .sep { color: var(--muted); font-weight: 400; }
+.rs-barra.compacta .rs-mas { flex: none; color: var(--muted); }
+.rs-barra.compacta .rs-ajustes { gap: 6px; }

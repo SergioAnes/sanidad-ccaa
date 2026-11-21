@@ -21,7 +21,7 @@ export const ESQUELETO = `<div class="wrap">
       <div class="selector" id="sel-datos"></div>
       <div class="campo" id="d-campo"></div>
     </div>
-    <div class="resumen" id="resumen" role="region" aria-label="Lo que estás viendo">
+    <div class="rs-barra" id="resumen" role="region" aria-label="Lo que estás viendo">
       <div class="rs-chips" id="rs-chips"></div>
       <button type="button" class="rs-texto" id="rs-texto" aria-haspopup="dialog"></button>
       <button type="button" class="rs-ajustes" id="rs-ajustes" aria-haspopup="dialog" aria-label="Ajustes de la vista">⚙<span class="rs-aj-txt"> Ajustes</span></button>
