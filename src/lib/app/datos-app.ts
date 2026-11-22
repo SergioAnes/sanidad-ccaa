@@ -10,6 +10,7 @@ import ppeJson from "@/data/poblacion-equivalente.json";
 import contextoJson from "@/data/contexto-ccaa.json";
 import barometroJson from "@/data/barometro.json";
 import recursosJson from "@/data/recursos.json";
+import resultadosJson from "@/data/resultados.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -224,6 +225,25 @@ const RECURSOS: Record<string, TextoRecurso> = {
   },
 };
 
+/** Textos de los resultados en salud (INE). No dependen solo de la sanidad. */
+const RESULTADOS: Record<string, { corto: string; nombre: string; desc: string; unidad: Unidad; que: string; espanaTxt: string }> = {
+  res_esperanza: {
+    unidad: "anios_vida", que: "de esperanza de vida al nacer", espanaTxt: "dato del INE para el conjunto de España",
+    corto: "Esperanza de vida al nacer", nombre: "Esperanza de vida al nacer (años)",
+    desc: "Años que viviría de media una persona nacida ese año si se mantuvieran las tasas de mortalidad por edad de ese año en su comunidad. Depende de la sanidad, pero también de la renta, los hábitos, el entorno y otros factores. Dato publicado por el INE (Indicadores Demográficos Básicos), ambos sexos.",
+  },
+  res_esperanza65: {
+    unidad: "anios_vida", que: "de esperanza de vida a los 65 años", espanaTxt: "dato del INE para el conjunto de España",
+    corto: "Esperanza de vida a los 65 años", nombre: "Esperanza de vida a los 65 años (años que quedan por vivir)",
+    desc: "Años que le quedarían de media por vivir a una persona de 65 años si se mantuvieran las tasas de mortalidad por edad de ese año en su comunidad. Depende de la sanidad, pero también de la renta, los hábitos y otros factores. Dato publicado por el INE (Indicadores Demográficos Básicos), ambos sexos.",
+  },
+  res_mort_infantil: {
+    unidad: "por_mil_nac", que: "muertes de menores de un año por 1.000 nacidos vivos", espanaTxt: "media de tres años, residentes en España",
+    corto: "Mortalidad infantil (media de 3 años)", nombre: "Mortalidad infantil: muertes de menores de un año por 1.000 nacidos vivos, media de tres años",
+    desc: "Bebés que mueren antes de cumplir un año por cada 1.000 nacidos vivos, en la media de los tres años que terminan en el año indicado. Usamos la media porque en las comunidades pequeñas mueren muy pocos bebés y la cifra de un solo año salta mucho por azar. Cálculo propio con las defunciones y los nacimientos del INE (por comunidad de residencia).",
+  },
+};
+
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
   | {
@@ -236,10 +256,10 @@ export type IndApp =
       historico?: { fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[] };
     }
   | {
-      id: string; grupo: "primaria" | "hospitales"; corto: string; nombre: string; unidad: Unidad; desc: string;
+      id: string; grupo: "primaria" | "hospitales" | "resultados"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
       /** Fuente (siap / siae), unidad en palabras y qué es «España» en este indicador */
-      fuente: "siap" | "siae"; que: string; espanaTxt: string;
+      fuente: "siap" | "siae" | "ine"; que: string; espanaTxt: string;
       /** España: el conjunto de las 17 (toda la población asignada entre todos los profesionales), no la media */
       espana: (number | null)[];
     }
@@ -275,6 +295,8 @@ export type DatosApp = {
   /** Fuentes del Barómetro Sanitario (para citar y contrastar) */
   barometro: { fuentes: typeof barometroJson.fuentes; primerAnioMetodo: number };
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
+  /** Resultados en salud (INE): fuentes y fecha de publicación */
+  resultados: { fuentes: typeof resultadosJson.fuentes };
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
     reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos; anioEquiposSinDato: number;
@@ -321,6 +343,15 @@ function recursos(): IndApp[] {
     const t = RECURSOS[i.id];
     if (!t) throw new Error(`Recursos: falta el texto de ${i.id}`);
     return { id: i.id, grupo: (i.fuente === "siap" ? "primaria" : "hospitales") as "primaria" | "hospitales", ...t, fuente: i.fuente as "siap" | "siae", anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
+  });
+}
+
+/** Resultados en salud (src/data/resultados.json, generado por scripts/extraer_resultados.py). */
+function resultados(): IndApp[] {
+  return resultadosJson.indicadores.map((i) => {
+    const t = RESULTADOS[i.id];
+    if (!t) throw new Error(`Resultados: falta el texto de ${i.id}`);
+    return { id: i.id, grupo: "resultados" as const, ...t, fuente: "ine" as const, anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
   });
 }
 
@@ -372,7 +403,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion(), ...recursos()],
+    inds: [...gasto, ...espera, ...opinion(), ...recursos(), ...resultados()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -382,6 +413,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     edad: ajusteEdad(valores, ids),
     contexto: contextoJson,
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
+    resultados: { fuentes: resultadosJson.fuentes },
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
       reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos, anioEquiposSinDato: recursosJson.anio_equipos_sin_dato,

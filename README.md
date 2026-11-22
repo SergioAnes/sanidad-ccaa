@@ -4,7 +4,7 @@ Web pública estática para comparar el gasto sanitario público, las listas de 
 sanidad (Barómetro Sanitario) y los profesionales de atención primaria de las 17 comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
 
 > **Estado:** todos los datos son **oficiales**: Estadística de Gasto Sanitario Público 2002-2024 y
-> SISLE-SNS y SIAP (Ministerio de Sanidad), Barómetro Sanitario (Ministerio de Sanidad y CIS), IPC (INE) y límites
+> SISLE-SNS y SIAP (Ministerio de Sanidad), Barómetro Sanitario (Ministerio de Sanidad y CIS), esperanza de vida, mortalidad infantil e IPC (INE) y límites
 > territoriales (IGN). Las cifras de gasto de
 > 2023 y 2024 son provisionales.
 
@@ -54,6 +54,7 @@ npm test
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
 | `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación, estancia media, cirugía mayor ambulatoria, ingresos, hospital de día, TAC, resonancia y mamógrafos (SIAE, 2010-2023); consultas al día por profesional (SIAP, 2009-2025) (generado) |
+| `src/data/resultados.json` | Esperanza de vida al nacer y a los 65 años (1975-2025) y mortalidad infantil, media de tres años (1977-2025), por comunidad (INE) (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
 | `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |
@@ -128,6 +129,17 @@ y sus «Años anteriores», con el nombre `Tablas_CCAA_AAAA.xls` o `.xlsx`, y la
 dotación (`Dotacion_evol_2010_19.xlsx` y `Dotacion_Evolucion_2014-2023.xlsx`), que sirven para comprobar.
 
 Después, `python scripts/extraer_recursos.py` y `npm test`.
+
+## Actualizar los resultados en salud (INE)
+
+```bash
+python scripts/extraer_resultados.py
+```
+
+Descarga de la API del INE las tablas 1448, 1449, 1414, 1415 (esperanza de vida), 1447 (tasa de mortalidad infantil),
+6552 (defunciones de menores de un año) y 6525 (nacimientos, mensual) a `datos-originales/ine/` (borra un fichero para
+volver a descargarlo). Comprueba que la tasa del INE es defunciones ÷ nacimientos en cada comunidad y año, y que España
+coincide con la nota de prensa del año (actualiza `NOTA_2025` y la fecha `publicado` cuando salga un año nuevo).
 
 ## Actualizar el IPC (inflación)
 

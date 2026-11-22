@@ -4,7 +4,7 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 
 ## Estructura de la web
 
-- Una sola página con tres vistas por `#hash`: Datos (temas gasto, listas de espera, «Lo que opina la gente», «Atención primaria» y «Hospitales»;
+- Una sola página con tres vistas por `#hash`: Datos (temas gasto, listas de espera, «Lo que opina la gente», «Atención primaria», «Hospitales» y «Resultados en salud»;
   mapa, titulares, ranking/evolución/tabla y gasto frente a espera), Tu comunidad (ficha, con «Comparar con»: `#comunidad-an?vs=md`) y Cómo leer los datos (`#metodo`). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
   `#portada` y `#explorar` (enlaces antiguos) llevan a Datos.
 - `public/og.png` es la vista previa al compartir; se regenera con una captura si cambia mucho el diseño.
@@ -81,6 +81,14 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   (solo los de hospitales: muchos del cribado están en centros sin ingreso, que el SIAE no cuenta).
   Consultas al día por profesional de primaria (SIAP, cubo «Actividad > Ordinaria», medida publicada), desde 2009
   (Cataluña sin datos en 2007-2008); comprobado que la suma de consultas = España y 2024 = resumen oficial.
+- `src/data/resultados.json` (tema «Resultados en salud», grupo `resultados`; entra en `esRecurso()`) se genera con
+  `python scripts/extraer_resultados.py` (API del INE, tablas en `datos-originales/ine/`). Esperanza de vida al nacer y a
+  los 65 (ambos sexos, tal cual la publica el INE; sus cambios se dicen en años, unidad `anios_vida` / `dif_anios`) y
+  mortalidad infantil como media de tres años con los recuentos (defunciones ÷ nacimientos de los tres años; el año es
+  el último). España = solo residentes (las tablas traen «No residente» dentro del total nacional). Comprobado: tasa
+  anual del INE = defunciones / nacimientos en cada comunidad y año; España 2025 = nota de prensa (18/11/2026). Aviso
+  visible: no dependen solo de la sanidad. Ceuta y Melilla: el INE las publica, pero la web compara las 17. Mortalidad
+  tratable y prevenible: Eurostat solo da España; calcularla solo si se reproduce su cifra nacional.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

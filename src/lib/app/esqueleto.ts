@@ -3,7 +3,7 @@
 export const ESQUELETO = `<div class="wrap">
   <noscript><p class="aviso">Esta web necesita JavaScript para mostrar los mapas y gráficos.</p></noscript>
   <header class="top">
-    <div class="brand">Sanidad por comunidades<small>Gasto, listas de espera, opinión y recursos de las 17 comunidades</small></div>
+    <div class="brand">Sanidad por comunidades<small>Gasto, listas de espera, opinión, recursos y resultados en salud de las 17 comunidades</small></div>
     <nav class="nav" aria-label="Secciones">
       <a href="#datos" data-vista="datos">Datos</a>
       <a href="#comunidad" data-vista="comunidad">Tu comunidad</a>
@@ -115,6 +115,12 @@ export const ESQUELETO = `<div class="wrap">
       <div class="filas" id="c-hospitales"></div>
       <div class="notas-min" id="c-hospitales-notas"></div>
     </div>
+    <div class="bloque">
+      <h2>Resultados en salud</h2>
+      <p class="sub" id="c-resultados-sub"></p>
+      <div class="filas" id="c-resultados"></div>
+      <div class="notas-min" id="c-resultados-notas"></div>
+    </div>
   </section>
 
   <section id="v-metodo" hidden>
@@ -128,6 +134,7 @@ export const ESQUELETO = `<div class="wrap">
       <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma (<span id="f-listas">último corte</span>).</li>
       <li>Lo que opina la gente: Ministerio de Sanidad y CIS, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (serie por comunidad y microdatos del CIS; enlaces a cada fichero en «Cómo leer los datos»).</li>
       <li>Atención primaria y hospitales: Ministerio de Sanidad, <a href="https://pestadistico.inteligenciadegestion.sanidad.gob.es/publicoSNS/S/sistema-de-informacion-de-atencion-primaria-siap">Sistema de Información de Atención Primaria (SIAP)</a> (profesionales y población asignada, 2004-2025) y <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm">Estadística de Centros Sanitarios de Atención Especializada (SIAE)</a> (camas, ocupación, estancia media, cirugía mayor ambulatoria, ingresos, hospital de día, TAC y resonancia, 2010-2023).</li>
+      <li>Resultados en salud: INE, <a href="https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177003&idp=1254735573002">Indicadores Demográficos Básicos</a> y Movimiento Natural de la Población (esperanza de vida 1975-2025; mortalidad infantil, media de tres años).</li>
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>
     </ul>
