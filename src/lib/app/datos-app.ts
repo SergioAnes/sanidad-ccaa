@@ -46,6 +46,8 @@ export const ESPERA: DefEspera[] = [
     desc: "Tiempo medio que llevan esperando los pacientes de la lista de primeras consultas con el especialista." },
   { id: "c_pct", tipo: "consultas", medida: "pct_largo", corto: "Más de 60 días para el especialista", nombre: "Pacientes que llevan más de 60 días esperando al especialista",
     desc: "Porcentaje de pacientes con más de 60 días de espera para una primera consulta. La definición depende del corte." },
+  { id: "c_tasa", tipo: "consultas", medida: "tasa", corto: "Lista del especialista por 1.000 hab.", nombre: "Pacientes esperando una primera consulta con el especialista por 1.000 habitantes",
+    desc: "Pacientes en espera para una primera consulta con el especialista, por cada 1.000 habitantes." },
 ];
 
 const UNIDAD_MEDIDA: Record<MedidaLista, Unidad> = { pacientes: "num", tasa: "por_mil", dias: "dias", pct_largo: "pct" };

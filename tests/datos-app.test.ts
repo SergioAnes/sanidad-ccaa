@@ -8,7 +8,7 @@ describe("datos de la interfaz", () => {
     expect(d.ccaa).toHaveLength(17);
     expect(d.ccaa.every((c) => /^[A-Z]{3}$/.test(c.abr))).toBe(true);
     expect(d.inds.filter((i) => i.grupo === "gasto")).toHaveLength(7);
-    expect(d.inds.filter((i) => i.grupo === "espera")).toHaveLength(5);
+    expect(d.inds.filter((i) => i.grupo === "espera")).toHaveLength(6);
   });
 
   it("las series de gasto cubren todos los años sin huecos", () => {
