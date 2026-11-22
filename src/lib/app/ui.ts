@@ -716,7 +716,9 @@ export function iniciar(DATA: DatosApp): void {
 
     // Título y subtítulo: dicen exactamente qué muestra el mapa
     if (enCambio) {
-      $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`;
+      const sinCambio = !Object.values(mapa.vals).some((v) => v != null);
+      const anioSin = [S.desde, anio].find((a) => sinDatosTxt(ind, a) !== "sin datos");
+      $("#p-titulo").textContent = `${ind.nombre}: cuánto ha cambiado de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}${sinCambio && anioSin ? `: ${anioSin}, ${sinDatosTxt(ind, anioSin)}` : ""}`;
       const extremos = mapa.vals[top] === mapa.vals[bot]
         ? `Mismo cambio en las ${mo.length} comunidades con datos comparables (${fmt(mapa.vals[top], mapa.ind.unidad)})`
         : `El cambio más alto es el de ${NOMBRE[top]} (${fmt(mapa.vals[top], mapa.ind.unidad)}) y el más bajo, el de ${NOMBRE[bot]} (${fmt(mapa.vals[bot], mapa.ind.unidad)})`;
@@ -1277,7 +1279,12 @@ export function iniciar(DATA: DatosApp): void {
     let filas;
     if (ind.grupo === "opinion") filas = filasCSVOpinion(ind);
     else if (esRecurso(ind)) {
-      const fuente = ind.fuente === "siae" ? "Ministerio de Sanidad, SIAE (dato publicado en las tablas por comunidad de cada año)" : "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)";
+      // Qué es dato publicado tal cual y qué es cálculo propio, indicador a indicador
+      const fuente = ind.fuente === "siap" ? "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)"
+        : /^hosp_(tac|rm)_/.test(ind.id) ? "Ministerio de Sanidad, SIAE (cálculo propio: equipos / población de la propia estadística; España, de la tabla nacional)"
+        : ind.id === "hosp_ingresos" ? "Ministerio de Sanidad, SIAE (cálculo propio: ingresos por 1.000 hab. × % de la red pública, ambos publicados)"
+        : ind.id === "hosp_dia" ? "Ministerio de Sanidad, SIAE (dato publicado; 2010-2013, cálculo propio con la población de la propia estadística)"
+        : "Ministerio de Sanidad, SIAE (dato publicado en las tablas por comunidad de cada año)";
       filas = [["indicador", "comunidad", "anio", "valor", "fuente"]];
       [...IDS, "ES"].forEach((id) => periodos(ind).forEach((a, i) => filas.push([ind.nombre, id === "ES" ? (ind.fuente === "siae" ? "España (con Ceuta y Melilla)" : "España (las 17)") : NOMBRE[id], a, n(id === "ES" ? ind.espana[i] : ind.serie[id][i]), fuente])));
     }
