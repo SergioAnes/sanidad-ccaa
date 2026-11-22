@@ -562,7 +562,7 @@ export function iniciar(DATA: DatosApp): void {
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
       // Camas: si en el periodo hay camas que cambian de clasificación (pública/privada), se avisa junto al dato.
       const recl = (id) => ind.grupo === "recursos" && ind.fuente === "siae" ? DATA.recursos.reclasificaciones.filter((x) => x.ccaa === id && x.anio > base0(ind) && x.anio <= anio) : [];
-      const conRecl = (id) => recl(id).length ? `, que incluye camas que en ${recl(id).map((x) => x.anio).join(" y ")} pasan a contarse en otra red (ver «Qué mide este dato»)` : "";
+      const conRecl = (id) => recl(id).length ? `; incluye camas que en ${recl(id).map((x) => x.anio).join(" y ")} pasan a contarse en otra red` : "";
       out.push({ k: `Cambio de ${base0(ind)} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `El cambio más alto es el de <strong>${NOMBRE[a]}</strong> (${f(cambio[a])}${conRecl(a)}); el más bajo, el de <strong>${NOMBRE[b]}</strong> (${f(cambio[b])}${conRecl(b)}).` });
     }
     return { out, top, bot };
