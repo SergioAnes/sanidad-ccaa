@@ -1,10 +1,10 @@
 # Sanidad por comunidades
 
 Web pública estática para comparar el gasto sanitario público, las listas de espera y la opinión sobre la
-sanidad (Barómetro Sanitario) de las 17 comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
+sanidad (Barómetro Sanitario) y los profesionales de atención primaria de las 17 comunidades autónomas, con mapa, ranking, evolución, tabla descargable y una ficha por comunidad.
 
 > **Estado:** todos los datos son **oficiales**: Estadística de Gasto Sanitario Público 2002-2024 y
-> SISLE-SNS (Ministerio de Sanidad), Barómetro Sanitario (Ministerio de Sanidad y CIS), IPC (INE) y límites
+> SISLE-SNS y SIAP (Ministerio de Sanidad), Barómetro Sanitario (Ministerio de Sanidad y CIS), IPC (INE) y límites
 > territoriales (IGN). Las cifras de gasto de
 > 2023 y 2024 son provisionales.
 
@@ -53,6 +53,7 @@ npm test
 | `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
+| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP), 2004-2025 (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
 | `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |
@@ -110,6 +111,18 @@ corte más reciente y permite explorar toda la serie semestral.
 El script comprueba que los microdatos de 2025 reproducen la serie oficial y las cifras del informe. 2022-2024 se
 toman de la serie del Ministerio (recalculada; los microdatos no la reproducen exactamente), con márgenes de los
 microdatos. Antes de 2022 la encuesta era en persona: esa serie se muestra aparte, sin compararla.
+
+## Actualizar los recursos (SIAP)
+
+En el [Portal Estadístico](https://pestadistico.inteligenciadegestion.sanidad.gob.es/publicoSNS/S/sistema-de-informacion-de-atencion-primaria-siap)
+> Profesionales, exporta a CSV dos cubos y guárdalos en `datos-originales/siap/`:
+
+1. «Equipos de Atención primaria (EAP)»: filas Año y Comunidad Autónoma, columnas Tipo de profesional, medidas
+   Nº de profesionales y Población asignada → `siap-profesionales-eap-2004-2025.csv`.
+2. «Modalidades asistenciales»: filas Año y Comunidad Autónoma, columnas Tipo de profesional (nivel detallado)
+   → `siap-profesionales-modalidades-2004-2025.csv` (solo para comprobar).
+
+Después, `python scripts/extraer_recursos.py` y `npm test`.
 
 ## Actualizar el IPC (inflación)
 

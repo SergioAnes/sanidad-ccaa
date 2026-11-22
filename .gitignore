@@ -14,3 +14,5 @@ datos-originales/*.json
 __pycache__/
 *.tsbuildinfo
 datos-originales/cis-barometro/
+datos-originales/siae/
+datos-originales/siap/

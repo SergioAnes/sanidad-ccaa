@@ -68,5 +68,7 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return numero(valor, 2);
     case "dias_media":
       return `${numero(valor, 1)} días`;
+    case "personas":
+      return numero(valor, 0);
   }
 }

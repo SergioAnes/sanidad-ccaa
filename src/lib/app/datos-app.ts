@@ -9,6 +9,7 @@ import perimetroJson from "@/data/perimetro-egsp.json";
 import ppeJson from "@/data/poblacion-equivalente.json";
 import contextoJson from "@/data/contexto-ccaa.json";
 import barometroJson from "@/data/barometro.json";
+import recursosJson from "@/data/recursos.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -113,6 +114,22 @@ const OPINION: Record<string, { corto: string; nombre: string; desc: string; mej
   },
 };
 
+/** Textos de los indicadores de recursos (profesionales de atención primaria, SIAP). */
+const RECURSOS: Record<string, { corto: string; nombre: string; desc: string }> = {
+  ap_pob_medico: {
+    corto: "Personas por médico de familia", nombre: "Personas asignadas a cada médico de familia de la sanidad pública",
+    desc: "Población adulta con tarjeta sanitaria asignada a medicina de familia, dividida entre los médicos de familia de atención primaria (equipos de atención primaria y modelo tradicional), a 31 de diciembre. Más personas por médico quiere decir menos médicos para la misma población; no mide por sí solo la calidad de la atención ni la espera. No incluye urgencias ni residentes. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
+  },
+  ap_pob_pediatra: {
+    corto: "Niños por pediatra", nombre: "Niños asignados a cada pediatra de atención primaria de la sanidad pública",
+    desc: "Población infantil con tarjeta sanitaria asignada a pediatría, dividida entre los pediatras de atención primaria (equipos de atención primaria, modelo tradicional y pediatría de área), a 31 de diciembre. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
+  },
+  ap_pob_enfermera: {
+    corto: "Personas por profesional de enfermería", nombre: "Personas asignadas a cada profesional de enfermería de atención primaria de la sanidad pública",
+    desc: "Toda la población con tarjeta sanitaria asignada (la de medicina de familia más la de pediatría), dividida entre los profesionales de enfermería de atención primaria (equipos de atención primaria y modelo tradicional), a 31 de diciembre. No incluye matronas ni urgencias. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
+  },
+};
+
 export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
   | {
@@ -123,6 +140,12 @@ export type IndApp =
       margen: Record<string, (number | null)[]>; margenEspana: (number | null)[];
       /** Serie anterior al cambio de método de 2022 (entrevista en persona), solo para la evolución */
       historico?: { fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[] };
+    }
+  | {
+      id: string; grupo: "recursos"; corto: string; nombre: string; unidad: Unidad; desc: string;
+      anios: number[]; serie: Record<string, (number | null)[]>;
+      /** España: el conjunto de las 17 (toda la población asignada entre todos los profesionales), no la media */
+      espana: (number | null)[];
     }
   | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Serie; tipo: TipoLista; medida: MedidaLista };
 
@@ -155,6 +178,8 @@ export type DatosApp = {
   contexto: typeof contextoJson;
   /** Fuentes del Barómetro Sanitario (para citar y contrastar) */
   barometro: { fuentes: typeof barometroJson.fuentes; primerAnioMetodo: number };
+  /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
+  recursos: { fuente: typeof recursosJson.fuente; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
   notasListas: string[];
@@ -188,6 +213,15 @@ function opinion(): IndApp[] {
       fechas: i.anios, serie: i.valor, espana: i.espana, margen: i.margen, margenEspana: i.margen_espana,
       ...(h ? { historico: { fechas: h.anios, serie: h.valor, espana: h.espana } } : {}),
     };
+  });
+}
+
+/** Profesionales de atención primaria (src/data/recursos.json, generado por scripts/extraer_recursos.py). */
+function recursos(): IndApp[] {
+  return recursosJson.indicadores.map((i) => {
+    const t = RECURSOS[i.id];
+    if (!t) throw new Error(`Recursos: falta el texto de ${i.id}`);
+    return { id: i.id, grupo: "recursos" as const, unidad: "personas" as Unidad, ...t, anios: recursosJson.anios, serie: i.valor, espana: i.espana };
   });
 }
 
@@ -239,7 +273,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion()],
+    inds: [...gasto, ...espera, ...opinion(), ...recursos()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -249,6 +283,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     edad: ajusteEdad(valores, ids),
     contexto: contextoJson,
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
+    recursos: { fuente: recursosJson.fuente, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,
