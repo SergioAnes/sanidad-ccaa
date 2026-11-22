@@ -43,6 +43,8 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "dias_media") return nf(1).format(v) + " días";
     if (u === "personas") return nf(0).format(v);
     if (u === "camas_mil") return nf(2).format(v);
+    if (u === "por_mil_hab") return nf(1).format(v);
+    if (u === "sesiones_mil") return nf(0).format(v);
     if (u === "var" || u === "pp") {
       const d = u === "pp" ? 1 : 0;
       const signo = v === 0 ? "" : Math.abs(v) < (u === "pp" ? 0.05 : 0.5) ? "≈ " : v > 0 ? "+" : "−";
@@ -124,7 +126,7 @@ export function iniciar(DATA: DatosApp): void {
     const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0144 + 0.05)) ? "#ffffff" : "#142033";
   }
-  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "‰", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", var: "% de crecimiento", pp: "puntos de cambio" };
+  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "‰", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", var: "% de crecimiento", pp: "puntos de cambio" };
   const soloNum = (v, u) => u === "var" || u === "pp" ? fmt(v, u).replace(/ (%|p\.)$/, "") : nf(u === "eur_hab" || u === "dias" ? 0 : 1).format(v);
   // Devuelve el color de cada comunidad y la leyenda, según la paleta.
   function escala(vals, ind, pal0 = PAL) {
@@ -527,6 +529,12 @@ export function iniciar(DATA: DatosApp): void {
     return arriba(pos, n) ? `La ${pos}.ª más alta de ${n}` : `La ${n - pos + 1}.ª más baja de ${n}`;
   }
 
+  // Comunidades que comparten la cifra que se muestra (empate): «Cataluña y Madrid».
+  function empatadas(vals, id, u) {
+    const ids = IDS.filter((k) => vals[k] != null && fmt(vals[k], u) === fmt(vals[id], u));
+    return ids.length > 1 ? `${ids.slice(0, -1).map((k) => NOMBRE[k]).join(", ")} y ${NOMBRE[ids.at(-1)]}` : NOMBRE[id];
+  }
+
   // ---------- titulares automáticos ----------
   function titulares(ind, anio) {
     const vals = valores(ind, anio);
@@ -706,10 +714,10 @@ export function iniciar(DATA: DatosApp): void {
         : !mo.length ? "Ninguna comunidad tiene valores que permitan calcular el cambio entre los dos cortes."
         : `${extremos}${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
-      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre} en ${periodo(ind, anio)}: ${top ? `${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo` : "sin datos"}`;
+      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre} en ${periodo(ind, anio)}: ${top ? `${empatadas(mapa.vals, top, mapa.ind.unidad)} arriba, ${empatadas(mapa.vals, bot, mapa.ind.unidad)} abajo` : "sin datos"}`;
       $("#p-sub").textContent = `${ind.grupo === "opinion" ? "Encuesta: el color tiene en cuenta el margen de error. " : ""}${esProv(anio) ? "Dato provisional. " : ""}${enEuros(ind) && anio !== ULT ? (S.real ? `En euros de ${ULT}, descontada la inflación. ` : "En euros de ese año. ") : ""}Pulsa una comunidad para elegirla como la tuya.`;
     } else {
-      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre}: ${NOMBRE[top]} arriba, ${NOMBRE[bot]} abajo`;
+      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre}: ${empatadas(mapa.vals, top, mapa.ind.unidad)} arriba, ${empatadas(mapa.vals, bot, mapa.ind.unidad)} abajo`;
       $("#p-sub").textContent = ind.grupo === "opinion" ? "Encuesta: el color tiene en cuenta el margen de error. Pulsa una comunidad para elegirla como la tuya." : `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
     }
     // El modo (un año / cambio entre dos años) se elige arriba, en el resumen o en Ajustes.
@@ -1048,14 +1056,27 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Para comparar entre comunidades,</b> ten en cuenta que la organización cambia mucho, sobre todo en zonas rurales con muchos consultorios pequeños: lo dice el propio Ministerio en sus resúmenes del SIAP.</p>`;
   }
 
+  // Errores de formato de las tablas del SIAE, a partir de los avisos del script (etiquetas cambiadas, tabla traspuesta).
+  function erroresTablas(lista) {
+    const etiq = lista.filter((x) => /trae la etiqueta/.test(x));
+    const com = [...new Set(etiq.map((x) => x.match(/fila de (\w\w)/)?.[1]).filter(Boolean))].map((c) => NOMBRE[c]);
+    const anios = [...new Set(etiq.map((x) => x.slice(0, 4)))];
+    const trasp = lista.filter((x) => /traspuesta/.test(x)).map((x) => x.slice(0, 4));
+    return (etiq.length ? `En las tablas de ${anios.join(", ")}, la fila de ${com.join(" o de ")} lleva una etiqueta equivocada («Personal y Formación»). ` : "") +
+      (trasp.length ? `La tabla de ingresos de ${trasp.join(", ")} viene traspuesta (comunidades en columnas). ` : "") +
+      "Identificamos cada comunidad por su posición o su código y por esas comprobaciones.";
+  }
+
   function notasCamas() {
     const R = DATA.recursos, F = R.fuentes.siae, h = IND.hosp_camas_sns;
     const rec = R.reclasificaciones.map((x) => `<li>${esc(NOMBRE[x.ccaa])}, ${x.anio}: las camas de la red pública pasan de ${fmt(x.sns[0], "camas_mil")} a ${fmt(x.sns[1], "camas_mil")} por 1.000 habitantes y las totales, de ${fmt(x.total[0], "camas_mil")} a ${fmt(x.total[1], "camas_mil")}.</li>`).join("");
     return `<p><b>De dónde sale.</b> <a href="${F.url}">${esc(F.texto)}</a> (los años anteriores, en <a href="${F.anteriores}">«Años anteriores»</a>): ${esc(F.ruta)}. Son las tasas que publica el Ministerio, sin cálculo nuestro. Cada año sale de su propia tabla, tal como se publicó; las ediciones posteriores revisan algo algunas cifras (en España, como mucho un 0,7 %). España es la fila «TOTAL» de las tablas, que incluye Ceuta y Melilla.</p>
       <p><b>Qué cuenta.</b> Las camas en funcionamiento (las que han funcionado de media en el año), en todos los hospitales: agudos, media y larga estancia y salud mental. Se cuentan en la comunidad donde está el hospital, aunque atienda a pacientes de otras comunidades. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública; esa definición es la misma desde 2010, por eso la serie empieza ese año.</p>
       ${rec ? `<p><b>Camas que cambian de clasificación.</b> Total = camas públicas + privadas. Señalamos los años en que las públicas cambian un 10 % o más y las totales menos de un 5 %: son camas que la estadística pasa a contar como públicas (o como privadas). La fuente no explica por qué.</p><ul>${rec}</ul>` : ""}
-      <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` En las tablas de ${[...new Set(R.etiquetasSiae.map((x) => x.slice(0, 4)))].join(", ")}, la fila de Aragón lleva una etiqueta equivocada («Personal y Formación»); la identificamos por su posición y por esas comprobaciones.` : ""}</p>
+      <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` ${erroresTablas(R.etiquetasSiae)}` : ""}</p>
       <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
+      <p><b>Ingresos y hospital de día.</b> Los ingresos son los de los hospitales de la red pública por 1.000 habitantes (cálculo propio: la tasa de ingresos que publica el Ministerio por su porcentaje de la red pública). El hospital de día cuenta las sesiones de todos los hospitales, públicos y privados, porque la tabla no las separa; en 2010-2013 solo trae el número de sesiones y calculamos la tasa con la población de esa misma tabla (desde 2014, cuando la tabla sí la publica, ese cálculo coincide con ella). Comprobamos que cada tasa cuadra con el número dividido entre la población.${(R.picos || []).length ? ` Años con una cifra muy distinta (un 40 % o más) de la del año anterior y la del siguiente: ${R.picos.map((x) => `${esc(NOMBRE[x.ccaa])} ${x.anio} (${fmt(x.valores[0], "sesiones_mil")}, ${fmt(x.valores[1], "sesiones_mil")} y ${fmt(x.valores[2], "sesiones_mil")} sesiones por 1.000 habitantes)`).join("; ")}. La cifra es la oficial; la fuente no explica el salto.` : ""}</p>
+      <p><b>Hospitalización a domicilio: no la mostramos.</b> Las mismas tablas la traen, pero la serie no es coherente: Extremadura declara cero todos los años y Andalucía pasa de 12 a 1,4 pacientes por 1.000 ingresos y, en 2020, a 40. La fuente no explica estas diferencias, y con una serie así comparar comunidades sería engañoso.</p>
       <p><b>Más camas no es por sí solo mejor ni peor:</b> depende de cómo se organiza la atención (cirugía sin ingreso, hospital de día, atención a domicilio) y de la edad de la población. Los hospitales de referencia atienden también a pacientes de otras comunidades. Ceuta y Melilla van juntas en la fuente.</p>`;
   }
 
@@ -1753,7 +1774,7 @@ export function iniciar(DATA: DatosApp): void {
       <dl>${lista("recursos")}</dl>
       <h3>Profesionales de atención primaria</h3>
       ${notasRecursos("siap")}
-      <h3>Hospitales: camas, ocupación, estancia media y cirugía sin ingreso</h3>
+      <h3>Hospitales: camas, ocupación, estancia, cirugía sin ingreso, ingresos y hospital de día</h3>
       ${notasRecursos("siae")}
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
@@ -1831,7 +1852,7 @@ export function iniciar(DATA: DatosApp): void {
     pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
-  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y camas, ocupación y cirugía de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
+  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y actividad y recursos de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   {
     const rect = DATA.versionListas && DATA.versionListas.rectificado

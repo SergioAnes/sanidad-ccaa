@@ -72,5 +72,9 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return numero(valor, 0);
     case "camas_mil":
       return numero(valor, 2);
+    case "por_mil_hab":
+      return numero(valor, 1);
+    case "sesiones_mil":
+      return numero(valor, 0);
   }
 }

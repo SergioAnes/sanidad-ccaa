@@ -18,7 +18,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
+      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
@@ -44,6 +44,10 @@ describe("Recursos de atención primaria (SIAP)", () => {
     // Cirugía mayor ambulatoria, red pública (tabla 6.2 de 2023 y AOA.2. de 2010)
     expect(val("hosp_cma", "AN", 2023)).toBeCloseTo(48.9, 1);
     expect(val("hosp_cma", "AN", 2010)).toBeCloseTo(45.7, 1);
+    // Hospital de día (tabla 6.5 de 2023: Andalucía 125 sesiones por 1.000 hab.) e ingresos en la red pública (5.1 de 2023: 84,1 × 0,74)
+    expect(val("hosp_dia", "AN", 2023)).toBeCloseTo(125, 1);
+    expect(val("hosp_ingresos", "AN", 2023)).toBeCloseTo(84.1 * 0.74, 1);
+    expect(rec.picos.map((p) => `${p.ccaa}${p.anio}`)).toContain("EX2021");
     const sns = ind("hosp_camas_sns").valor as Record<string, number[]>, tot = ind("hosp_camas_total").valor as Record<string, number[]>;
     for (const c of CCAA) sns[c.id].forEach((v, k) => expect(v).toBeLessThanOrEqual(tot[c.id][k] + 0.001));
   });

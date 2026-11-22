@@ -43,6 +43,13 @@ Cirugía mayor ambulatoria (mismas tablas): indicadores de actividad quirúrgica
 (intervenciones con hospitalización + cirugía mayor ambulatoria). Se toma tal cual; se comprueba recalculándolo con
 los números de intervenciones y sus % de la red pública de la misma fila.
 
+Ingresos y hospital de día (mismas tablas): ingresos por 1.000 habitantes («frecuentación», AA.2-1. / 5.2.1-5.2.2 /
+5.1) × % de la red pública (cálculo propio: ingresos en hospitales de la red pública por 1.000 hab.), y sesiones de
+hospital de día por 1.000 habitantes (AOA.5. / 7.5.1-7.5.2 / 6.5; en 2010-2013 la tabla solo trae el número de
+sesiones y la tasa se calcula con la población que usa la propia tabla de camas de ese año). Se comprueba que cada tasa
+cuadra con número / población. La hospitalización a domicilio no se usa: la serie no es coherente (Extremadura
+declara 0 todos los años, Andalucía pasa de 12 a 1,4 y a 40 pacientes por 1.000 ingresos).
+
 Escribe src/data/recursos.json.
 """
 from __future__ import annotations
@@ -99,6 +106,9 @@ def sin_tildes(t) -> str:
     return unicodedata.normalize("NFKD", str(t)).encode("ascii", "ignore").decode().lower()
 
 
+POB_SIAE: dict = {}  # (año, ccaa o "ES") -> población implícita de la tabla de camas (camas totales / tasa × 1.000)
+
+
 def camas():
     """Camas en funcionamiento por 1.000 hab., red pública (SNS) y total, por comunidad y año (tablas anuales del SIAE)."""
     anios = sorted(int(re.search(r"(\d{4})", f.name).group(1)) for f in SIAE.glob("Tablas_CCAA_*.xls*"))
@@ -125,6 +135,7 @@ def camas():
                 avisos.append(f"{a}: la fila de {c} trae la etiqueta «{etq}»")
             n_s, t_s, n_t, t_t, pct = v[5], v[6], v[7], v[8], v[9]
             pob_s, pob_t = n_s / t_s * 1000, n_t / t_t * 1000
+            POB_SIAE[(a, c)] = pob_t
             if abs(pob_s / pob_t - 1) > 0.015:
                 raise SystemExit(f"SIAE {a} {c}: la población implícita no cuadra ({pob_s:.0f} frente a {pob_t:.0f})")
             if abs(n_s / n_t - (pct if pct <= 1 else pct / 100)) > 0.006:
@@ -138,6 +149,7 @@ def camas():
             if abs(suma - total[i]) > 2:
                 raise SystemExit(f"SIAE {a}: la fila TOTAL ({total[i]}) no es la suma de las comunidades ({suma})")
         esp_sns.append(round(total[6], 3)); esp_tot.append(round(total[8], 3)); n_sns.append(total[5]); n_tot.append(total[7])
+        POB_SIAE[(a, "ES")] = total[7] / total[8] * 1000
     # España frente a las tablas nacionales de evolución (la edición más reciente sustituye a la anterior)
     ref = {}
     for fichero, hoja in (("Dotacion_evol_2010_19.xlsx", "TABLA 1.5 1.6"), ("Dotacion_Evolucion_2014-2023.xlsx", "TABLA 1.8 1.9")):
@@ -165,12 +177,20 @@ def camas():
 
 
 def hoja(anio: int, nombres: tuple[str, str, str]) -> list[list]:
-    """Filas de la hoja del año: nombres = (2010-2013, 2014-2015, desde 2016)."""
+    """Filas de la hoja del año: nombres = (2010-2013, 2014-2015, desde 2016); «A|B» admite nombres alternativos."""
     f = next(SIAE.glob(f"Tablas_CCAA_{anio}.xls*"))
-    nombre = nombres[0] if anio <= 2013 else nombres[1] if anio <= 2015 else nombres[2]
+    opciones = (nombres[0] if anio <= 2013 else nombres[1] if anio <= 2015 else nombres[2]).split("|")
     if f.suffix == ".xlsx":
-        return [list(r) for r in openpyxl.load_workbook(f, data_only=True, read_only=True)[nombre].iter_rows(values_only=True)]
-    h = xlrd.open_workbook(f).sheet_by_name(nombre)
+        wb = openpyxl.load_workbook(f, data_only=True, read_only=True)
+        nombre = next((n for n in opciones if n in wb.sheetnames), None)
+        if nombre is None:
+            raise SystemExit(f"SIAE {anio}: no encuentro la hoja {opciones}")
+        return [list(r) for r in wb[nombre].iter_rows(values_only=True)]
+    wb = xlrd.open_workbook(f)
+    nombre = next((n for n in opciones if n in wb.sheet_names()), None)
+    if nombre is None:
+        raise SystemExit(f"SIAE {anio}: no encuentro la hoja {opciones}")
+    h = wb.sheet_by_name(nombre)
     return [h.row_values(i) for i in range(h.nrows)]
 
 
@@ -240,6 +260,71 @@ def cirugia(anios: list[int]):
     return amb, esp, avisos
 
 
+def picos(serie: dict, anios: list[int], umbral: float = 0.4) -> list[dict]:
+    """Años con una cifra muy distinta (≥ 40 %) de la del año anterior y la del siguiente, en el mismo sentido."""
+    out = []
+    for c, v in serie.items():
+        for k in range(1, len(v) - 1):
+            a, b = v[k] / v[k - 1] - 1, v[k] / v[k + 1] - 1
+            if abs(a) >= umbral and abs(b) >= umbral and (a > 0) == (b > 0):
+                out.append({"ccaa": c, "anio": anios[k], "valores": [v[k - 1], v[k], v[k + 1]]})
+    return out
+
+
+def filas_ingresos(rs: list[list], anio: int, avisos: list[str]):
+    """Ingresos (nº, por 1.000 hab., % SNS). La tabla de 2022 viene traspuesta: comunidades en columnas, con códigos ES-XX."""
+    cab = next((r for r in rs if any(str(x).strip() == "ES-AN" for x in r if x is not None)), None)
+    if cab is None:
+        return filas_ccaa(rs, 3, anio, avisos)
+    cod = {"ES-MU": "MC"}
+    cols = {}
+    for i, x in enumerate(cab):
+        t = str(x).strip() if x is not None else ""
+        if t.startswith("ES-") and len(t) == 5:
+            cols[cod.get(t, t[3:])] = i
+        elif t.lower() == "total":
+            cols["ES"] = i
+    if set(cols) != {c for c, _ in ORDEN_SIAE} | {"ES"}:
+        raise SystemExit(f"SIAE {anio}: columnas inesperadas en la tabla traspuesta de ingresos: {sorted(cols)}")
+    k = next(i for i, r in enumerate(rs) if r[0] and str(r[0]).strip().lower().startswith("ingresos"))
+    n, frec, pct = rs[k], rs[k + 1], rs[k + 2]
+    etq = lambda r: next((str(x).strip() for x in r if isinstance(x, str) and x.strip()), "")
+    if "1000" not in etq(frec).replace(".", "") or "sns" not in etq(pct).lower():
+        raise SystemExit(f"SIAE {anio}: filas inesperadas en la tabla traspuesta de ingresos ({etq(frec)!r}, {etq(pct)!r})")
+    val = {c: [n[i], frec[i], pct[i]] for c, i in cols.items()}
+    avisos.append(f"{anio}: la tabla de ingresos viene traspuesta (comunidades en columnas)")
+    return {c: val[c] for c, _ in ORDEN_SIAE}, val["ES"]
+
+
+def ingresos_y_dia(anios: list[int]):
+    """Ingresos en la red pública y sesiones de hospital de día, por 1.000 habitantes."""
+    ing = {c: [] for c, _ in ORDEN_SIAE}
+    dia = {c: [] for c, _ in ORDEN_SIAE}
+    esp_ing, esp_dia, avisos, peor = [], [], [], 0.0
+    for a in anios:
+        com, total = filas_ingresos(hoja(a, ("AA.2-1.|AA.2.", "5.2.1-5.2.2", "5.1")), a, avisos)
+        for c, v in list(com.items()) + [("ES", total)]:
+            n, frec, pct = v[0], v[1], v[2]
+            calc = n / POB_SIAE[(a, c)] * 1000
+            if abs(calc / frec - 1) > 0.02 or not 0.3 <= pct <= 1:
+                raise SystemExit(f"SIAE {a} {c}: ingresos por 1.000 hab. ({frec}) no cuadran con ingresos / población ({calc:.1f}) o % SNS raro ({pct})")
+            peor = max(peor, abs(calc / frec - 1))
+            (esp_ing if c == "ES" else ing[c]).append(round(frec * pct, 2))
+        com, total = filas_ccaa(hoja(a, ("AOA.5.", "7.5.1-7.5.2", "6.5")), 2, a, avisos)
+        for c, v in list(com.items()) + [("ES", total)]:
+            calc = v[0] / POB_SIAE[(a, c)] * 1000
+            if a >= 2014:  # la tabla trae la tasa: se usa y se comprueba
+                if abs(calc / v[1] - 1) > 0.02:
+                    raise SystemExit(f"SIAE {a} {c}: hospital de día por 1.000 hab. ({v[1]}) no cuadra con sesiones / población ({calc:.1f})")
+                peor = max(peor, abs(calc / v[1] - 1))
+                tasa = v[1]
+            else:  # 2010-2013: solo el número de sesiones
+                tasa = calc
+            (esp_dia if c == "ES" else dia[c]).append(round(tasa, 1))
+    print(f"  SIAE ingresos y hospital de día {anios[0]}-{anios[-1]}: tasas = número / población (diferencia máxima {peor:.2%})")
+    return ing, dia, {"hosp_ingresos": esp_ing, "hosp_dia": esp_dia}, avisos
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -303,11 +388,16 @@ def main() -> None:
     indicadores = [{"id": k, "fuente": "siap", "anios": anios, "valor": v, "espana": espana[k]} for k, v in inds.items()]
     ocu, est, esp_a, avisos_a = agudos(anios_h)
     amb, esp_amb, avisos_c = cirugia(anios_h)
+    ing, dia, esp_id, avisos_i = ingresos_y_dia(anios_h)
+    picos_dia = picos(dia, anios_h)
+    print(f"  Hospital de día, años con una cifra muy distinta de los de alrededor: {[(x['ccaa'], x['anio']) for x in picos_dia]}")
     indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
                     {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]},
                     {"id": "hosp_ocupacion", "fuente": "siae", "anios": anios_h, "valor": ocu, "espana": esp_a["hosp_ocupacion"]},
                     {"id": "hosp_estancia", "fuente": "siae", "anios": anios_h, "valor": est, "espana": esp_a["hosp_estancia"]},
-                    {"id": "hosp_cma", "fuente": "siae", "anios": anios_h, "valor": amb, "espana": esp_amb}]
+                    {"id": "hosp_cma", "fuente": "siae", "anios": anios_h, "valor": amb, "espana": esp_amb},
+                    {"id": "hosp_ingresos", "fuente": "siae", "anios": anios_h, "valor": ing, "espana": esp_id["hosp_ingresos"]},
+                    {"id": "hosp_dia", "fuente": "siae", "anios": anios_h, "valor": dia, "espana": esp_id["hosp_dia"]}]
     datos = {
         "fuentes": {
             "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
@@ -319,7 +409,8 @@ def main() -> None:
         },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
-        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c)),
+        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i)),
+        "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia],
         "reclasificaciones": reclasif,
         "profesionales": profesionales,
         "indicadores": indicadores,
