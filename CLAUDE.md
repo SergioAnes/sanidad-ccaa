@@ -45,7 +45,7 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   además del público) se genera con `python scripts/extraer_contexto.py` (INE 56940, certificados IGN/INE de la
   liquidación, Encuesta de Salud de España 2023 con su intervalo al 95 %). Es contexto: no corrige el gasto. La tabla
   del INE trae el agregado «85 y más años» además de las edades sueltas: no sumarlo dos veces.
-- `src/data/barometro.json` (tema «Atención primaria y opinión», grupo `opinion` en `datos-app.ts`) se genera con
+- `src/data/barometro.json` (tema «Lo que opina la gente», grupo `opinion` en `datos-app.ts`) se genera con
   `python scripts/extraer_barometro.py`: serie oficial por comunidad del Ministerio (xlsx) + microdatos del CIS
   (`datos-originales/cis-barometro/`) + informe 2025. Es una encuesta: nunca puestos del 1 al 17 ni «Comparar años»;
   se dice si el intervalo al 95 % queda por encima, por debajo o incluye a España. 2022-2025 (teléfono) aparte de

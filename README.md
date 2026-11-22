@@ -19,7 +19,7 @@ sanidad (Barómetro Sanitario) y los profesionales de atención primaria de las 
 
 - **Datos:** mapa (valor del año o crecimiento desde 2002), titulares automáticos, ranking, evolución
   (descontando o no la inflación), tabla con descarga en CSV, listas de espera por especialidad y proceso,
-  gráfico «¿Gastar más reduce la espera?» y «Atención primaria y opinión» (Barómetro Sanitario: satisfacción,
+  gráfico «¿Gastar más reduce la espera?» y «Lo que opina la gente» (Barómetro Sanitario: satisfacción,
   valoración del médico de familia y acceso, con margen de error frente a la media de España). La dirección guarda la vista para compartirla.
 - **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16, comparación con otra
   comunidad y notas del Ministerio sobre saltos en sus series.

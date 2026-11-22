@@ -384,3 +384,9 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .evo-hist { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--line); }
 .evo-hist h3 { font-size: 0.98rem; margin: 0 0 4px; }
 .evo-hist .sub { margin: 0 0 8px; }
+
+/* Temas en el móvil: dos filas de dos, cada botón en una sola línea */
+@media (max-width: 640px) {
+  .selector .seg[aria-label="Tema"] { display: grid; grid-template-columns: 1fr 1fr; justify-self: stretch; }
+  .selector .seg[aria-label="Tema"] button { white-space: nowrap; padding: 8px 6px; }
+}

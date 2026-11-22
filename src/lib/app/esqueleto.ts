@@ -14,7 +14,7 @@ export const ESQUELETO = `<div class="wrap">
     <div class="intro">
       <div class="intro-cab">
         <div>
-          <h1>¿Cuánto gasta tu comunidad en sanidad y cuánto se espera?</h1>
+          <h1>¿Cómo está la sanidad en tu comunidad?</h1>
           <p id="p-intro">Datos oficiales del Ministerio de Sanidad.</p>
         </div>
       </div>
@@ -98,7 +98,7 @@ export const ESQUELETO = `<div class="wrap">
       <p class="extra" id="c-extra"></p>
     </div>
     <div class="bloque">
-      <h2>Atención primaria y opinión</h2>
+      <h2>Lo que opina la gente</h2>
       <p class="sub" id="c-opinion-sub"></p>
       <div class="contexto" id="c-opinion"></div>
       <div class="notas-min" id="c-opinion-notas"></div>
@@ -120,7 +120,7 @@ export const ESQUELETO = `<div class="wrap">
     <ul>
       <li>Gasto: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm">Estadística de Gasto Sanitario Público</a> (<span id="f-gasto">gasto real</span>).</li>
       <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma (<span id="f-listas">último corte</span>).</li>
-      <li>Atención primaria y opinión: Ministerio de Sanidad y CIS, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (serie por comunidad y microdatos del CIS; enlaces a cada fichero en «Cómo leer los datos»).</li>
+      <li>Lo que opina la gente: Ministerio de Sanidad y CIS, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (serie por comunidad y microdatos del CIS; enlaces a cada fichero en «Cómo leer los datos»).</li>
       <li>Recursos: Ministerio de Sanidad, <a href="https://pestadistico.inteligenciadegestion.sanidad.gob.es/publicoSNS/S/sistema-de-informacion-de-atencion-primaria-siap">Sistema de Información de Atención Primaria (SIAP)</a> (profesionales y población asignada, 2004-2025) y <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm">Estadística de Centros Sanitarios de Atención Especializada (SIAE)</a> (camas, ocupación, estancia media, cirugía mayor ambulatoria, ingresos y hospital de día, 2010-2023).</li>
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>

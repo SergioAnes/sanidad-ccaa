@@ -36,7 +36,8 @@ export function iniciar(DATA: DatosApp): void {
     if (v == null || !isFinite(v)) return "—";
     if (u === "eur_hab") return nf(0).format(v) + " €";
     if (u === "pct") return nf(1).format(v) + " %";
-    if (u === "por_mil") return nf(1).format(v) + " ‰";
+    // Sin «‰»: mucha gente lo confunde con «%». El título y la leyenda ya dicen «por 1.000 habitantes».
+    if (u === "por_mil") return nf(1).format(v);
     if (u === "dias") return nf(0).format(v) + " días";
     if (u === "num") return nf(0).format(v);
     if (u === "nota10") return nf(2).format(v);
@@ -126,7 +127,7 @@ export function iniciar(DATA: DatosApp): void {
     const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0144 + 0.05)) ? "#ffffff" : "#142033";
   }
-  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "‰", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", var: "% de crecimiento", pp: "puntos de cambio" };
+  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "pacientes por cada 1.000 habitantes", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", var: "% de crecimiento", pp: "puntos de cambio" };
   const soloNum = (v, u) => u === "var" || u === "pp" ? fmt(v, u).replace(/ (%|p\.)$/, "") : nf(u === "eur_hab" || u === "dias" ? 0 : 1).format(v);
   // Devuelve el color de cada comunidad y la leyenda, según la paleta.
   function escala(vals, ind, pal0 = PAL) {
@@ -350,7 +351,7 @@ export function iniciar(DATA: DatosApp): void {
     cont.innerHTML = `<div class="seg" role="group" aria-label="Tema">
         <button type="button" data-g="gasto" aria-pressed="${grupo === "gasto"}">Gasto sanitario</button>
         <button type="button" data-g="espera" aria-pressed="${grupo === "espera"}">Listas de espera</button>
-        <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}">Atención primaria y opinión</button>
+        <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}">Lo que opina la gente</button>
         <button type="button" data-g="recursos" aria-pressed="${grupo === "recursos"}">Recursos</button>
       </div><div class="kpis">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
         <div class="seg sm" role="group" aria-label="Inflación">
@@ -768,7 +769,7 @@ export function iniciar(DATA: DatosApp): void {
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
-  const opcionesDato = () => ["gasto", "espera", "opinion", "recursos"].map((g) => `<optgroup label="${{ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Atención primaria y opinión", recursos: "Recursos" }[g]}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
+  const opcionesDato = () => ["gasto", "espera", "opinion", "recursos"].map((g) => `<optgroup label="${{ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Lo que opina la gente", recursos: "Recursos" }[g]}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
   const opcionesCampo = (base) => opt("total", "Todas (total)", S.campoE === "total") + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => opt(`${tipo}:${c.id}`, c.nombre, S.campoE === `${tipo}:${c.id}`)).join("")}</optgroup>`).join("");
   const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a, ind) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
@@ -1001,7 +1002,7 @@ export function iniciar(DATA: DatosApp): void {
   }
 
 
-  // ---------- Barómetro Sanitario (tema «Atención primaria y opinión») ----------
+  // ---------- Barómetro Sanitario (tema «Lo que opina la gente») ----------
   // Es una encuesta: cada cifra tiene margen de error. No se ordena a las comunidades como un registro: se dice si
   // su intervalo al 95 % queda por encima, por debajo o incluye el valor de España.
   const AVISO_OPINION_CIUDADES = "Ceuta y Melilla tienen muy pocas entrevistas (unas 30 por oleada) y márgenes de error muy grandes, así que no se muestran. Sus cifras están en las fuentes.";
@@ -1077,7 +1078,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Qué cuenta.</b> Las camas en funcionamiento (las que han funcionado de media en el año), en todos los hospitales: agudos, media y larga estancia y salud mental. Se cuentan en la comunidad donde está el hospital, aunque atienda a pacientes de otras comunidades. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública; esa definición es la misma desde 2010, por eso la serie empieza ese año.</p>
       ${rec ? `<p><b>Camas que cambian de clasificación.</b> Total = camas públicas + privadas. Señalamos los años en que las públicas cambian un 10 % o más y las totales menos de un 5 %: son camas que la estadística pasa a contar como públicas (o como privadas). La fuente no explica por qué.</p><ul>${rec}</ul>` : ""}
       <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` ${erroresTablas(R.etiquetasSiae)}` : ""}</p>
-      <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
+      <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. Es una media de todo el año y de todas las camas de agudos de la comunidad: los picos de unas semanas o de unas unidades concretas (como las UCI) no se ven en ella. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
       <p><b>Ingresos y hospital de día.</b> Los ingresos son los de los hospitales de la red pública por 1.000 habitantes (cálculo propio: la tasa de ingresos que publica el Ministerio por su porcentaje de la red pública). El hospital de día cuenta las sesiones de todos los hospitales, públicos y privados, porque la tabla no las separa; en 2010-2013 solo trae el número de sesiones y calculamos la tasa con la población de esa misma tabla (desde 2014, cuando la tabla sí la publica, ese cálculo coincide con ella). Comprobamos que cada tasa cuadra con el número dividido entre la población.${(R.picos || []).length ? ` Años con una cifra muy distinta (un 40 % o más) de la del año anterior y la del siguiente: ${R.picos.map((x) => `${esc(NOMBRE[x.ccaa])} ${x.anio} (${fmt(x.valores[0], "sesiones_mil")}, ${fmt(x.valores[1], "sesiones_mil")} y ${fmt(x.valores[2], "sesiones_mil")} sesiones por 1.000 habitantes)`).join("; ")}. La cifra es la oficial; la fuente no explica el salto.` : ""}</p>
       <p><b>Hospitalización a domicilio: no la mostramos.</b> Las mismas tablas la traen, pero la serie no es coherente: Extremadura declara cero todos los años y Andalucía pasa de 12 a 1,4 pacientes por 1.000 ingresos y, en 2020, a 40. La fuente no explica estas diferencias, y con una serie así comparar comunidades sería engañoso.</p>
       <p><b>Más camas no es por sí solo mejor ni peor:</b> depende de cómo se organiza la atención (cirugía sin ingreso, hospital de día, atención a domicilio) y de la edad de la población. Los hospitales de referencia atienden también a pacientes de otras comunidades. Ceuta y Melilla van juntas en la fuente.</p>`;
@@ -1710,7 +1711,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Atención primaria y opinión</a><a href="#metodo-recursos">Recursos</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Lo que opina la gente</a><a href="#metodo-recursos">Recursos</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -1765,7 +1766,7 @@ export function iniciar(DATA: DatosApp): void {
         ${ENTIDADES.map((e) => `<tr><td>${esc(NOMBRE[e.ccaa])}</td><td>${e.anio}</td><td>${e.cambio === "entra" ? "Aparecen" : "Dejan de aparecer"}</td><td>${pctTxt(e.peso)}</td><td>${esc(e.entidades.filter((x) => x.peso >= 0.5).map((x) => x.nombre).join("; ") || "Varias pequeñas")}${e.entidades.some((x) => x.peso < 0.5) && e.entidades.some((x) => x.peso >= 0.5) ? " y otras más pequeñas" : ""}</td></tr>`).join("")}
       </tbody></table></div>
 
-      <h2 id="metodo-opinion">Atención primaria y opinión (Barómetro Sanitario)</h2>
+      <h2 id="metodo-opinion">Lo que opina la gente (Barómetro Sanitario)</h2>
       <p>Fuente: Barómetro Sanitario, encuesta anual del Ministerio de Sanidad y el Centro de Investigaciones Sociológicas (CIS) a la población de 18 y más años: entre unas 7.200 y 7.800 entrevistas al año (de 2022 a 2025), en tres oleadas.</p>
       <dl>${lista("opinion")}</dl>
       ${notasOpinion(null)}
