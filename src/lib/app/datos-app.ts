@@ -104,6 +104,14 @@ const OPINION: Record<string, { corto: string; nombre: string; desc: string; mej
     corto: "Valoran bien al médico de familia", nombre: "Personas que valoran como buena o muy buena la atención del médico de familia de la sanidad pública", mejorAlto: true,
     desc: "Porcentaje que valora como buena o muy buena la atención recibida, entre quienes fueron al médico de familia de la sanidad pública en el último año (el total incluye a quien no sabe o no contesta, como hace el Ministerio).",
   },
+  valoracion_especialista: {
+    corto: "Valoran bien al especialista", nombre: "Personas que valoran como buena o muy buena la atención del especialista de la sanidad pública", mejorAlto: true,
+    desc: "Porcentaje que valora como buena o muy buena la atención recibida, entre quienes fueron a la consulta de un médico especialista de la sanidad pública en el último año (el total incluye a quien no sabe o no contesta, como hace el Ministerio).",
+  },
+  valoracion_urgencias: {
+    corto: "Valoran bien las urgencias", nombre: "Personas que valoran como buena o muy buena la atención en urgencias de la sanidad pública", mejorAlto: true,
+    desc: "Porcentaje que valora como buena o muy buena la atención recibida la última vez que fue a un servicio de urgencias de la sanidad pública en el último año (el total incluye a quien no sabe o no contesta, como hace el Ministerio). Desde 2024 la pregunta habla del «servicio de urgencias (atención primaria/hospitalaria)»; antes, del «servicio de urgencias». El Ministerio da la serie como continua.",
+  },
   ap_en_24h: {
     corto: "Atendidos en el día o al siguiente", nombre: "Personas atendidas por el médico de familia el mismo día o el día siguiente de pedir cita", mejorAlto: true,
     desc: "Porcentaje que fue atendido el mismo día o el día siguiente de pedir cita, según su última visita, entre quienes fueron al médico de familia de la sanidad pública en el último año. Como hace el Ministerio, el total incluye también a quienes solo tuvieron citas programadas, a quienes no necesitan pedir cita y a quien no contesta (en España, unas 3 de cada 100 respuestas en 2025). Cálculo propio con los microdatos del CIS.",
@@ -133,6 +141,21 @@ const RECURSOS: Record<string, TextoRecurso> = {
     ...AP, que: "personas por profesional de enfermería",
     corto: "Personas por profesional de enfermería", nombre: "Personas asignadas a cada profesional de enfermería de atención primaria de la sanidad pública",
     desc: "Toda la población con tarjeta sanitaria asignada (la de medicina de familia más la de pediatría), dividida entre los profesionales de enfermería de atención primaria (equipos de atención primaria y modelo tradicional), a 31 de diciembre. No incluye matronas ni urgencias. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
+  },
+  ap_consultas_medico: {
+    unidad: "consultas_dia", que: "consultas al día por médico de familia", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Consultas al día por médico de familia", nombre: "Consultas al día por médico de familia de atención primaria",
+    desc: "Media de consultas que atiende cada día cada médico de familia de los equipos de atención primaria de la sanidad pública, en horario ordinario (sin urgencias). Mide la carga de trabajo, no la calidad: muchas consultas al día dejan menos tiempo para cada paciente. Dato publicado por el Ministerio de Sanidad (SIAP), desde 2009: Cataluña no tiene datos de actividad de 2007 y 2008.",
+  },
+  ap_consultas_pediatra: {
+    unidad: "consultas_dia", que: "consultas al día por pediatra", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Consultas al día por pediatra", nombre: "Consultas al día por pediatra de atención primaria",
+    desc: "Media de consultas que atiende cada día cada pediatra de los equipos de atención primaria de la sanidad pública, en horario ordinario (sin urgencias). Mide la carga de trabajo, no la calidad: muchas consultas al día dejan menos tiempo para cada paciente. Dato publicado por el Ministerio de Sanidad (SIAP), desde 2009: Cataluña no tiene datos de actividad de 2007 y 2008.",
+  },
+  ap_consultas_enfermera: {
+    unidad: "consultas_dia", que: "consultas al día por profesional de enfermería", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Consultas al día por profesional de enfermería", nombre: "Consultas al día por profesional de enfermería de atención primaria",
+    desc: "Media de consultas que atiende cada día cada profesional de enfermería de los equipos de atención primaria de la sanidad pública, en horario ordinario (sin urgencias). Mide la carga de trabajo, no la calidad: muchas consultas al día dejan menos tiempo para cada paciente. Dato publicado por el Ministerio de Sanidad (SIAP), desde 2009: Cataluña no tiene datos de actividad de 2007 y 2008.",
   },
   hosp_camas_sns: {
     ...CAMAS, corto: "Camas de hospital públicas", nombre: "Camas de hospital de la red pública en funcionamiento por 1.000 habitantes",
@@ -186,6 +209,16 @@ const RECURSOS: Record<string, TextoRecurso> = {
     unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
     corto: "Resonancias, públicas y privadas", nombre: "Equipos de resonancia magnética por 100.000 habitantes, públicos y privados",
     desc: "Equipos de resonancia magnética en funcionamiento en todos los hospitales de la comunidad, públicos y privados, por cada 100.000 habitantes. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_mam_sns: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Mamógrafos públicos", nombre: "Mamógrafos de los hospitales de la red pública por 100.000 habitantes",
+    desc: "Mamógrafos en funcionamiento en los hospitales de la red pública de la comunidad, por cada 100.000 habitantes. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. Solo cuenta los de los hospitales: muchos mamógrafos del cribado de cáncer de mama están en centros sin ingreso, que esta estadística no incluye. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_mam_total: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Mamógrafos, públicos y privados", nombre: "Mamógrafos de los hospitales por 100.000 habitantes, públicos y privados",
+    desc: "Mamógrafos en funcionamiento en todos los hospitales de la comunidad, públicos y privados, por cada 100.000 habitantes. Solo cuenta los de los hospitales: muchos mamógrafos del cribado de cáncer de mama están en centros sin ingreso, que esta estadística no incluye. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
   },
 };
 

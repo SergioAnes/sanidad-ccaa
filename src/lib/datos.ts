@@ -78,7 +78,7 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return numero(valor, 0);
     case "equipos_100k":
       return numero(valor, 2);
-    case "equipos_100k":
-      return numero(valor, 2);
+    case "consultas_dia":
+      return numero(valor, 1);
   }
 }

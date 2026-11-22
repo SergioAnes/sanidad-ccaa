@@ -52,6 +52,8 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   2002-2019 (en persona): no compararlos ni atribuir el salto a la pandemia o al método. Ceuta y Melilla no se
   muestran (muestra mínima). Los «días para el médico de familia» son de atención primaria, no del SISLE, y solo de
   quien no tuvo cita antes. Cada cifra debe poder contrastarse: la web enlaza serie, informe y estudios del CIS.
+  También valoración del especialista y de urgencias (urgencias cambió de redacción en 2024: avisarlo al comparar).
+  La valoración de la hospitalización no se usa (muy pocas entrevistas por comunidad; márgenes de hasta ±34 y nulos).
 - `src/data/recursos.json` (temas «Atención primaria» y «Hospitales», grupos `primaria` y `hospitales`; `esRecurso()` en
   `ui.ts`) se genera con `python scripts/extraer_recursos.py` a partir
   de dos exportaciones a CSV del Portal Estadístico (SIAP > Profesionales: cubos «Equipos de Atención primaria (EAP)» y
@@ -75,7 +77,10 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   TAC y resonancia por 100.000 hab. (red pública y total; cálculo propio con la población de la tabla de camas): cuatro
   formatos de la tabla de dotación tecnológica; 2022 sin dato por comunidad (columnas desplazadas en Excel y PDF);
   comprobado que la suma de comunidades + Ceuta y Melilla = tablas nacionales de evolución (España sale de ahí). Tasas
-  brutas, sin ajustar por edad (lo habitual en recursos), con una frase que lo dice en las notas.
+  brutas, sin ajustar por edad (lo habitual en recursos), con una frase que lo dice en las notas. También mamógrafos
+  (solo los de hospitales: muchos del cribado están en centros sin ingreso, que el SIAE no cuenta).
+  Consultas al día por profesional de primaria (SIAP, cubo «Actividad > Ordinaria», medida publicada), desde 2009
+  (Cataluña sin datos en 2007-2008); comprobado que la suma de consultas = España y 2024 = resumen oficial.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

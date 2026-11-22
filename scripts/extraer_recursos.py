@@ -10,6 +10,13 @@ Ministerio de Sanidad > Sistema de Información de Atención Primaria (SIAP) > P
   - siap-profesionales-modalidades-2004-2025.csv: cubo «Modalidades asistenciales». Filas: Año y Comunidad Autónoma;
     columnas: Tipo de profesional (nivel detallado); medida: Nº de profesionales. Solo para comprobar.
 
+Consultas por día y profesional (presión asistencial): cubo «Actividad > Ordinaria» del mismo portal, medida «Media
+consultas por día y profesional», por año, comunidad y profesional (medicina de familia, pediatría, enfermería):
+siap-actividad-ordinaria-2007-2025.csv; y el mismo cubo sin comunidades (fila de España, con Ceuta y Melilla):
+siap-actividad-ordinaria-espana-2007-2025.csv. Se toman tal cual, desde 2009 (Cataluña no tiene datos en 2007-2008). Comprobación: la suma de las consultas de las
+comunidades da la de España cada año, y 2024 coincide con el resumen oficial (28 consultas al día en medicina de
+familia, 16 en pediatría y 16 en enfermería, redondeadas).
+
 Qué se cuenta (definición del SIAP): profesionales de los equipos de atención primaria, del modelo tradicional y de
 pediatría de área, a 31 de diciembre. No incluye urgencias, residentes ni personal directivo. Población asignada: la que
 tiene tarjeta sanitaria asignada a un profesional (medicina de familia: adultos; pediatría: niños).
@@ -353,13 +360,23 @@ def _ccaa(t) -> str | None:
     return next((c for c, p in ORDEN_SIAE if p in t), None)
 
 
-_es_tac = lambda t: sin_tildes(t).strip() == "tac"
-_es_rm = lambda t: sin_tildes(t).strip() in ("rm", "rnm", "rmn")
+EQUIPOS = ("tac", "rm", "mam")
+
+
+def _tipo(t) -> str | None:
+    """Tipo de equipo por su nombre en las tablas (la resonancia aparece como RM, RNM o RMN según el año)."""
+    t = sin_tildes(t).strip()
+    return "tac" if t == "tac" else "rm" if t in ("rm", "rnm", "rmn") else "mam" if t.startswith("mamograf") else None
 
 
 def equipos_anio(a: int) -> dict:
     """{ccaa: {"tac": (nº, nº red pública), "rm": (...)}} en los cuatro formatos de la tabla de dotación tecnológica."""
     rs = hoja(a, ("D.3-2.|D.3.", "3.2.1-3.2.2-3.2.3", "3.2"))
+    if a <= 2013:  # en algunos años la tabla sigue en otra hoja (los mamógrafos están en «D.3-3.»)
+        try:
+            rs = rs + hoja(a, ("D.3-3.", "", ""))
+        except SystemExit:
+            pass
     out: dict = {}
     textos = lambda r: [str(v).strip() for v in r if isinstance(v, str) and v.strip()]
     poner = lambda c, k, n, n_sns: out.setdefault(c, {}).setdefault(k, (n, n_sns))
@@ -367,8 +384,8 @@ def equipos_anio(a: int) -> dict:
     cab = next((r for r in rs if "AN" in textos(r) and "MD" in textos(r)), None)
     if cab:
         for i, r in enumerate(rs):
-            if r[0] and (_es_tac(str(r[0])) or _es_rm(str(r[0]))) and str(r[1]).strip() == "Total":
-                k = "tac" if _es_tac(str(r[0])) else "rm"
+            if r[0] and _tipo(str(r[0])) and str(r[1]).strip() == "Total":
+                k = _tipo(str(r[0]))
                 for j, cod in enumerate(cab):
                     t = str(cod).strip() if cod else ""
                     c = "CEML" if "CE" in t and "ML" in t else COD_SIAE.get(t, t) if t in [x for x, _ in ORDEN_SIAE] + ["MU"] else None
@@ -388,15 +405,15 @@ def equipos_anio(a: int) -> dict:
                     cols.setdefault(c, j)
                 continue
             et = next((str(v).strip() for v in r[:3] if isinstance(v, str) and v.strip()), "")
-            if cols and (_es_tac(et) or _es_rm(et)):
+            if cols and _tipo(et):
                 for c, j in cols.items():
                     if _num(r[j]) and _num(r[j + 1]):
-                        poner(c, "tac" if _es_tac(et) else "rm", _val(r[j]), _val(r[j]) * _val(r[j + 1]))
+                        poner(c, _tipo(et), _val(r[j]), _val(r[j]) * _val(r[j + 1]))
         return out
     # 2010-2015 y 2021: comunidades en filas; cabeceras con el equipo al inicio de cada par (nº, % SNS), en bloques
     cols = {}
     for r in rs:
-        enc = {("tac" if _es_tac(v) else "rm"): j for j, v in enumerate(r) if isinstance(v, str) and (_es_tac(v) or _es_rm(v))}
+        enc = {_tipo(v): j for j, v in enumerate(r) if isinstance(v, str) and _tipo(v)}
         if enc:
             cols = enc
             continue
@@ -424,15 +441,15 @@ def equipos(anios: list[int]):
             et = next((str(x).strip() for x in r if isinstance(x, str) and x.strip()), "")
             if et in ("Públicos-SNS", "Privados"):
                 bloque = "sns" if et == "Públicos-SNS" else "priv"
-            elif bloque and (_es_tac(et) or _es_rm(et)):
+            elif bloque and _tipo(et):
                 for i, y in cols.items():
-                    nac.setdefault(y, {})[(bloque, "tac" if _es_tac(et) else "rm")] = float(r[i])
-    series = {k: {c: [] for c, _ in ORDEN_SIAE} for k in ("hosp_tac_sns", "hosp_tac_total", "hosp_rm_sns", "hosp_rm_total")}
+                    nac.setdefault(y, {})[(bloque, _tipo(et))] = float(r[i])
+    series = {f"hosp_{e}_{t}": {c: [] for c, _ in ORDEN_SIAE} for e in EQUIPOS for t in ("sns", "total")}
     esp = {k: [] for k in series}
     peor = 0.0
     for a in anios:
         n = nac[a]
-        for k, eq in (("tac", "tac"), ("rm", "rm")):
+        for k, eq in ((e, e) for e in EQUIPOS):
             sns, tot = n[("sns", eq)], n[("sns", eq)] + n[("priv", eq)]
             esp[f"hosp_{k}_sns"].append(round(sns / POB_SIAE[(a, "ES")] * 1e5, 3))
             esp[f"hosp_{k}_total"].append(round(tot / POB_SIAE[(a, "ES")] * 1e5, 3))
@@ -442,10 +459,10 @@ def equipos(anios: list[int]):
                     series[k][c].append(None)
             continue
         d = equipos_anio(a)
-        falta = [c for c, _ in ORDEN_SIAE + [("CEML", "")] if c not in d or "tac" not in d[c] or "rm" not in d[c]]
+        falta = [(c, e) for c, _ in ORDEN_SIAE + [("CEML", "")] for e in EQUIPOS if c not in d or e not in d[c]]
         if falta:
-            raise SystemExit(f"SIAE {a}: faltan TAC o resonancia en {falta}")
-        for eq in ("tac", "rm"):
+            raise SystemExit(f"SIAE {a}: faltan equipos en {falta}")
+        for eq in EQUIPOS:
             tot = sum(v[eq][0] for v in d.values()); sns = sum(v[eq][1] for v in d.values())
             ref_t, ref_s = n[("sns", eq)] + n[("priv", eq)], n[("sns", eq)]
             dif = max(abs(tot - ref_t) / ref_t, abs(sns - ref_s) / ref_s)
@@ -454,7 +471,7 @@ def equipos(anios: list[int]):
             peor = max(peor, dif)
         for c, _ in ORDEN_SIAE:
             pob = POB_SIAE[(a, c)]
-            for eq in ("tac", "rm"):
+            for eq in EQUIPOS:
                 n_t, n_s = d[c][eq]
                 series[f"hosp_{eq}_total"][c].append(round(n_t / pob * 1e5, 3))
                 series[f"hosp_{eq}_sns"][c].append(round(n_s / pob * 1e5, 3))
@@ -462,13 +479,47 @@ def equipos(anios: list[int]):
                     pub_t, pub_s = d[c]["tasa_" + eq]
                     if abs(n_t / pob * 1e5 - pub_t) > 0.02 or abs(n_s / pob * 1e5 - pub_s) > 0.02:
                         raise SystemExit(f"SIAE {a} {c} {eq}: tasa calculada ({n_t / pob * 1e5:.2f}, {n_s / pob * 1e5:.2f}) frente a la publicada ({pub_t}, {pub_s})")
-    print(f"  SIAE TAC y resonancia {anios[0]}-{anios[-1]} (sin {ANIO_EQUIPOS_ROTO}): suma de comunidades = tablas nacionales (diferencia máxima {peor:.2%})")
+    print(f"  SIAE TAC, resonancia y mamógrafos {anios[0]}-{anios[-1]} (sin {ANIO_EQUIPOS_ROTO}): suma de comunidades = tablas nacionales (diferencia máxima {peor:.2%})")
     return series, esp
 
 
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
+
+
+def actividad_siap():
+    """Media de consultas por día y profesional (medicina de familia, pediatría, enfermería), por comunidad y año."""
+    tipos = {"Medicina de familia": "ap_consultas_medico", "Pediatría": "ap_consultas_pediatra", "Enfermería": "ap_consultas_enfermera"}
+    num = lambda v: float(v.replace(".", "").replace(",", ".")) if v else None
+    d: dict = defaultdict(dict)
+    for x in leer("siap-actividad-ordinaria-2007-2025.csv"):
+        k = tipos.get(x["Profesional"])
+        if k:
+            d[(int(x["Año"]), SIAP_A_ID[x["Comunidad Autónoma"]])][k] = (num(x["Consultas"]), num(x["Media consultas por día y profesional"]))
+    es: dict = defaultdict(dict)
+    for x in leer("siap-actividad-ordinaria-espana-2007-2025.csv"):
+        k = tipos.get(x["Profesional"])
+        if k:
+            es[int(x["Año"])][k] = (num(x["Consultas"]), num(x["Media consultas por día y profesional"]))
+    # Desde 2009: Cataluña no tiene datos de actividad en 2007 y 2008 (España no sería comparable con los años siguientes).
+    anios = [a for a in sorted(es) if a >= 2009]
+    falta = [(a, c) for a in anios for c in IDS if (a, c) not in d]
+    if falta:
+        raise SystemExit(f"SIAP actividad: faltan comunidades {falta}")
+    for a in anios:
+        for k in tipos.values():
+            suma = sum(d[(a, c)][k][0] for c in IDS + ["CEML"] if (a, c) in d)  # Ceuta y Melilla no tienen dato en 2012
+            if abs(suma - es[a][k][0]) > 1:
+                raise SystemExit(f"SIAP actividad {a} {k}: la suma de las comunidades ({suma:.0f}) no da España ({es[a][k][0]:.0f})")
+    resumen_2024 = {"ap_consultas_medico": 28, "ap_consultas_pediatra": 16, "ap_consultas_enfermera": 16}
+    for k, v in resumen_2024.items():
+        if round(es[2024][k][1]) != v:
+            raise SystemExit(f"SIAP actividad 2024 {k}: {es[2024][k][1]} no redondea a {v} (resumen oficial)")
+    series = {k: {c: [d[(a, c)][k][1] for a in anios] for c in IDS} for k in tipos.values()}
+    espana = {k: [es[a][k][1] for a in anios] for k in tipos.values()}
+    print(f"  SIAP actividad {anios[0]}-{anios[-1]}: suma de consultas = España; 2024 = resumen oficial (28, 16 y 16 consultas al día)")
+    return anios, series, espana
 
 
 def main() -> None:
@@ -527,6 +578,8 @@ def main() -> None:
                 reclasif.append({"ccaa": c, "anio": anios_h[k], "sns": [c_sns[c][k - 1], c_sns[c][k]], "total": [c_tot[c][k - 1], c_tot[c][k]]})
     print(f"  Cambios de clasificación pública/privada: {[(x['ccaa'], x['anio']) for x in reclasif]}")
     indicadores = [{"id": k, "fuente": "siap", "anios": anios, "valor": v, "espana": espana[k]} for k, v in inds.items()]
+    anios_act, act, esp_act = actividad_siap()
+    indicadores += [{"id": k, "fuente": "siap", "anios": anios_act, "valor": v, "espana": esp_act[k]} for k, v in act.items()]
     ocu, est, esp_a, avisos_a = agudos(anios_h)
     amb, esp_amb, avisos_c = cirugia(anios_h)
     ing, dia, esp_id, avisos_i = ingresos_y_dia(anios_h)

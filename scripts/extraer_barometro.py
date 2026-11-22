@@ -52,6 +52,11 @@ ESTUDIOS = {2022: (8822,), 2023: (8823,), 2024: (8824,), 2025: (3509, 3519, 3531
 VARIABLES = {
     "satisfaccion": {2022: "P2", 2023: "P2", 2024: "P2", 2025: "P2"},
     "valoracion_ap": {2022: "P6F", 2023: "P6E", 2024: "P5F", 2025: "P5F"},
+    # Ojo: en 2024-2025 «P8E» / «P8_05» es el especialista en salud mental; el especialista general es P7D / P7E.
+    "valoracion_especialista": {2022: "P8E", 2023: "P8D", 2024: "P7D", 2025: "P7E"},
+    # 2024: la pregunta pasa de «servicio de urgencias de la sanidad pública la última vez» a «servicio de urgencias
+    # (atención primaria/hospitalaria) de la sanidad pública»; la serie oficial la da como continua.
+    "valoracion_urgencias": {2022: "P7B", 2023: "P7B", 2024: "P6B", 2025: "P6B"},
 }
 PRIMER_ANIO_METODO = 2022  # entrevista telefónica (antes, en persona)
 
@@ -156,7 +161,11 @@ def main() -> None:
     indicadores = []
 
     # --- satisfacción y valoración de la atención primaria: serie oficial + márgenes de los microdatos
-    for clave, hoja, transf, unidad in (("satisfaccion", "P 3", satisf, "nota10"), ("valoracion_ap", "P 7b", buena, "pct")):
+    for clave, hoja, transf, unidad in (("satisfaccion", "P 3", satisf, "nota10"), ("valoracion_ap", "P 7b", buena, "pct"),
+                                        ("valoracion_especialista", "P 10c", buena, "pct"), ("valoracion_urgencias", "P 9f", buena, "pct")):
+        # La valoración de la hospitalización (P 12e, variable P9D) no se usa: solo contestan quienes estuvieron
+        # ingresados, hay muy pocas entrevistas por comunidad (margen mediano de ±13 puntos en 2025, hasta ±34) y en
+        # algunas todas responden «buena», con lo que el margen calculado sale 0, que no es real.
         oficial, espana = serie_oficial(hoja)
         margen: dict[int, dict[str, float]] = {}
         for anio in sorted(ESTUDIOS):
