@@ -544,7 +544,11 @@ export function iniciar(DATA: DatosApp): void {
       return { out, top, bot };
     }
     if (ind.grupo === "recursos") {
-      out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> tiene la cifra más alta (${fmt(vals[top], u)} ${esc(ind.que)}) y <strong>${NOMBRE[bot]}</strong> la más baja (${fmt(vals[bot], u)}).` });
+      // Empates con la cifra que se muestra: se nombran todas las comunidades que la comparten.
+      const igual = (ref) => o.filter((id) => fmt(vals[id], u) === fmt(vals[ref], u));
+      const nombres = (ids) => ids.map((id) => `<strong>${NOMBRE[id]}</strong>`).join(" y ");
+      const [ta, tb] = [igual(top), igual(bot)];
+      out.push({ k: "Más y menos", t: `${nombres(ta)} ${ta.length > 1 ? "tienen" : "tiene"} la cifra más alta (${fmt(vals[top], u)} ${esc(ind.que)}) y ${nombres(tb)} la más baja (${fmt(vals[bot], u)}).` });
       out.push({ k: `España en ${anio}`, t: `<strong>${fmt(ind.espana[indice(ind, anio)], u)}</strong> ${esc(ind.que)}, ${esc(ind.espanaTxt)}. ${o.filter((id) => vals[id] > ind.espana[indice(ind, anio)]).length} comunidades están por encima.` });
     } else if (ind.id === "gasto_hab" || ind.id === "gasto_hab_edad" || ind.id === "farmacia_hab") {
       out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> gasta ${fmt(vals[top], u)} por habitante, un ${nf(0).format((vals[top] / vals[bot] - 1) * 100)} % más que <strong>${NOMBRE[bot]}</strong> (${fmt(vals[bot], u)}).` });
@@ -1051,7 +1055,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Qué cuenta.</b> Las camas en funcionamiento (las que han funcionado de media en el año), en todos los hospitales: agudos, media y larga estancia y salud mental. Se cuentan en la comunidad donde está el hospital, aunque atienda a pacientes de otras comunidades. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública; esa definición es la misma desde 2010, por eso la serie empieza ese año.</p>
       ${rec ? `<p><b>Camas que cambian de clasificación.</b> Total = camas públicas + privadas. Señalamos los años en que las públicas cambian un 10 % o más y las totales menos de un 5 %: son camas que la estadística pasa a contar como públicas (o como privadas). La fuente no explica por qué.</p><ul>${rec}</ul>` : ""}
       <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` En las tablas de ${[...new Set(R.etiquetasSiae.map((x) => x.slice(0, 4)))].join(", ")}, la fila de Aragón lleva una etiqueta equivocada («Personal y Formación»); la identificamos por su posición y por esas comprobaciones.` : ""}</p>
-      <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. Conviene leer las camas, la ocupación y la estancia juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
+      <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
       <p><b>Más camas no es por sí solo mejor ni peor:</b> depende de cómo se organiza la atención (cirugía sin ingreso, hospital de día, atención a domicilio) y de la edad de la población. Los hospitales de referencia atienden también a pacientes de otras comunidades. Ceuta y Melilla van juntas en la fuente.</p>`;
   }
 
@@ -1749,7 +1753,7 @@ export function iniciar(DATA: DatosApp): void {
       <dl>${lista("recursos")}</dl>
       <h3>Profesionales de atención primaria</h3>
       ${notasRecursos("siap")}
-      <h3>Hospitales: camas, ocupación y estancia media</h3>
+      <h3>Hospitales: camas, ocupación, estancia media y cirugía sin ingreso</h3>
       ${notasRecursos("siae")}
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
@@ -1827,7 +1831,7 @@ export function iniciar(DATA: DatosApp): void {
     pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
-  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y camas y ocupación de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
+  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y camas, ocupación y cirugía de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   {
     const rect = DATA.versionListas && DATA.versionListas.rectificado
