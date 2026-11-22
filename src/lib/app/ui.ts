@@ -41,6 +41,7 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "num") return nf(0).format(v);
     if (u === "nota10") return nf(2).format(v);
     if (u === "dias_media") return nf(1).format(v) + " días";
+    if (u === "personas") return nf(0).format(v);
     if (u === "var" || u === "pp") {
       const d = u === "pp" ? 1 : 0;
       const signo = v === 0 ? "" : Math.abs(v) < (u === "pp" ? 0.05 : 0.5) ? "≈ " : v > 0 ? "+" : "−";
@@ -61,7 +62,7 @@ export function iniciar(DATA: DatosApp): void {
   // «Comparar años» no se ofrece en el Barómetro: con sus márgenes, la mayoría de cambios no se distinguen del azar.
   const permiteCambio = (ind) => tieneSerie(ind) && ind.grupo !== "opinion";
   const periodo = (ind, a, corto = false) => {
-    if (ind.grupo === "gasto") return String(a);
+    if (ind.grupo === "gasto" || ind.grupo === "recursos") return String(a);
     if (ind.grupo === "opinion") return String(ind.fechas[a]);
     const [anio, mes] = CORTES[a].id.split("-");
     // En minúscula y con «de», como se escribe en español en mitad de una frase: «diciembre de 2025».
@@ -91,7 +92,8 @@ export function iniciar(DATA: DatosApp): void {
   }
   const media = (o) => { const v = Object.values(o).filter((x) => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
   function ordenados(o) { return IDS.filter((id) => o[id] != null).sort((a, b) => o[b] - o[a]); }
-  const esProv = (anio) => DATA.prov.includes(anio);
+  // Años provisionales: solo los del gasto (la EGSP). Sin indicador, se mira el que se está viendo.
+  const esProv = (anio, ind = IND[S.indP]) => (!ind || ind.grupo === "gasto") && DATA.prov.includes(anio);
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
   // Escala secuencial azul (un tono). Se omiten #3987e5 y #2a78d6: ni texto oscuro ni blanco llegan a 4,5:1.
@@ -121,7 +123,7 @@ export function iniciar(DATA: DatosApp): void {
     const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0144 + 0.05)) ? "#ffffff" : "#142033";
   }
-  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "‰", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", var: "% de crecimiento", pp: "puntos de cambio" };
+  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "‰", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", var: "% de crecimiento", pp: "puntos de cambio" };
   const soloNum = (v, u) => u === "var" || u === "pp" ? fmt(v, u).replace(/ (%|p\.)$/, "") : nf(u === "eur_hab" || u === "dias" ? 0 : 1).format(v);
   // Devuelve el color de cada comunidad y la leyenda, según la paleta.
   function escala(vals, ind, pal0 = PAL) {
@@ -312,10 +314,11 @@ export function iniciar(DATA: DatosApp): void {
     const acc = css("--accent"), soft = css("--accent-soft"), grey = css("--grey-line");
     const tarjetas = DATA.inds.filter((i) => i.grupo === grupo).map((i) => {
       const anio = ultimo(i);
-      const vals = valores(i, i.grupo === "espera" ? S.anioP : anio); const m = i.grupo === "opinion" ? i.espana[anio] : media(vals);
+      const vals = valores(i, i.grupo === "espera" ? S.anioP : anio);
+      const m = i.grupo === "opinion" ? i.espana[anio] : i.grupo === "recursos" ? i.espana[indice(i, anio)] : media(vals);
       let mini;
       if (tieneSerie(i)) {
-        const medias = i.grupo === "opinion" ? i.espana.slice() : periodos(i).map((a) => media(valores(i, a)));
+        const medias = i.espana ? i.espana.slice() : periodos(i).map((a) => media(valores(i, a)));
         const lo = Math.min(...medias), hi = Math.max(...medias);
         const sx = (k) => 2 + (k / (medias.length - 1)) * 116, sy = (v) => 3 + (1 - (v - lo) / (hi - lo || 1)) * 22;
         const d = medias.map((v, k) => `${k ? "L" : "M"}${sx(k).toFixed(1)},${sy(v).toFixed(1)}`).join("");
@@ -330,6 +333,7 @@ export function iniciar(DATA: DatosApp): void {
       let pie = `Media de las 17 · en azul, ${ABR[S.com]}`;
       if (i.grupo === "espera") pie = `Media de las comunidades con dato · ${periodo(i, S.anioP)}`;
       else if (i.grupo === "opinion") pie = `España · ${periodo(i, anio)} · encuesta`;
+      else if (i.grupo === "recursos") pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${fmt((m / i.espana[0] - 1) * 100, "var")} desde ${periodo(i, primero(i))}</span>`;
       else if (tieneSerie(i)) {
         // Crecimiento de la media de las 17: aquí se ve el efecto de descontar o no la inflación.
         const m0 = media(valores(i, ANIOS[0]));
@@ -344,6 +348,7 @@ export function iniciar(DATA: DatosApp): void {
         <button type="button" data-g="gasto" aria-pressed="${grupo === "gasto"}">Gasto sanitario</button>
         <button type="button" data-g="espera" aria-pressed="${grupo === "espera"}">Listas de espera</button>
         <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}">Atención primaria y opinión</button>
+        <button type="button" data-g="recursos" aria-pressed="${grupo === "recursos"}">Recursos</button>
       </div><div class="kpis">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
         <div class="seg sm" role="group" aria-label="Inflación">
           <button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button>
@@ -407,7 +412,7 @@ export function iniciar(DATA: DatosApp): void {
       sv += `<g class="reg ciu" data-id="${r.id}" tabindex="0" role="img" aria-label="${CIUDADES[r.id]}: ${esc(fmt(v, ind.unidad))} (aparte)"><circle cx="${r.lx}" cy="${r.ly}" r="8" fill="${surf}" stroke="${fg}" stroke-width="1.2" stroke-dasharray="2 2"/>
         <text x="${r.lx + 12}" y="${r.ly + 4}" font-size="10.5" fill="${fg}">${CIUDADES[r.id]} ${fmtCorto(v, ind.unidad)}*</text></g>`;
     });
-    sv += `<text x="${m.x + 8}" y="${m.y + m.h - 8}" font-size="10" fill="${muted}">Canarias</text></svg><p class="geo-fuente">Mapa: Instituto Geográfico Nacional (es-atlas), CC BY 4.0. ${conCiud ? "* Ceuta y Melilla, aparte: no cuentan para la media ni los puestos." : neutro ? "" : ind.grupo === "opinion" ? "Ceuta y Melilla no se muestran: tienen muy pocas entrevistas." : "Ceuta y Melilla, en gris: sin gasto comparable."}</p>`;
+    sv += `<text x="${m.x + 8}" y="${m.y + m.h - 8}" font-size="10" fill="${muted}">Canarias</text></svg><p class="geo-fuente">Mapa: Instituto Geográfico Nacional (es-atlas), CC BY 4.0. ${conCiud ? "* Ceuta y Melilla, aparte: no cuentan para la media ni los puestos." : neutro ? "" : ind.grupo === "opinion" ? "Ceuta y Melilla no se muestran: tienen muy pocas entrevistas." : ind.grupo === "recursos" ? "Ceuta y Melilla van juntas en la fuente: no se muestran." : "Ceuta y Melilla, en gris: sin gasto comparable."}</p>`;
     cont.innerHTML = sv;
     cont.querySelectorAll(".ciu").forEach((t) => {
       const id = t.dataset.id;
@@ -437,7 +442,7 @@ export function iniciar(DATA: DatosApp): void {
   // Línea de tiempo. El control se crea una vez y luego solo se actualiza: si se volviera a crear en cada
   // paso, el navegador soltaría el tirador a mitad de un arrastre.
   const pctAnio = (ind, a) => ((a - primero(ind)) / (ultimo(ind) - primero(ind))) * 100;
-  const marcasAnios = (ind) => `<div class="marcas" aria-hidden="true">${periodos(ind).filter((a, i) => a === primero(ind) || a === ultimo(ind) || ind.grupo === "gasto" && (a - primero(ind)) % 4 === 0 && ultimo(ind) - a >= 3)
+  const marcasAnios = (ind) => `<div class="marcas" aria-hidden="true">${periodos(ind).filter((a, i) => a === primero(ind) || a === ultimo(ind) || (ind.grupo === "gasto" || ind.grupo === "recursos") && (a - primero(ind)) % 4 === 0 && ultimo(ind) - a >= 3)
     .map((a) => `<span style="left:calc(10px + (100% - 20px) * ${pctAnio(ind, a) / 100})">${periodo(ind, a, true)}</span>`).join("")}</div>`;
   function barraAnios(cont, ind, anio, onChange) {
     if (!tieneSerie(ind)) {
@@ -534,15 +539,19 @@ export function iniciar(DATA: DatosApp): void {
       if (ch) out.push({ k: `España desde ${ind.fechas[0]}`, t: `De ${fmt(ch.desde, u)} a <strong>${fmt(ch.hasta, u)}</strong> en ${ind.fechas[anio]}: ${textoCambio(ind, ch)}.` });
       return { out, top, bot };
     }
-    if (ind.id === "gasto_hab" || ind.id === "gasto_hab_edad" || ind.id === "farmacia_hab") {
+    if (ind.grupo === "recursos") {
+      const que = ind.corto.charAt(0).toLowerCase() + ind.corto.slice(1);
+      out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> tiene la cifra más alta (${fmt(vals[top], u)} ${esc(que)}) y <strong>${NOMBRE[bot]}</strong> la más baja (${fmt(vals[bot], u)}).` });
+      out.push({ k: `España en ${anio}`, t: `<strong>${fmt(ind.espana[indice(ind, anio)], u)}</strong> ${esc(que)}, contando toda la población asignada y todos los profesionales de las 17. ${o.filter((id) => vals[id] > ind.espana[indice(ind, anio)]).length} comunidades están por encima.` });
+    } else if (ind.id === "gasto_hab" || ind.id === "gasto_hab_edad" || ind.id === "farmacia_hab") {
       out.push({ k: "Más y menos", t: `<strong>${NOMBRE[top]}</strong> gasta ${fmt(vals[top], u)} por habitante, un ${nf(0).format((vals[top] / vals[bot] - 1) * 100)} % más que <strong>${NOMBRE[bot]}</strong> (${fmt(vals[bot], u)}).` });
     } else if (u === "dias") {
       out.push({ k: "Más y menos espera", t: `En <strong>${NOMBRE[top]}</strong> se espera de media ${fmt(vals[top], u)}; en <strong>${NOMBRE[bot]}</strong>, ${fmt(vals[bot], u)}. ${vals[bot] > 0 ? `El primero es ${nf(1).format(vals[top] / vals[bot])} veces el segundo.` : ""}` });
     } else {
       out.push({ k: "Extremos", t: `<strong>${NOMBRE[top]}</strong> tiene el valor más alto (${fmt(vals[top], u)}) y <strong>${NOMBRE[bot]}</strong> el más bajo (${fmt(vals[bot], u)}).` });
     }
-    out.push({ k: "Media", t: `La media de las ${o.length} comunidades${o.length < IDS.length ? " con dato" : ""} es <strong>${fmt(m, u)}</strong>. ${o.filter((id) => vals[id] > m).length} están por encima.` });
-    if (ind.grupo === "gasto" && anio > base0(ind)) {
+    if (ind.grupo !== "recursos") out.push({ k: "Media", t: `La media de las ${o.length} comunidades${o.length < IDS.length ? " con dato" : ""} es <strong>${fmt(m, u)}</strong>. ${o.filter((id) => vals[id] > m).length} están por encima.` });
+    if ((ind.grupo === "gasto" || ind.grupo === "recursos") && anio > base0(ind)) {
       const base = valores(ind, base0(ind));
       const cambio = {};
       for (const id of IDS) cambio[id] = u === "pct" ? vals[id] - base[id] : (vals[id] / base[id] - 1) * 100;
@@ -738,9 +747,9 @@ export function iniciar(DATA: DatosApp): void {
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
-  const opcionesDato = () => ["gasto", "espera", "opinion"].map((g) => `<optgroup label="${{ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Atención primaria y opinión" }[g]}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
+  const opcionesDato = () => ["gasto", "espera", "opinion", "recursos"].map((g) => `<optgroup label="${{ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Atención primaria y opinión", recursos: "Recursos" }[g]}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
   const opcionesCampo = (base) => opt("total", "Todas (total)", S.campoE === "total") + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => opt(`${tipo}:${c.id}`, c.nombre, S.campoE === `${tipo}:${c.id}`)).join("")}</optgroup>`).join("");
-  const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a) ? " (prov.)" : ""}`, a === sel)).join("");
+  const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a, ind) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
   const opcionesGraf = (base) => [["ranking", "Ranking"], ["evolucion", "Evolución"], ["tabla", "Tabla"]].map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
 
@@ -877,7 +886,7 @@ export function iniciar(DATA: DatosApp): void {
 
     const cont = $("#e-chart");
     const vals = valores(ind, anio);
-    const fecha = ind.grupo === "espera" ? CORTES[anio].fecha : ind.grupo === "opinion" ? periodo(ind, anio) : `${anio}${esProv(anio) ? " (provisional)" : ""}`;
+    const fecha = ind.grupo === "espera" ? CORTES[anio].fecha : ind.grupo === "opinion" ? periodo(ind, anio) : `${anio}${esProv(anio, ind) ? " (provisional)" : ""}`;
     if (S.vistaE === "evolucion") {
       $("#e-titulo").textContent = `${ind.nombre}, ${periodo(ind, primero(ind), true)} – ${periodo(ind, ultimo(ind), true)}${sinInfl(ind) ? `, en euros de ${ULT}` : enEuros(ind) ? ", en euros de cada año" : ""}`;
       $("#e-sub").textContent = "Las 17 comunidades en gris; en color, las que destaques. Pasa el ratón o toca el gráfico para ver cada fecha.";
@@ -920,15 +929,15 @@ export function iniciar(DATA: DatosApp): void {
       avisosV.length ? `${avisosV.length} ${avisosV.length === 1 ? "variación inusual" : "variaciones inusuales"}` : "",
       ccEnt.length ? "cambios en las entidades" : "",
     ].filter(Boolean);
-    const cuerpo = `<p>${esc(ind.desc)}</p>` + (ind.grupo === "opinion" ? notasOpinion(ind) : "") +
+    const cuerpo = `<p>${esc(ind.desc)}</p>` + (ind.grupo === "opinion" ? notasOpinion(ind) : ind.grupo === "recursos" ? notasRecursos() : "") +
       (cambioDefinicion ? '<p>Hasta junio de 2024 el indicador se refería a pacientes con cita asignada. Desde diciembre de 2024 se incluyen pacientes sin cita que ya superaban 60 días en el registro. El cambio entre ambas definiciones no se calcula. <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/docs/Datos_ccaa_dic2024.pdf#page=8">Informe de diciembre de 2024</a>.</p>' : "") +
       (consulta2023 ? '<p>En junio de 2023, el informe de consultas repite los recuentos, tiempos medios y porcentajes de diciembre de 2022, aunque publica tasas distintas. Se muestran las cifras de la fuente y se omiten los cambios que usan ese corte. <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/ListaEsperaInfAntCCAA.htm">Informes del Ministerio</a>.</p>' : "") +
       notasSISLE.map((n) => `<p><b>Nota del Ministerio (${n.fecha}):</b> ${esc(n.texto)}</p>`).join("") +
       notasAnio.map((n) => `<p><b>Nota del Ministerio (${esc(NOMBRE[n.ccaa])}, ${n.anio}):</b> ${esc(n.texto)}</p>`).join("") +
       (avisosV.length ? `<p><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b></p><ul>${avisosV.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul><p><a href="#metodo-calidad">Cómo las detectamos</a>.</p>` : "") +
       (ccEnt.length ? `<p><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${ccEnt.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</p>` : "") +
-      (S.vistaE !== "evolucion" ? `<p><b>Ceuta y Melilla.</b> ${ind.grupo === "gasto" ? AVISO_GASTO : ind.grupo === "opinion" ? AVISO_OPINION_CIUDADES : AVISO_CIUDADES}</p>` : "");
-    $("#e-nota").innerHTML = `Fuente: Ministerio de Sanidad${ind.grupo === "gasto" ? ", Estadística de Gasto Sanitario Público" : ind.grupo === "opinion" ? " y CIS, Barómetro Sanitario" : ", SISLE-SNS"}.` +
+      (S.vistaE !== "evolucion" ? `<p><b>Ceuta y Melilla.</b> ${ind.grupo === "gasto" ? AVISO_GASTO : ind.grupo === "opinion" ? AVISO_OPINION_CIUDADES : ind.grupo === "recursos" ? AVISO_RECURSOS_CIUDADES : AVISO_CIUDADES}</p>` : "");
+    $("#e-nota").innerHTML = `Fuente: Ministerio de Sanidad${ind.grupo === "gasto" ? ", Estadística de Gasto Sanitario Público" : ind.grupo === "opinion" ? " y CIS, Barómetro Sanitario" : ind.grupo === "recursos" ? ", Sistema de Información de Atención Primaria (SIAP)" : ", SISLE-SNS"}.` +
       (sinDato.length ? ` Sin dato en el informe: ${sinDato.map((k) => esc(NOMBRE[k])).join(", ")}.` : "") +
       plegable("e-nota", `Qué mide este dato${cuenta.length ? ` · ${cuenta.join(" · ")}` : ""}`, cuerpo);
   }
@@ -1015,6 +1024,18 @@ export function iniciar(DATA: DatosApp): void {
         : `<p><b>Cifras de 2022 a 2024.</b> Son las de la serie actual del Ministerio, que las ha recalculado: con los microdatos públicos del CIS no salen exactamente iguales (las de 2025, sí). Los márgenes de error de esos años sí salen de los microdatos.</p>`}
       <p><b>Para contrastar las cifras:</b> ${fuentesOpinion()}</p>`;
   }
+  // ---------- Recursos (profesionales de atención primaria, SIAP) ----------
+  const AVISO_RECURSOS_CIUDADES = "En el SIAP, Ceuta y Melilla van juntas (las gestiona el INGESA), así que no se pueden mostrar por separado.";
+  function notasRecursos() {
+    const R = DATA.recursos, F = R.fuente;
+    const rep = R.repetidos.map((x) => `${NOMBRE[x.ccaa]} (${x.anio})`);
+    return `<p><b>De dónde sale.</b> <a href="${F.url}">${esc(F.texto)}</a>: ${esc(F.ruta)}. Dividimos la población asignada entre los profesionales; España es el conjunto de las 17 comunidades. La población asignada de 2024 coincide con la del <a href="${F.resumen}">resumen oficial del SIAP 2024</a> (48.034.708 personas, con Ceuta y Melilla). Ese resumen, publicado antes, da algunos profesionales más que la consulta actual (31.241 médicos de familia frente a 31.118); usamos la consulta, que es la fuente detallada.</p>
+      <p><b>Qué cuenta.</b> Los profesionales de los equipos de atención primaria, del modelo tradicional y de pediatría de área, a 31 de diciembre. No cuenta los de urgencias ni los residentes. Es la población que tiene asignada cada profesional en su cupo, no cuánta gente atiende de verdad ni cuánto se espera.</p>
+      <p><b>Cataluña, 2020.</b> El Ministerio avisa: «${esc(R.ruptura.texto)}» Los años anteriores y posteriores no son del todo comparables.</p>
+      ${rep.length ? `<p><b>Cifras repetidas.</b> En ${rep.join(", ")}, las cifras de médicos de familia, pediatras y enfermería son exactamente las del año anterior. La fuente no explica por qué.</p>` : ""}
+      <p><b>Para comparar entre comunidades,</b> ten en cuenta que la organización cambia mucho, sobre todo en zonas rurales con muchos consultorios pequeños: lo dice el propio Ministerio en sus resúmenes del SIAP.</p>`;
+  }
+
   function rankingOpinion(cont, ind, a) {
     const vals = valores(ind, a), o = ordenados(vals), ref = ind.espana[a];
     if (!o.length) { cont.innerHTML = '<p class="nota">Sin datos.</p>'; return; }
@@ -1109,7 +1130,9 @@ export function iniciar(DATA: DatosApp): void {
     // Barra desde el cero (los cambios pueden ser negativos), con el extremo de datos redondeado.
     const barra = (y, v, rel) => { const a = Math.min(x(0), x(v)), w = Math.abs(x(v) - x(0));
       return `<rect x="${a}" y="${y + 5}" width="${Math.max(w, 1)}" height="${fila - 10}" rx="3" ${rel}/>`; };
-    const m = media(vals);
+    // Recursos: la referencia es España (toda la población asignada entre todos los profesionales), como en el SIAP.
+    const refEsp = ind.grupo === "recursos" && ind.unidad === "personas";
+    const m = refEsp ? ind.espana[indice(ind, S.anioP)] : media(vals);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), base = css("--grey-line");
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ranking de ${esc(ind.nombre)}">`;
     o.forEach((id, i) => {
@@ -1124,7 +1147,7 @@ export function iniciar(DATA: DatosApp): void {
     });
     const xm = Number.isFinite(m) ? x(m) : x(0), y17 = top + o.length * fila;
     if (o.length) s += `<line x1="${xm}" x2="${xm}" y1="${top - 4}" y2="${y17 + 4}" stroke="${fg}" stroke-dasharray="3 3" stroke-width="1.2"/>
-      <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">media de las ${o.length}: ${fmt(m, ind.unidad)}</text>`;
+      <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">${refEsp ? "España" : `media de las ${o.length}`}: ${fmt(m, ind.unidad)}</text>`;
     s += `<line x1="${x(0)}" x2="${x(0)}" y1="${top}" y2="${y17}" stroke="${line}"/>`;
     if (ciu.length) {
       const y0 = y17 + 30;
@@ -1195,6 +1218,11 @@ export function iniciar(DATA: DatosApp): void {
     const n = (v) => v == null ? "" : String(+v.toFixed(3)).replace(".", ",");
     let filas;
     if (ind.grupo === "opinion") filas = filasCSVOpinion(ind);
+    else if (ind.grupo === "recursos") {
+      const fuente = "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)";
+      filas = [["indicador", "comunidad", "anio", "valor", "fuente"]];
+      [...IDS, "ES"].forEach((id) => periodos(ind).forEach((a, i) => filas.push([ind.nombre, id === "ES" ? "España (las 17)" : NOMBRE[id], a, n(id === "ES" ? ind.espana[i] : ind.serie[id][i]), fuente])));
+    }
     else if (ind.grupo === "gasto") {
       const real = enEuros(ind);
       filas = [["indicador", "comunidad", "anio", real ? "valor_euros_corrientes" : "valor", ...(real ? [`valor_euros_${ULT}`] : []), "provisional"]];
@@ -1348,7 +1376,7 @@ export function iniciar(DATA: DatosApp): void {
       <li><b>Qué muestra:</b> cada punto es una comunidad; las líneas discontinuas marcan la media de las ${ids.length}. ${conTuya ? "" : `${esc(NOMBRE[c0])} no aparece: el informe no trae ese dato. `}Sin Ceuta y Melilla (no tienen gasto comparable).</li>
       <li><b>Relación</b> ${relacion}</li>
       <li><b>Ir juntos no es causar:</b> ${clara ? "esta relación no prueba" : "ni aunque hubiera relación probaría"} que gastar más acorte o alargue la espera. Influyen otros factores que el gráfico no tiene en cuenta: la edad de la población, la dispersión geográfica, las derivaciones a centros concertados, el seguro privado, la organización de cada servicio y cómo registra cada comunidad sus listas.</li>
-      <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT) ? " (provisional)" : ""} y la espera, la situación a ${CORTES[S.anioP].fecha}.</li>
+      <li><b>Fechas distintas:</b> el gasto es de ${ULT}${esProv(ULT, IND.gasto_hab) ? " (provisional)" : ""} y la espera, la situación a ${CORTES[S.anioP].fecha}.</li>
       <li><b>Comunidades, no personas:</b> compara cifras de comunidades enteras; no dice nada de lo que espera cada paciente.</li>
     </ul><a href="#metodo-comparar">Más en «Cómo leer los datos»</a>`);
   }
@@ -1393,7 +1421,7 @@ export function iniciar(DATA: DatosApp): void {
           <text x="${x(fin)}" y="${T + 12}" text-anchor="end" font-size="10.5" fill="${note}">provisional</text>`;
     tk.forEach((v) => { s += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="${line}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="${muted}">${fmtCorto(v, ind.unidad)}</text>`; });
     const paso = Math.max(1, Math.ceil(58 * (fin - inicio) / (W - L - R)));
-    const etiquetasEje = ind.grupo === "gasto" ? aniosEje(W - L - R, 11, fechas) :
+    const etiquetasEje = ind.grupo === "gasto" || ind.grupo === "recursos" ? aniosEje(W - L - R, 11, fechas) :
       fechas.filter((a) => a === fin || (a - inicio) % paso === 0 && fin - a >= paso);
     etiquetasEje.forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${periodo(ind, a, true)}</text>`; });
     IDS.filter((id) => !colorSel(id)).forEach((id) => { s += `<path d="${path(ind.serie[id])}" fill="none" stroke="${grey}" stroke-width="1.2"/>`; });
@@ -1473,7 +1501,7 @@ export function iniciar(DATA: DatosApp): void {
         : "Sin datos para calcular la media");
       const delAnio = marcas.filter((n) => n.anio === a);
       const extra = delAnio.length ? `<div class="tip-marcas">${delAnio.map((n) => `${iconoMarca(n.tipo, n.c)}${TIPO_MARCA[n.tipo]} (${esc(ABR[n.ccaa] || NOMBRE[n.ccaa])})`).join("<br>")}<br><span class="tip-ayuda">Detalle debajo del gráfico</span></div>` : "";
-      showTip(`<b>${periodo(ind, a)}${esProv(a) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);
+      showTip(`<b>${periodo(ind, a)}${esProv(a, ind) ? " (provisional)" : ""}</b><br>${filas.join("<br>")}${extra}`, e.clientX, e.clientY);
     };
     svg.querySelector("#zona").onclick = svg.querySelector("#zona").onmousemove;
     svg.querySelector("#zona").onmouseleave = () => { cruz.setAttribute("visibility", "hidden"); hideTip(); };
@@ -1525,11 +1553,12 @@ export function iniciar(DATA: DatosApp): void {
 
   function filaInd(ind, id, vs = "", anioSel = ULT) {
     const anio = anioSel;
-    const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id]; const m = media(vals);
+    const vals = valores(ind, anio); const o = ordenados(vals); const v = vals[id];
+    const m = ind.grupo === "recursos" ? ind.espana[indice(ind, anio)] : media(vals), frente = ind.grupo === "recursos" ? "frente a España" : "frente a la media";
     const pos = o.indexOf(id) + 1;
     const hayDato = v != null;
-    const dif = ind.unidad === "pct" ? `${v >= m ? "+" : "−"}${nf(1).format(Math.abs(v - m))} puntos frente a la media`
-      : `${v >= m ? "+" : "−"}${nf(0).format(Math.abs(v / m - 1) * 100)} % frente a la media`;
+    const dif = ind.unidad === "pct" ? `${v >= m ? "+" : "−"}${nf(1).format(Math.abs(v - m))} puntos ${frente}`
+      : `${v >= m ? "+" : "−"}${nf(0).format(Math.abs(v / m - 1) * 100)} % ${frente}`;
     // tira de puntos
     const W = 300, H = 34, P = 8;
     const min = Math.min(...o.map((k) => vals[k])), max = Math.max(...o.map((k) => vals[k]));
@@ -1586,7 +1615,7 @@ export function iniciar(DATA: DatosApp): void {
     const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : arriba(qp, 17) ? `la ${qp}.ª espera más larga de 17` : `la ${18 - qp}.ª espera más corta de 17`;
     const enQueEuros = aC !== ULT ? (S.real ? ` (en euros de ${ULT}, descontada la inflación)` : " (en euros de ese año)") : "";
     $("#c-resumen").innerHTML = `En ${aC} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública${enQueEuros}: ${gtx}. En ${periodo(q, S.corteC)} sus pacientes llevaban de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
-    $("#c-gasto-sub").innerHTML = `<label class="periodo" for="c-anio">Año <select id="c-anio">${ANIOS.slice().reverse().map((a) => `<option value="${a}" ${a === aC ? "selected" : ""}>${a}${esProv(a) ? " (provisional)" : ""}</option>`).join("")}</select></label>
+    $("#c-gasto-sub").innerHTML = `<label class="periodo" for="c-anio">Año <select id="c-anio">${ANIOS.slice().reverse().map((a) => `<option value="${a}" ${a === aC ? "selected" : ""}>${a}${esProv(a, IND.gasto_hab) ? " (provisional)" : ""}</option>`).join("")}</select></label>
       <span class="seg sm" role="group" aria-label="Inflación"><button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button><button type="button" data-r="0" aria-pressed="${!S.real}">Sin descontar</button></span>
       <span class="sub-ficha">${S.real ? `Los euros de cada año están en euros de ${ULT}.` : "Cada año, en los euros de entonces."} Cada punto gris es otra comunidad; la raya marca la media de las 17. La línea de la derecha es la evolución desde ${ANIOS[0]}, con el año elegido marcado.</span>`;
     $("#c-anio").onchange = (e) => { S.anioC = +e.target.value; render(); };
@@ -1609,6 +1638,10 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-corte").onchange = (e) => { S.corteC = +e.target.value; render(); };
     $("#c-espera").innerHTML = DATA.inds.filter((i) => i.grupo === "espera").map((i) => filaInd(i, id, S.vs, S.corteC)).join("");
     renderOpinionFicha(id);
+    const rec = DATA.inds.filter((i) => i.grupo === "recursos");
+    $("#c-recursos-sub").textContent = `Profesionales de atención primaria de la sanidad pública, a 31 de diciembre de ${ultimo(rec[0])}. Más personas por profesional quiere decir menos profesionales para la misma población. La raya marca España (el conjunto de las 17).`;
+    $("#c-recursos").innerHTML = rec.map((i) => filaInd(i, id, S.vs, ultimo(i))).join("");
+    $("#c-recursos-notas").innerHTML = plegable("recursos-ficha", "¿De dónde salen estos datos?", notasRecursos());
     renderContexto(id);
     const quir = DATA.detalle.quirurgica;
     const esp = quir.campos.filter((c) => c.id !== "total").map((c) => [c.nombre, quir.v[c.id].dias[id]?.[S.corteC]]).filter(([, v]) => v != null).sort((a, b) => b[1] - a[1]);
@@ -1627,7 +1660,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Atención primaria y opinión</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Atención primaria y opinión</a><a href="#metodo-recursos">Recursos</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -1689,6 +1722,10 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>De dónde sale cada cifra.</b> Satisfacción y valoración del médico de familia: serie por comunidad del Ministerio. Atendidos en el día o al siguiente y días para el médico de familia: el Ministerio no publica la serie por comunidad, así que los calculamos con los microdatos del CIS de 2025, con su mismo método.</p>
       <p><b>Cómo lo comprobamos.</b> Con los microdatos reproducimos exactamente la satisfacción y la valoración de 2025 de su serie, en las 17 comunidades, Ceuta y Melilla. En el acceso coinciden todas las cifras que da su informe anual: en España, 9,15 días de media, 21,8 % atendido en el día o al siguiente y 5,1 % que prefirió otra fecha; y los días de País Vasco (4,91), Asturias (5,45), Andalucía (11,16), Cataluña (10,59) y Ceuta (5,55). El cálculo usa la ponderación nacional, también dentro de cada comunidad, y en las valoraciones el «no sabe o no contesta» cuenta en el total.</p>
       <p><b>Los días de espera son de atención primaria.</b> No tienen que ver con las listas de espera de la web, que son de operaciones y consultas con el especialista (registro SISLE-SNS). Aquí se pregunta a la gente por su última visita al médico de familia.</p>
+
+      <h2 id="metodo-recursos">Recursos: profesionales de atención primaria</h2>
+      <dl>${lista("recursos")}</dl>
+      ${notasRecursos()}
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
       <p>El Ministerio explica algunos saltos en las series de gasto de cada comunidad. Aparecen también en el gráfico de evolución (al destacar la comunidad) y en su ficha.</p>
@@ -1765,7 +1802,7 @@ export function iniciar(DATA: DatosApp): void {
     pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
-  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)} y, con el CIS, el Barómetro Sanitario (encuesta) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}.`;
+  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))} y profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   {
     const rect = DATA.versionListas && DATA.versionListas.rectificado

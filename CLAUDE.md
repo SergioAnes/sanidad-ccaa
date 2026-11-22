@@ -4,7 +4,7 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
 
 ## Estructura de la web
 
-- Una sola página con tres vistas por `#hash`: Datos (temas gasto, listas de espera y atención primaria y opinión;
+- Una sola página con tres vistas por `#hash`: Datos (temas gasto, listas de espera, atención primaria y opinión, y recursos;
   mapa, titulares, ranking/evolución/tabla y gasto frente a espera), Tu comunidad (ficha, con «Comparar con»: `#comunidad-an?vs=md`) y Cómo leer los datos (`#metodo`). El estado de Datos va en la dirección (`#datos?dato=…&campo=…`) para compartirlo.
   `#portada` y `#explorar` (enlaces antiguos) llevan a Datos.
 - `public/og.png` es la vista previa al compartir; se regenera con una captura si cambia mucho el diseño.
@@ -52,6 +52,13 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   2002-2019 (en persona): no compararlos ni atribuir el salto a la pandemia o al método. Ceuta y Melilla no se
   muestran (muestra mínima). Los «días para el médico de familia» son de atención primaria, no del SISLE, y solo de
   quien no tuvo cita antes. Cada cifra debe poder contrastarse: la web enlaza serie, informe y estudios del CIS.
+- `src/data/recursos.json` (tema «Recursos», grupo `recursos`) se genera con `python scripts/extraer_recursos.py` a partir
+  de dos exportaciones a CSV del Portal Estadístico (SIAP > Profesionales: cubos «Equipos de Atención primaria (EAP)» y
+  «Modalidades asistenciales») en `datos-originales/siap/`. Personas asignadas por médico de familia, por pediatra y por
+  profesional de enfermería (cálculo propio: población asignada / profesionales). España = conjunto de las 17, no media.
+  El script comprueba la población de 2024 con el resumen oficial y que el cubo EAP = suma de modalidades. Ruptura de
+  serie oficial: Cataluña 2020. Los hospitales (SIAE) quedan pendientes: INCLASNS no cuadra con las tablas del SIAE en
+  2022-2023 y el cubo del portal omite hospitales; usar las tablas anuales `Tablas_CCAA_AAAA.xlsx` (formatos cambiantes).
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).
