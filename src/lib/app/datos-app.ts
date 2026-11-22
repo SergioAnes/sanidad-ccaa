@@ -152,6 +152,11 @@ const RECURSOS: Record<string, TextoRecurso> = {
     corto: "Estancia media en el hospital", nombre: "Estancia media en los hospitales de agudos de la red pública (días)",
     desc: "Días que pasa de media cada paciente ingresado en un hospital de agudos de la red pública (estancias ÷ altas). Depende de la gravedad y la edad de los pacientes y de cómo se organiza la atención (cirugía sin ingreso, hospitalización a domicilio), así que no mide por sí sola la calidad. Dato publicado por el Ministerio de Sanidad (SIAE).",
   },
+  hosp_cma: {
+    unidad: "pct", que: "de las operaciones sin ingreso", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla (dato del Ministerio)",
+    corto: "Operaciones sin ingreso", nombre: "Cirugía mayor ambulatoria: operaciones de cirugía mayor que se hacen sin ingreso en la red pública (%)",
+    desc: "Porcentaje de las operaciones de cirugía mayor de los hospitales de la red pública que se hacen sin ingresar al paciente (cirugía mayor ambulatoria: se va a casa el mismo día), sobre el total de cirugía mayor (con ingreso o sin él). Ayuda a entender las camas y la estancia media: lo que se opera sin ingreso no ocupa cama. Depende también del tipo de operaciones que se hacen en cada comunidad. «Porcentaje de ambulatorización» publicado por el Ministerio de Sanidad (SIAE).",
+  },
 };
 
 export type IndApp =

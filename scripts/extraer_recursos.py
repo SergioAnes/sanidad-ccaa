@@ -38,6 +38,11 @@ Ocupación y estancia media (mismas tablas): indicadores de los hospitales de ag
 2010-2013, 5.3.2 en 2014-2015, 5.3 desde 2016): estancia media (días) e índice de ocupación, tal como se publican.
 Comprobación: ocupación = estancia media × índice de rotación / 365 (estancias / camas / 365), con margen de redondeo.
 
+Cirugía mayor ambulatoria (mismas tablas): indicadores de actividad quirúrgica (AOA.2. en 2010-2013, 7.2 en
+2014-2015, 6.2 desde 2016): «% de ambulatorización» de la red pública = intervenciones de cirugía mayor ambulatoria /
+(intervenciones con hospitalización + cirugía mayor ambulatoria). Se toma tal cual; se comprueba recalculándolo con
+los números de intervenciones y sus % de la red pública de la misma fila.
+
 Escribe src/data/recursos.json.
 """
 from __future__ import annotations
@@ -214,6 +219,27 @@ def agudos(anios: list[int]):
     return ocu, est, {"hosp_ocupacion": esp_ocu, "hosp_estancia": esp_est}, avisos
 
 
+def cirugia(anios: list[int]):
+    """% de cirugía mayor que se hace sin ingreso (ambulatoria) en la red pública, por comunidad y año."""
+    amb = {c: [] for c, _ in ORDEN_SIAE}
+    esp, avisos, peor = [], [], 0.0
+    for a in anios:
+        com, total = filas_ccaa(hoja(a, ("AOA.2.", "7.2", "6.2")), 8, a, avisos)
+        for c, v in list(com.items()) + [("ES", total)]:
+            # columnas: total (nº, por 1.000 hab., % SNS), con hospitalización (nº, % SNS), CMA (nº, % SNS), % ambulatorización SNS
+            hosp, p_hosp, cma, p_cma, pct = v[3], v[4], v[5], v[6], v[7]
+            cma_sns, hosp_sns = cma * p_cma, hosp * p_hosp
+            calc = cma_sns / (cma_sns + hosp_sns)
+            if not 0.1 <= pct <= 0.9:
+                raise SystemExit(f"SIAE {a} {c}: % de ambulatorización fuera de rango ({pct})")
+            if abs(calc - pct) > 0.01:
+                raise SystemExit(f"SIAE {a} {c}: el % de ambulatorización ({pct}) no cuadra con las intervenciones ({calc:.3f})")
+            peor = max(peor, abs(calc - pct))
+            (esp if c == "ES" else amb[c]).append(round(pct * 100, 1))
+    print(f"  SIAE cirugía {anios[0]}-{anios[-1]}: % de ambulatorización recalculado en todas las filas (diferencia máxima {peor:.3f})")
+    return amb, esp, avisos
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -276,10 +302,12 @@ def main() -> None:
     print(f"  Cambios de clasificación pública/privada: {[(x['ccaa'], x['anio']) for x in reclasif]}")
     indicadores = [{"id": k, "fuente": "siap", "anios": anios, "valor": v, "espana": espana[k]} for k, v in inds.items()]
     ocu, est, esp_a, avisos_a = agudos(anios_h)
+    amb, esp_amb, avisos_c = cirugia(anios_h)
     indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
                     {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]},
                     {"id": "hosp_ocupacion", "fuente": "siae", "anios": anios_h, "valor": ocu, "espana": esp_a["hosp_ocupacion"]},
-                    {"id": "hosp_estancia", "fuente": "siae", "anios": anios_h, "valor": est, "espana": esp_a["hosp_estancia"]}]
+                    {"id": "hosp_estancia", "fuente": "siae", "anios": anios_h, "valor": est, "espana": esp_a["hosp_estancia"]},
+                    {"id": "hosp_cma", "fuente": "siae", "anios": anios_h, "valor": amb, "espana": esp_amb}]
     datos = {
         "fuentes": {
             "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
@@ -291,7 +319,7 @@ def main() -> None:
         },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
-        "etiquetas_siae": sorted(set(avisos_h + avisos_a)),
+        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c)),
         "reclasificaciones": reclasif,
         "profesionales": profesionales,
         "indicadores": indicadores,
