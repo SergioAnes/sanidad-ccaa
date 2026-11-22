@@ -63,6 +63,8 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   No usar INCLASNS para hospitales (no cuadra en 2022-2023) ni el cubo del portal (solo hospitales de agudos). Personal
   y TAC de hospital, pendientes: sus tablas traen filas o columnas desplazadas en algunos años. Años con camas que pasan
   de privadas a públicas (o al revés): `reclasificaciones` (≥ 10 % en la pública y < 5 % en el total), sin explicarlas.
+  Ocupación y estancia media: hospitales de agudos de la red pública (tabla AA.4. / 5.3.2 / 5.3 de las mismas tablas),
+  comprobadas con ocupación = estancia media × rotación / 365. En 2020 baja en todas: solo decir que coincide con la pandemia.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

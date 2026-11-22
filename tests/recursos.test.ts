@@ -18,7 +18,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : [0.5, 6];
+      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
@@ -36,6 +36,11 @@ describe("Recursos de atención primaria (SIAP)", () => {
     // Tabla D.1. de 2010: Andalucía 1,747 y 2,305
     expect(val("hosp_camas_sns", "AN", 2010)).toBeCloseTo(1.747, 3);
     expect(val("hosp_camas_total", "AN", 2010)).toBeCloseTo(2.305, 3);
+    // Ocupación y estancia media, hospitales de agudos de la red pública (tabla 5.3 de 2023 y AA.4. de 2010)
+    expect(val("hosp_ocupacion", "AN", 2023)).toBeCloseTo(62.6, 1);
+    expect(val("hosp_estancia", "AN", 2023)).toBeCloseTo(6.8, 2);
+    expect(val("hosp_ocupacion", "AN", 2010)).toBeCloseTo(77.3, 1);
+    expect(val("hosp_estancia", "AN", 2010)).toBeCloseTo(6.89, 2);
     const sns = ind("hosp_camas_sns").valor as Record<string, number[]>, tot = ind("hosp_camas_total").valor as Record<string, number[]>;
     for (const c of CCAA) sns[c.id].forEach((v, k) => expect(v).toBeLessThanOrEqual(tot[c.id][k] + 0.001));
   });
