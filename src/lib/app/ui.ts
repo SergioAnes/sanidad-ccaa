@@ -942,7 +942,7 @@ export function iniciar(DATA: DatosApp): void {
       $("#e-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${fecha}, con su margen de error`
         : S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}${mo.length ? `: la cifra más alta, ${empatadas(mapa.vals, mo[0], mapa.ind.unidad)}` : ""}`;
       $("#e-sub").textContent = ind.grupo === "opinion" ? "El punto es la cifra de la encuesta y la raya, su margen de error al 95 %. La línea discontinua es España. Si la raya la cruza, esa comunidad no se distingue de España. Pulsa una comunidad para destacarla."
-        : tieneSerie(ind) ? "Pulsa una barra para destacar esa comunidad en la evolución." : "Pulsa una barra para destacar esa comunidad.";
+        : tieneSerie(ind) ? `Pulsa ${ind.unidad === "anios_vida" ? "un punto" : "una barra"} para destacar esa comunidad en la evolución.` : "Pulsa una barra para destacar esa comunidad.";
       if (ind.grupo === "opinion") rankingOpinion(cont, ind, anio); else ranking(cont, mapa.vals, mapa.ind);
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
@@ -1203,13 +1203,17 @@ export function iniciar(DATA: DatosApp): void {
     const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null) : [];
     const o = ordenados(vals);
     if (!o.length && !ciu.length) { cont.innerHTML = '<p class="nota">Sin valores comparables para el ranking.</p>'; return; }
-    const W = Math.max(320, cont.clientWidth || 800), fila = 26, top = 8, extra = ciu.length ? 30 + ciu.length * fila : 0, H = top + o.length * fila + 26 + extra;
+    // Esperanza de vida: cifras muy juntas y lejos del cero; con barras desde el cero las 17 parecerían iguales.
+    // Puntos sobre una escala de años enteros (con sus marcas), no barras recortadas.
+    const puntos = ind.unidad === "anios_vida";
+    const W = Math.max(320, cont.clientWidth || 800), fila = 26, top = 8, extra = ciu.length ? 30 + ciu.length * fila : 0, H = top + o.length * fila + 26 + extra + (puntos ? 16 : 0);
     const lab = W < 520 ? 92 : 140, der = 70;
     const todos = [...o.map((id) => vals[id]), ...ciu.map((k) => datoCiudad(ind, k))];
-    const lo = Math.min(0, ...todos), hi = Math.max(0, ...todos);
+    const lo = puntos ? Math.floor(Math.min(...todos)) : Math.min(0, ...todos), hi = puntos ? Math.ceil(Math.max(...todos)) : Math.max(0, ...todos);
     const x = (v) => lab + ((v - lo) / (hi - lo || 1)) * (W - lab - der);
     // Barra desde el cero (los cambios pueden ser negativos), con el extremo de datos redondeado.
-    const barra = (y, v, rel) => { const a = Math.min(x(0), x(v)), w = Math.abs(x(v) - x(0));
+    const barra = (y, v, rel) => { if (puntos) return `<line x1="${x(lo)}" x2="${x(hi)}" y1="${y + fila / 2}" y2="${y + fila / 2}" stroke="${css("--line")}"/><circle cx="${x(v)}" cy="${y + fila / 2}" r="6" stroke="${css("--surface")}" stroke-width="2" ${rel}/>`;
+      const a = Math.min(x(0), x(v)), w = Math.abs(x(v) - x(0));
       return `<rect x="${a}" y="${y + 5}" width="${Math.max(w, 1)}" height="${fila - 10}" rx="3" ${rel}/>`; };
     // Recursos: la referencia es España (toda la población asignada entre todos los profesionales), como en el SIAP.
     const refEsp = esRecurso(ind) && !/~cambio$/.test(ind.id);
@@ -1223,13 +1227,14 @@ export function iniciar(DATA: DatosApp): void {
         <rect x="0" y="${y}" width="${W}" height="${fila}" fill="transparent"/>
         <text x="${lab - 8}" y="${y + fila / 2 + 4}" text-anchor="end" font-size="12.5" fill="${c ? fg : muted}" font-weight="${c ? 700 : 400}">${esc(NOMBRE[id])}</text>
         ${barra(y, vals[id], `fill="${c || base}"`)}
-        ${destacado ? `<text x="${vals[id] < 0 ? x(0) + 6 : x(vals[id]) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(vals[id], ind.unidad)}</text>` : ""}
+        ${destacado ? `<text x="${puntos ? x(vals[id]) + 12 : vals[id] < 0 ? x(0) + 6 : x(vals[id]) + 6}" y="${y + fila / 2 + 4}" font-size="12" fill="${fg}" class="num">${fmt(vals[id], ind.unidad)}</text>` : ""}
       </g>`;
     });
     const xm = Number.isFinite(m) ? x(m) : x(0), y17 = top + o.length * fila;
     if (o.length) s += `<line x1="${xm}" x2="${xm}" y1="${top - 4}" y2="${y17 + 4}" stroke="${fg}" stroke-dasharray="3 3" stroke-width="1.2"/>
-      <text x="${xm}" y="${y17 + 18}" text-anchor="middle" font-size="11.5" fill="${muted}">${refEsp ? "España" : `media de las ${o.length}`}: ${fmt(m, ind.unidad)}</text>`;
-    s += `<line x1="${x(0)}" x2="${x(0)}" y1="${top}" y2="${y17}" stroke="${line}"/>`;
+      <text x="${xm}" y="${y17 + (puntos ? 34 : 18)}" text-anchor="middle" font-size="11.5" fill="${muted}">${refEsp ? "España" : `media de las ${o.length}`}: ${fmt(m, ind.unidad)}</text>`;
+    if (puntos) for (let t = lo; t <= hi; t++) s += `<text x="${x(t)}" y="${y17 + 16}" text-anchor="middle" font-size="11" fill="${muted}" class="num">${t}</text>`;
+    else s += `<line x1="${x(0)}" x2="${x(0)}" y1="${top}" y2="${y17}" stroke="${line}"/>`;
     if (ciu.length) {
       const y0 = y17 + 30;
       s += `<line x1="0" x2="${W}" y1="${y0 - 4}" y2="${y0 - 4}" stroke="${line}"/><text x="0" y="${y0 + 10}" font-size="11" fill="${muted}">Aparte, sin puesto:</text>`;
