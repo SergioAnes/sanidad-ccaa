@@ -18,11 +18,14 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
+      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm)/.test(i.id) ? [0.2, 6] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
-        for (const v of s) expect(v).toBeGreaterThan(lo), expect(v).toBeLessThan(hi);
+        s.forEach((v, k) => {
+          if (v === null && /hosp_(tac|rm)/.test(i.id) && i.anios[k] === rec.anio_equipos_sin_dato) return; // 2022 sin dato
+          expect(v, `${i.id} ${c.id} ${i.anios[k]}`).toBeGreaterThan(lo), expect(v).toBeLessThan(hi);
+        });
       }
     }
   });
@@ -48,6 +51,11 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(val("hosp_dia", "AN", 2023)).toBeCloseTo(125, 1);
     expect(val("hosp_ingresos", "AN", 2023)).toBeCloseTo(84.1 * 0.74, 1);
     expect(rec.picos.map((p) => `${p.ccaa}${p.anio}`)).toContain("EX2021");
+    // TAC y resonancia 2023 (tabla 3.2: Cataluña 1,54 TAC públicos; Madrid 2,18 resonancias en total); 2022 sin dato
+    expect(val("hosp_tac_sns", "CT", 2023)).toBeCloseTo(1.54, 1);
+    expect(val("hosp_rm_total", "MD", 2023)).toBeCloseTo(2.18, 1);
+    expect(val("hosp_tac_sns", "CT", 2022)).toBeNull();
+    expect(ind("hosp_tac_sns").espana[ind("hosp_tac_sns").anios.indexOf(2022)]).toBeGreaterThan(0);
     const sns = ind("hosp_camas_sns").valor as Record<string, number[]>, tot = ind("hosp_camas_total").valor as Record<string, number[]>;
     for (const c of CCAA) sns[c.id].forEach((v, k) => expect(v).toBeLessThanOrEqual(tot[c.id][k] + 0.001));
   });
@@ -64,7 +72,8 @@ describe("Recursos de atención primaria (SIAP)", () => {
   it("España es el conjunto de las 17 (no la media) y queda dentro del rango de las comunidades", () => {
     for (const i of rec.indicadores) {
       i.anios.forEach((_, k) => {
-        const vs = CCAA.map((c) => (i.valor as Record<string, number[]>)[c.id][k]);
+        const vs = CCAA.map((c) => (i.valor as Record<string, number[]>)[c.id][k]).filter((v) => v !== null);
+        if (!vs.length) return;
         expect(i.espana[k]).toBeGreaterThanOrEqual(Math.min(...vs));
         expect(i.espana[k]).toBeLessThanOrEqual(Math.max(...vs));
       });

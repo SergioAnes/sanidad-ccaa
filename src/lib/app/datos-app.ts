@@ -167,6 +167,26 @@ const RECURSOS: Record<string, TextoRecurso> = {
     corto: "Hospital de día", nombre: "Sesiones de hospital de día por 1.000 habitantes (todos los hospitales)",
     desc: "Sesiones de hospital de día (tratamientos de unas horas sin pasar la noche, como quimioterapia, transfusiones o curas) por cada 1.000 habitantes, en todos los hospitales de la comunidad, públicos y privados (la tabla no las separa). Parte de lo que antes requería ingreso se hace así. De 2014 en adelante, tasa publicada por el Ministerio de Sanidad (SIAE); de 2010 a 2013 la tabla solo trae el número de sesiones y la tasa la calculamos con la población que usa esa misma tabla.",
   },
+  hosp_tac_sns: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "TAC públicos", nombre: "Equipos de TAC de la red pública por 100.000 habitantes",
+    desc: "Equipos de tomografía axial computarizada (TAC, el «escáner») en funcionamiento en los hospitales de la red pública de la comunidad, por cada 100.000 habitantes. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_tac_total: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "TAC, públicos y privados", nombre: "Equipos de TAC por 100.000 habitantes, públicos y privados",
+    desc: "Equipos de tomografía axial computarizada (TAC, el «escáner») en funcionamiento en todos los hospitales de la comunidad, públicos y privados, por cada 100.000 habitantes. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_rm_sns: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Resonancias públicas", nombre: "Equipos de resonancia magnética de la red pública por 100.000 habitantes",
+    desc: "Equipos de resonancia magnética en funcionamiento en los hospitales de la red pública de la comunidad, por cada 100.000 habitantes. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_rm_total: {
+    unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
+    corto: "Resonancias, públicas y privadas", nombre: "Equipos de resonancia magnética por 100.000 habitantes, públicos y privados",
+    desc: "Equipos de resonancia magnética en funcionamiento en todos los hospitales de la comunidad, públicos y privados, por cada 100.000 habitantes. No está ajustado por edad. Cálculo propio: el número de equipos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística. 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
 };
 
 export type IndApp =
@@ -181,7 +201,7 @@ export type IndApp =
       historico?: { fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[] };
     }
   | {
-      id: string; grupo: "recursos"; corto: string; nombre: string; unidad: Unidad; desc: string;
+      id: string; grupo: "primaria" | "hospitales"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
       /** Fuente (siap / siae), unidad en palabras y qué es «España» en este indicador */
       fuente: "siap" | "siae"; que: string; espanaTxt: string;
@@ -222,7 +242,7 @@ export type DatosApp = {
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
-    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos;
+    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos; anioEquiposSinDato: number;
   };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
@@ -265,7 +285,7 @@ function recursos(): IndApp[] {
   return recursosJson.indicadores.map((i) => {
     const t = RECURSOS[i.id];
     if (!t) throw new Error(`Recursos: falta el texto de ${i.id}`);
-    return { id: i.id, grupo: "recursos" as const, ...t, fuente: i.fuente as "siap" | "siae", anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
+    return { id: i.id, grupo: (i.fuente === "siap" ? "primaria" : "hospitales") as "primaria" | "hospitales", ...t, fuente: i.fuente as "siap" | "siae", anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
   });
 }
 
@@ -329,7 +349,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
-      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos,
+      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos, anioEquiposSinDato: recursosJson.anio_equipos_sin_dato,
     },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
