@@ -157,6 +157,16 @@ const RECURSOS: Record<string, TextoRecurso> = {
     corto: "Operaciones sin ingreso", nombre: "Cirugía mayor ambulatoria: operaciones de cirugía mayor que se hacen sin ingreso en la red pública (%)",
     desc: "Porcentaje de las operaciones de cirugía mayor de los hospitales de la red pública que se hacen sin ingresar al paciente (cirugía mayor ambulatoria: se va a casa el mismo día), sobre el total de cirugía mayor (con ingreso o sin él). Ayuda a entender las camas y la estancia media: lo que se opera sin ingreso no ocupa cama. Depende también del tipo de operaciones que se hacen en cada comunidad. «Porcentaje de ambulatorización» publicado por el Ministerio de Sanidad (SIAE).",
   },
+  hosp_ingresos: {
+    unidad: "por_mil_hab", que: "ingresos por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla",
+    corto: "Ingresos en hospitales públicos", nombre: "Ingresos en hospitales de la red pública por 1.000 habitantes",
+    desc: "Pacientes ingresados en los hospitales de la red pública de la comunidad durante el año, por cada 1.000 habitantes. Cuenta cada ingreso (una persona puede ingresar varias veces) en la comunidad del hospital, aunque el paciente viva en otra. Depende de la edad y la salud de la población y de cuánto se atiende sin ingreso (cirugía ambulatoria, hospital de día). Cálculo propio: ingresos por 1.000 habitantes × porcentaje de la red pública, ambos publicados por el Ministerio de Sanidad (SIAE).",
+  },
+  hosp_dia: {
+    unidad: "sesiones_mil", que: "sesiones de hospital de día por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales, con Ceuta y Melilla",
+    corto: "Hospital de día", nombre: "Sesiones de hospital de día por 1.000 habitantes (todos los hospitales)",
+    desc: "Sesiones de hospital de día (tratamientos de unas horas sin pasar la noche, como quimioterapia, transfusiones o curas) por cada 1.000 habitantes, en todos los hospitales de la comunidad, públicos y privados (la tabla no las separa). Parte de lo que antes requería ingreso se hace así. De 2014 en adelante, tasa publicada por el Ministerio de Sanidad (SIAE); de 2010 a 2013 la tabla solo trae el número de sesiones y la tasa la calculamos con la población que usa esa misma tabla.",
+  },
 };
 
 export type IndApp =
@@ -212,7 +222,7 @@ export type DatosApp = {
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
-    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[];
+    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos;
   };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
@@ -319,7 +329,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
-      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae,
+      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos,
     },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],

@@ -19,7 +19,7 @@ sanidad (Barómetro Sanitario) y los profesionales de atención primaria de las 
 
 - **Datos:** mapa (valor del año o crecimiento desde 2002), titulares automáticos, ranking, evolución
   (descontando o no la inflación), tabla con descarga en CSV, listas de espera por especialidad y proceso,
-  gráfico «¿Gastar más reduce la espera?» y «Atención primaria y opinión» (Barómetro Sanitario: satisfacción,
+  gráfico «¿Gastar más reduce la espera?» y «Lo que opina la gente» (Barómetro Sanitario: satisfacción,
   valoración del médico de familia y acceso, con margen de error frente a la media de España). La dirección guarda la vista para compartirla.
 - **Tu comunidad:** ficha con la posición en cada indicador frente a las otras 16, comparación con otra
   comunidad y notas del Ministerio sobre saltos en sus series.
@@ -53,7 +53,7 @@ npm test
 | `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
-| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación, estancia media y cirugía mayor ambulatoria (SIAE, 2010-2023) (generado) |
+| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación, estancia media, cirugía mayor ambulatoria, ingresos y hospital de día (SIAE, 2010-2023) (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
 | `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |

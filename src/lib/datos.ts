@@ -61,7 +61,7 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
     case "num":
       return numero(valor, 0);
     case "por_mil":
-      return `${numero(valor, 2)} ‰`;
+      return `${numero(valor, 2)} por 1.000`;
     case "dias":
       return `${numero(valor, 0)} días`;
     case "nota10":
@@ -72,5 +72,9 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return numero(valor, 0);
     case "camas_mil":
       return numero(valor, 2);
+    case "por_mil_hab":
+      return numero(valor, 1);
+    case "sesiones_mil":
+      return numero(valor, 0);
   }
 }

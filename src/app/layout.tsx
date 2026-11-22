@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: descripcion,
   // Vista previa al compartir el enlace (WhatsApp, redes sociales). Imagen: public/og.png (1200x630).
   openGraph: {
-    title: "¿Cuánto gasta tu comunidad en sanidad y cuánto se espera?",
+    title: "¿Cómo está la sanidad en tu comunidad?",
     description: descripcion,
     url: "/",
     siteName: "Sanidad por comunidades",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [{ url: "/og.png", width: 1200, height: 630, alt: "Mapa de España con el gasto sanitario público por habitante de cada comunidad" }],
   },
-  twitter: { card: "summary_large_image", title: "¿Cuánto gasta tu comunidad en sanidad y cuánto se espera?", description: descripcion, images: ["/og.png"] },
+  twitter: { card: "summary_large_image", title: "¿Cómo está la sanidad en tu comunidad?", description: descripcion, images: ["/og.png"] },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };

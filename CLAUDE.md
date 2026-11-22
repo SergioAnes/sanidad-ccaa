@@ -45,7 +45,7 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   además del público) se genera con `python scripts/extraer_contexto.py` (INE 56940, certificados IGN/INE de la
   liquidación, Encuesta de Salud de España 2023 con su intervalo al 95 %). Es contexto: no corrige el gasto. La tabla
   del INE trae el agregado «85 y más años» además de las edades sueltas: no sumarlo dos veces.
-- `src/data/barometro.json` (tema «Atención primaria y opinión», grupo `opinion` en `datos-app.ts`) se genera con
+- `src/data/barometro.json` (tema «Lo que opina la gente», grupo `opinion` en `datos-app.ts`) se genera con
   `python scripts/extraer_barometro.py`: serie oficial por comunidad del Ministerio (xlsx) + microdatos del CIS
   (`datos-originales/cis-barometro/`) + informe 2025. Es una encuesta: nunca puestos del 1 al 17 ni «Comparar años»;
   se dice si el intervalo al 95 % queda por encima, por debajo o incluye a España. 2022-2025 (teléfono) aparte de
@@ -67,6 +67,10 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   comprobadas con ocupación = estancia media × rotación / 365. En 2020 baja en todas: solo decir que coincide con la pandemia.
   Cirugía mayor ambulatoria (% de ambulatorización de la red pública, tabla AOA.2. / 7.2 / 6.2), recalculada con las
   intervenciones con y sin ingreso de cada fila.
+  Ingresos en la red pública por 1.000 hab. (frecuentación × % SNS; la tabla de 2022 viene traspuesta) y sesiones de
+  hospital de día por 1.000 hab. (todos los hospitales; 2010-2013 con la población de la tabla de camas). Picos de un año
+  (≥ 40 % frente al anterior y al siguiente) en `picos`, sin explicarlos. Hospitalización a domicilio: no usar (serie
+  incoherente: Extremadura 0 todos los años, Andalucía 12 → 1,4 → 40).
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

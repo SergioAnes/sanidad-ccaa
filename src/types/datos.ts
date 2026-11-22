@@ -1,4 +1,4 @@
-export type Unidad = "eur_hab" | "pct" | "eur_mill" | "num" | "por_mil" | "dias" | "nota10" | "dias_media" | "personas" | "camas_mil";
+export type Unidad = "eur_hab" | "pct" | "eur_mill" | "num" | "por_mil" | "dias" | "nota10" | "dias_media" | "personas" | "camas_mil" | "por_mil_hab" | "sesiones_mil";
 
 export type Ccaa = {
   id: string;
