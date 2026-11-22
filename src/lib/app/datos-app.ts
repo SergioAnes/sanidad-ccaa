@@ -115,18 +115,32 @@ const OPINION: Record<string, { corto: string; nombre: string; desc: string; mej
 };
 
 /** Textos de los indicadores de recursos (profesionales de atención primaria, SIAP). */
-const RECURSOS: Record<string, { corto: string; nombre: string; desc: string }> = {
+type TextoRecurso = { corto: string; nombre: string; desc: string; unidad: Unidad; que: string; espanaTxt: string };
+const AP = { unidad: "personas" as Unidad, espanaTxt: "contando toda la población asignada y todos los profesionales de las 17" };
+const CAMAS = { unidad: "camas_mil" as Unidad, que: "camas por 1.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)" };
+const RECURSOS: Record<string, TextoRecurso> = {
   ap_pob_medico: {
+    ...AP, que: "personas por médico de familia",
     corto: "Personas por médico de familia", nombre: "Personas asignadas a cada médico de familia de la sanidad pública",
     desc: "Población adulta con tarjeta sanitaria asignada a medicina de familia, dividida entre los médicos de familia de atención primaria (equipos de atención primaria y modelo tradicional), a 31 de diciembre. Más personas por médico quiere decir menos médicos para la misma población; no mide por sí solo la calidad de la atención ni la espera. No incluye urgencias ni residentes. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
   },
   ap_pob_pediatra: {
+    ...AP, que: "niños por pediatra",
     corto: "Niños por pediatra", nombre: "Niños asignados a cada pediatra de atención primaria de la sanidad pública",
     desc: "Población infantil con tarjeta sanitaria asignada a pediatría, dividida entre los pediatras de atención primaria (equipos de atención primaria, modelo tradicional y pediatría de área), a 31 de diciembre. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
   },
   ap_pob_enfermera: {
+    ...AP, que: "personas por profesional de enfermería",
     corto: "Personas por profesional de enfermería", nombre: "Personas asignadas a cada profesional de enfermería de atención primaria de la sanidad pública",
     desc: "Toda la población con tarjeta sanitaria asignada (la de medicina de familia más la de pediatría), dividida entre los profesionales de enfermería de atención primaria (equipos de atención primaria y modelo tradicional), a 31 de diciembre. No incluye matronas ni urgencias. Cálculo propio con los datos del SIAP (Ministerio de Sanidad).",
+  },
+  hosp_camas_sns: {
+    ...CAMAS, corto: "Camas de hospital públicas", nombre: "Camas de hospital de la red pública en funcionamiento por 1.000 habitantes",
+    desc: "Camas que han funcionado de media durante el año en los hospitales de la red pública (SNS) de la comunidad, por cada 1.000 habitantes. La red pública incluye los hospitales públicos y los privados con concierto sustitutorio o que forman parte de una Red de Utilización Pública (financiados con fondos públicos). Cuenta todos los hospitales: agudos, media y larga estancia y salud mental. Tasa publicada por el Ministerio de Sanidad (SIAE).",
+  },
+  hosp_camas_total: {
+    ...CAMAS, corto: "Camas de hospital, públicas y privadas", nombre: "Camas de hospital en funcionamiento por 1.000 habitantes, públicas y privadas",
+    desc: "Camas que han funcionado de media durante el año en todos los hospitales de la comunidad, públicos y privados, por cada 1.000 habitantes. Tasa publicada por el Ministerio de Sanidad (SIAE).",
   },
 };
 
@@ -144,6 +158,8 @@ export type IndApp =
   | {
       id: string; grupo: "recursos"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
+      /** Fuente (siap / siae), unidad en palabras y qué es «España» en este indicador */
+      fuente: "siap" | "siae"; que: string; espanaTxt: string;
       /** España: el conjunto de las 17 (toda la población asignada entre todos los profesionales), no la media */
       espana: (number | null)[];
     }
@@ -179,7 +195,10 @@ export type DatosApp = {
   /** Fuentes del Barómetro Sanitario (para citar y contrastar) */
   barometro: { fuentes: typeof barometroJson.fuentes; primerAnioMetodo: number };
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
-  recursos: { fuente: typeof recursosJson.fuente; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos };
+  recursos: {
+    fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
+    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[];
+  };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
   notasListas: string[];
@@ -221,7 +240,7 @@ function recursos(): IndApp[] {
   return recursosJson.indicadores.map((i) => {
     const t = RECURSOS[i.id];
     if (!t) throw new Error(`Recursos: falta el texto de ${i.id}`);
-    return { id: i.id, grupo: "recursos" as const, unidad: "personas" as Unidad, ...t, anios: recursosJson.anios, serie: i.valor, espana: i.espana };
+    return { id: i.id, grupo: "recursos" as const, ...t, fuente: i.fuente as "siap" | "siae", anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
   });
 }
 
@@ -283,7 +302,10 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     edad: ajusteEdad(valores, ids),
     contexto: contextoJson,
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
-    recursos: { fuente: recursosJson.fuente, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos },
+    recursos: {
+      fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
+      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae,
+    },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],
     geo: mapaJson,

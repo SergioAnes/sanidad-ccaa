@@ -8,20 +8,36 @@ const ind = (id: string) => {
   if (!i) throw new Error(id);
   return i;
 };
-const val = (id: string, c: string, a: number) => (ind(id).valor as Record<string, number[]>)[c][rec.anios.indexOf(a)];
+const val = (id: string, c: string, a: number) => (ind(id).valor as Record<string, number[]>)[c][ind(id).anios.indexOf(a)];
 
 describe("Recursos de atención primaria (SIAP)", () => {
-  it("cubre 2004-2025 con las 17 comunidades y sin huecos", () => {
-    expect(rec.anios[0]).toBe(2004);
-    expect(rec.anios.at(-1)).toBe(2025);
+  it("cubre sus años con las 17 comunidades y sin huecos (SIAP 2004-2025, SIAE 2010-2023)", () => {
+    expect(ind("ap_pob_medico").anios[0]).toBe(2004);
+    expect(ind("ap_pob_medico").anios.at(-1)).toBe(2025);
+    expect(ind("hosp_camas_sns").anios[0]).toBe(2010);
+    expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
-      expect(i.espana).toHaveLength(rec.anios.length);
+      expect(i.espana).toHaveLength(i.anios.length);
+      const [lo, hi] = i.fuente === "siap" ? [300, 3000] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
-        expect(s, `${i.id} ${c.id}`).toHaveLength(rec.anios.length);
-        for (const v of s) expect(v).toBeGreaterThan(300), expect(v).toBeLessThan(3000);
+        expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
+        for (const v of s) expect(v).toBeGreaterThan(lo), expect(v).toBeLessThan(hi);
       }
     }
+  });
+
+  it("camas: son las tasas publicadas en las tablas del SIAE y la red pública no supera el total", () => {
+    // Tabla 2.1 de 2023: Andalucía 1,94 (pública) y 2,32 (total); Cataluña 3,27 y 3,65; España 2,43 y 2,89
+    expect(val("hosp_camas_sns", "AN", 2023)).toBeCloseTo(1.94, 3);
+    expect(val("hosp_camas_total", "AN", 2023)).toBeCloseTo(2.32, 3);
+    expect(val("hosp_camas_sns", "CT", 2023)).toBeCloseTo(3.27, 3);
+    expect(ind("hosp_camas_sns").espana.at(-1)).toBeCloseTo(2.43, 3);
+    // Tabla D.1. de 2010: Andalucía 1,747 y 2,305
+    expect(val("hosp_camas_sns", "AN", 2010)).toBeCloseTo(1.747, 3);
+    expect(val("hosp_camas_total", "AN", 2010)).toBeCloseTo(2.305, 3);
+    const sns = ind("hosp_camas_sns").valor as Record<string, number[]>, tot = ind("hosp_camas_total").valor as Record<string, number[]>;
+    for (const c of CCAA) sns[c.id].forEach((v, k) => expect(v).toBeLessThanOrEqual(tot[c.id][k] + 0.001));
   });
 
   it("reproduce cifras calculadas a mano con la exportación del SIAP", () => {
@@ -35,7 +51,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
 
   it("España es el conjunto de las 17 (no la media) y queda dentro del rango de las comunidades", () => {
     for (const i of rec.indicadores) {
-      rec.anios.forEach((_, k) => {
+      i.anios.forEach((_, k) => {
         const vs = CCAA.map((c) => (i.valor as Record<string, number[]>)[c.id][k]);
         expect(i.espana[k]).toBeGreaterThanOrEqual(Math.min(...vs));
         expect(i.espana[k]).toBeLessThanOrEqual(Math.max(...vs));
@@ -46,6 +62,8 @@ describe("Recursos de atención primaria (SIAP)", () => {
   it("guarda la ruptura de serie de Cataluña y los años con cifras repetidas", () => {
     expect(rec.ruptura).toMatchObject({ ccaa: "CT", anio: 2020 });
     expect(rec.repetidos).toContainEqual({ ccaa: "CT", anio: 2018 });
-    expect(rec.fuente.url).toMatch(/^https:\/\/pestadistico\.inteligenciadegestion\.sanidad\.gob\.es\//);
+    expect(rec.reclasificaciones.map((r) => `${r.ccaa}${r.anio}`)).toContain("CB2023");
+    expect(rec.fuentes.siae.url).toMatch(/^https:\/\/www\.sanidad\.gob\.es\//);
+    expect(rec.fuentes.siap.url).toMatch(/^https:\/\/pestadistico\.inteligenciadegestion\.sanidad\.gob\.es\//);
   });
 });
