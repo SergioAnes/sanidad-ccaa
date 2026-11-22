@@ -389,4 +389,5 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 @media (max-width: 640px) {
   .selector .seg[aria-label="Tema"] { display: grid; grid-template-columns: 1fr 1fr; justify-self: stretch; }
   .selector .seg[aria-label="Tema"] button { white-space: nowrap; padding: 8px 6px; }
+  .selector .seg[aria-label="Tema"] button:last-child:nth-child(odd) { grid-column: span 2; }
 }

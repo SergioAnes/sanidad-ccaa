@@ -50,6 +50,13 @@ sesiones y la tasa se calcula con la población que usa la propia tabla de camas
 cuadra con número / población. La hospitalización a domicilio no se usa: la serie no es coherente (Extremadura
 declara 0 todos los años, Andalucía pasa de 12 a 1,4 y a 40 pacientes por 1.000 ingresos).
 
+TAC y resonancia magnética (mismas tablas): dotación tecnológica en funcionamiento (D.3-2. / D.3. en 2010-2013,
+3.2.1-3.2.2-3.2.3 en 2014-2015, 3.2 desde 2016), nº de equipos y % de la red pública (o nº de la red pública en
+2023), en cuatro formatos distintos. Tasas por 100.000 habitantes con la población de la tabla de camas de cada año
+(cálculo propio). 2022 no se usa: en el Excel y en el PDF de ese año las columnas están desplazadas. Comprobación: la
+suma de las comunidades más Ceuta y Melilla coincide con las tablas nacionales de evolución (total y red pública); en
+2023 la tasa calculada coincide con la publicada. España: tablas nacionales de evolución (también 2022).
+
 Escribe src/data/recursos.json.
 """
 from __future__ import annotations
@@ -325,6 +332,140 @@ def ingresos_y_dia(anios: list[int]):
     return ing, dia, {"hosp_ingresos": esp_ing, "hosp_dia": esp_dia}, avisos
 
 
+ANIO_EQUIPOS_ROTO = 2022  # columnas desplazadas en el Excel y en el PDF de la tabla 3.2
+COD_SIAE = {"MU": "MC"}
+
+
+def _num(v) -> bool:
+    if isinstance(v, str):
+        return v.strip().replace(".", "").isdigit()
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _val(v) -> float:
+    return float(v.strip().replace(".", "")) if isinstance(v, str) else float(v)
+
+
+def _ccaa(t) -> str | None:
+    t = sin_tildes(t)
+    if "ceuta" in t:
+        return "CEML"
+    return next((c for c, p in ORDEN_SIAE if p in t), None)
+
+
+_es_tac = lambda t: sin_tildes(t).strip() == "tac"
+_es_rm = lambda t: sin_tildes(t).strip() in ("rm", "rnm", "rmn")
+
+
+def equipos_anio(a: int) -> dict:
+    """{ccaa: {"tac": (nº, nº red pública), "rm": (...)}} en los cuatro formatos de la tabla de dotación tecnológica."""
+    rs = hoja(a, ("D.3-2.|D.3.", "3.2.1-3.2.2-3.2.3", "3.2"))
+    out: dict = {}
+    textos = lambda r: [str(v).strip() for v in r if isinstance(v, str) and v.strip()]
+    poner = lambda c, k, n, n_sns: out.setdefault(c, {}).setdefault(k, (n, n_sns))
+    # 2023: comunidades en columnas (códigos) y filas «TAC | Total», «por 100.000 hab.», «Público-SNS», «por 100.000 hab.»
+    cab = next((r for r in rs if "AN" in textos(r) and "MD" in textos(r)), None)
+    if cab:
+        for i, r in enumerate(rs):
+            if r[0] and (_es_tac(str(r[0])) or _es_rm(str(r[0]))) and str(r[1]).strip() == "Total":
+                k = "tac" if _es_tac(str(r[0])) else "rm"
+                for j, cod in enumerate(cab):
+                    t = str(cod).strip() if cod else ""
+                    c = "CEML" if "CE" in t and "ML" in t else COD_SIAE.get(t, t) if t in [x for x, _ in ORDEN_SIAE] + ["MU"] else None
+                    if c and _num(r[j]):
+                        poner(c, k, _val(r[j]), _val(rs[i + 2][j]))
+                        if c != "CEML":  # la tasa publicada, para comprobar la calculada
+                            out[c].setdefault("tasa_" + k, (_val(rs[i + 1][j]), _val(rs[i + 3][j])))
+        return out
+    # 2016-2020: comunidades en columnas por pares (nº, % SNS), en bloques; el equipo en la primera celda con texto
+    if 2016 <= a <= 2020:
+        cols: dict = {}
+        for r in rs:
+            nombres = [(j, _ccaa(v)) for j, v in enumerate(r) if isinstance(v, str) and _ccaa(v)]
+            if len(nombres) >= 3:
+                cols = {}
+                for j, c in nombres:
+                    cols.setdefault(c, j)
+                continue
+            et = next((str(v).strip() for v in r[:3] if isinstance(v, str) and v.strip()), "")
+            if cols and (_es_tac(et) or _es_rm(et)):
+                for c, j in cols.items():
+                    if _num(r[j]) and _num(r[j + 1]):
+                        poner(c, "tac" if _es_tac(et) else "rm", _val(r[j]), _val(r[j]) * _val(r[j + 1]))
+        return out
+    # 2010-2015 y 2021: comunidades en filas; cabeceras con el equipo al inicio de cada par (nº, % SNS), en bloques
+    cols = {}
+    for r in rs:
+        enc = {("tac" if _es_tac(v) else "rm"): j for j, v in enumerate(r) if isinstance(v, str) and (_es_tac(v) or _es_rm(v))}
+        if enc:
+            cols = enc
+            continue
+        et = next((v for v in r[:3] if isinstance(v, str) and v.strip()), "")
+        c = _ccaa(et) if et else None
+        if c:
+            for k, j in cols.items():
+                if _num(r[j]) and _num(r[j + 1]):
+                    poner(c, k, _val(r[j]), _val(r[j]) * _val(r[j + 1]))
+    return out
+
+
+def equipos(anios: list[int]):
+    """TAC y resonancia por 100.000 habitantes, red pública y total (cálculo propio con la población de la tabla de camas)."""
+    # España: tablas nacionales de evolución (la edición más reciente sustituye a la anterior; traen 2022)
+    nac: dict = {}
+    for fichero, hojas in (("Dotacion_evol_2010_19.xlsx", ("TABLA 1.13",)), ("Dotacion_Evolucion_2014-2023.xlsx", ("TABLA 1.14",))):
+        wb = openpyxl.load_workbook(SIAE / fichero, data_only=True, read_only=True)
+        h = next(n for n in wb.sheetnames if n.strip() in hojas)
+        rs = [list(r) for r in wb[h].iter_rows(values_only=True)]
+        cab = next(r for r in rs if any(str(x).strip() == "2014" for x in r if x is not None))
+        cols = {i: int(str(x).strip()) for i, x in enumerate(cab) if x is not None and re.fullmatch(r"\d{4}", str(x).strip())}
+        bloque = None
+        for r in rs:
+            et = next((str(x).strip() for x in r if isinstance(x, str) and x.strip()), "")
+            if et in ("Públicos-SNS", "Privados"):
+                bloque = "sns" if et == "Públicos-SNS" else "priv"
+            elif bloque and (_es_tac(et) or _es_rm(et)):
+                for i, y in cols.items():
+                    nac.setdefault(y, {})[(bloque, "tac" if _es_tac(et) else "rm")] = float(r[i])
+    series = {k: {c: [] for c, _ in ORDEN_SIAE} for k in ("hosp_tac_sns", "hosp_tac_total", "hosp_rm_sns", "hosp_rm_total")}
+    esp = {k: [] for k in series}
+    peor = 0.0
+    for a in anios:
+        n = nac[a]
+        for k, eq in (("tac", "tac"), ("rm", "rm")):
+            sns, tot = n[("sns", eq)], n[("sns", eq)] + n[("priv", eq)]
+            esp[f"hosp_{k}_sns"].append(round(sns / POB_SIAE[(a, "ES")] * 1e5, 3))
+            esp[f"hosp_{k}_total"].append(round(tot / POB_SIAE[(a, "ES")] * 1e5, 3))
+        if a == ANIO_EQUIPOS_ROTO:
+            for k in series:
+                for c in series[k]:
+                    series[k][c].append(None)
+            continue
+        d = equipos_anio(a)
+        falta = [c for c, _ in ORDEN_SIAE + [("CEML", "")] if c not in d or "tac" not in d[c] or "rm" not in d[c]]
+        if falta:
+            raise SystemExit(f"SIAE {a}: faltan TAC o resonancia en {falta}")
+        for eq in ("tac", "rm"):
+            tot = sum(v[eq][0] for v in d.values()); sns = sum(v[eq][1] for v in d.values())
+            ref_t, ref_s = n[("sns", eq)] + n[("priv", eq)], n[("sns", eq)]
+            dif = max(abs(tot - ref_t) / ref_t, abs(sns - ref_s) / ref_s)
+            if dif > 0.02:
+                raise SystemExit(f"SIAE {a} {eq}: la suma de las comunidades ({tot:.0f}, {sns:.0f} públicos) no cuadra con la tabla nacional ({ref_t:.0f}, {ref_s:.0f})")
+            peor = max(peor, dif)
+        for c, _ in ORDEN_SIAE:
+            pob = POB_SIAE[(a, c)]
+            for eq in ("tac", "rm"):
+                n_t, n_s = d[c][eq]
+                series[f"hosp_{eq}_total"][c].append(round(n_t / pob * 1e5, 3))
+                series[f"hosp_{eq}_sns"][c].append(round(n_s / pob * 1e5, 3))
+                if "tasa_" + eq in d[c]:  # 2023: la tasa publicada debe coincidir con la calculada
+                    pub_t, pub_s = d[c]["tasa_" + eq]
+                    if abs(n_t / pob * 1e5 - pub_t) > 0.02 or abs(n_s / pob * 1e5 - pub_s) > 0.02:
+                        raise SystemExit(f"SIAE {a} {c} {eq}: tasa calculada ({n_t / pob * 1e5:.2f}, {n_s / pob * 1e5:.2f}) frente a la publicada ({pub_t}, {pub_s})")
+    print(f"  SIAE TAC y resonancia {anios[0]}-{anios[-1]} (sin {ANIO_EQUIPOS_ROTO}): suma de comunidades = tablas nacionales (diferencia máxima {peor:.2%})")
+    return series, esp
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -390,6 +531,7 @@ def main() -> None:
     amb, esp_amb, avisos_c = cirugia(anios_h)
     ing, dia, esp_id, avisos_i = ingresos_y_dia(anios_h)
     picos_dia = picos(dia, anios_h)
+    eq, esp_eq = equipos(anios_h)
     print(f"  Hospital de día, años con una cifra muy distinta de los de alrededor: {[(x['ccaa'], x['anio']) for x in picos_dia]}")
     indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
                     {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]},
@@ -398,6 +540,7 @@ def main() -> None:
                     {"id": "hosp_cma", "fuente": "siae", "anios": anios_h, "valor": amb, "espana": esp_amb},
                     {"id": "hosp_ingresos", "fuente": "siae", "anios": anios_h, "valor": ing, "espana": esp_id["hosp_ingresos"]},
                     {"id": "hosp_dia", "fuente": "siae", "anios": anios_h, "valor": dia, "espana": esp_id["hosp_dia"]}]
+    indicadores += [{"id": k, "fuente": "siae", "anios": anios_h, "valor": eq[k], "espana": esp_eq[k]} for k in eq]
     datos = {
         "fuentes": {
             "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
@@ -411,6 +554,7 @@ def main() -> None:
         "repetidos": repetidos,
         "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i)),
         "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia],
+        "anio_equipos_sin_dato": ANIO_EQUIPOS_ROTO,
         "reclasificaciones": reclasif,
         "profesionales": profesionales,
         "indicadores": indicadores,
