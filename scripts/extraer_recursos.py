@@ -34,6 +34,10 @@ Comprobaciones (se detiene si fallan): cada fila da la misma población en la pa
 desplazadas), el % SNS cuadra con las camas, la fila TOTAL es la suma de las comunidades, y España coincide con las
 tablas nacionales de evolución (Dotacion_evol_2010_19.xlsx y Dotacion_Evolucion_2014-2023.xlsx).
 
+Ocupación y estancia media (mismas tablas): indicadores de los hospitales de agudos de la red pública (AA.4. en
+2010-2013, 5.3.2 en 2014-2015, 5.3 desde 2016): estancia media (días) e índice de ocupación, tal como se publican.
+Comprobación: ocupación = estancia media × índice de rotación / 365 (estancias / camas / 365), con margen de redondeo.
+
 Escribe src/data/recursos.json.
 """
 from __future__ import annotations
@@ -155,6 +159,61 @@ def camas():
     return anios, sns, tot, {"hosp_camas_sns": esp_sns, "hosp_camas_total": esp_tot}, avisos
 
 
+def hoja(anio: int, nombres: tuple[str, str, str]) -> list[list]:
+    """Filas de la hoja del año: nombres = (2010-2013, 2014-2015, desde 2016)."""
+    f = next(SIAE.glob(f"Tablas_CCAA_{anio}.xls*"))
+    nombre = nombres[0] if anio <= 2013 else nombres[1] if anio <= 2015 else nombres[2]
+    if f.suffix == ".xlsx":
+        return [list(r) for r in openpyxl.load_workbook(f, data_only=True, read_only=True)[nombre].iter_rows(values_only=True)]
+    h = xlrd.open_workbook(f).sheet_by_name(nombre)
+    return [h.row_values(i) for i in range(h.nrows)]
+
+
+def filas_ccaa(rs: list[list], minimo: int, anio: int, avisos: list[str]):
+    """Filas con etiqueta y al menos `minimo` números: las 17 comunidades en el orden del SIAE, Ceuta y Melilla y TOTAL."""
+    filas = []
+    for r in rs:
+        j = next((i for i, x in enumerate(r) if isinstance(x, str) and x.strip()), None)
+        if j is None:
+            continue
+        nums = [x for x in r[j + 1:] if isinstance(x, (int, float)) and not isinstance(x, bool)]
+        if len(nums) >= minimo:
+            filas.append((r[j].strip(), nums))
+    if len(filas) < 19:
+        raise SystemExit(f"SIAE {anio}: solo {len(filas)} filas con datos")
+    for (c, pista), (etq, _) in zip(ORDEN_SIAE, filas[:17]):
+        if pista not in sin_tildes(etq):
+            if any(p in sin_tildes(etq) for _, p in ORDEN_SIAE):
+                raise SystemExit(f"SIAE {anio}: en la posición de {c} aparece «{etq}»")
+            avisos.append(f"{anio}: la fila de {c} trae la etiqueta «{etq}»")
+    total = next(v for etq, v in filas[17:] if sin_tildes(etq).startswith("total"))
+    return {c: v for (c, _), (_, v) in zip(ORDEN_SIAE, filas[:17])}, total
+
+
+def agudos(anios: list[int]):
+    """Estancia media e índice de ocupación de los hospitales de agudos de la red pública, por comunidad y año."""
+    ocu = {c: [] for c, _ in ORDEN_SIAE}
+    est = {c: [] for c, _ in ORDEN_SIAE}
+    esp_ocu, esp_est, avisos, peor = [], [], [], 0.0
+    for a in anios:
+        com, total = filas_ccaa(hoja(a, ("AA.4.", "5.3.2", "5.3")), 4, a, avisos)  # Ceuta y Melilla no tienen parte privada
+        for c, v in list(com.items()) + [("ES", total)]:
+            em, io, ir = v[0], v[1], v[2]  # red pública: estancia media, índice de ocupación, índice de rotación
+            if not (3 <= em <= 15 and 0.3 <= io <= 1.05 and 15 <= ir <= 70):
+                raise SystemExit(f"SIAE {a} {c}: valores fuera de rango (estancia {em}, ocupación {io}, rotación {ir})")
+            calc = em * ir / 365
+            tol = io * (0.06 / em + 0.06 / ir) + 0.003  # redondeo de la estancia (a veces un decimal) y la rotación
+            if abs(calc - io) > tol:
+                raise SystemExit(f"SIAE {a} {c}: la ocupación ({io}) no cuadra con estancia × rotación / 365 ({calc:.3f})")
+            peor = max(peor, abs(calc - io))
+            if c == "ES":
+                esp_ocu.append(round(io * 100, 1)); esp_est.append(round(em, 2))
+            else:
+                ocu[c].append(round(io * 100, 1)); est[c].append(round(em, 2))
+    print(f"  SIAE agudos {anios[0]}-{anios[-1]}: ocupación = estancia × rotación / 365 en todas las filas (diferencia máxima {peor:.3f})")
+    return ocu, est, {"hosp_ocupacion": esp_ocu, "hosp_estancia": esp_est}, avisos
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -216,8 +275,11 @@ def main() -> None:
                 reclasif.append({"ccaa": c, "anio": anios_h[k], "sns": [c_sns[c][k - 1], c_sns[c][k]], "total": [c_tot[c][k - 1], c_tot[c][k]]})
     print(f"  Cambios de clasificación pública/privada: {[(x['ccaa'], x['anio']) for x in reclasif]}")
     indicadores = [{"id": k, "fuente": "siap", "anios": anios, "valor": v, "espana": espana[k]} for k, v in inds.items()]
+    ocu, est, esp_a, avisos_a = agudos(anios_h)
     indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
-                    {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]}]
+                    {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]},
+                    {"id": "hosp_ocupacion", "fuente": "siae", "anios": anios_h, "valor": ocu, "espana": esp_a["hosp_ocupacion"]},
+                    {"id": "hosp_estancia", "fuente": "siae", "anios": anios_h, "valor": est, "espana": esp_a["hosp_estancia"]}]
     datos = {
         "fuentes": {
             "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
@@ -229,7 +291,7 @@ def main() -> None:
         },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
-        "etiquetas_siae": avisos_h,
+        "etiquetas_siae": sorted(set(avisos_h + avisos_a)),
         "reclasificaciones": reclasif,
         "profesionales": profesionales,
         "indicadores": indicadores,

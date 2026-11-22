@@ -561,7 +561,7 @@ export function iniciar(DATA: DatosApp): void {
       const oc = ordenados(cambio); const a = oc[0], b = oc[oc.length - 1];
       const f = (x) => (x >= 0 ? "+" : "−") + nf(u === "pct" ? 1 : 0).format(Math.abs(x)) + (u === "pct" ? " puntos" : " %");
       // Camas: si en el periodo hay camas que cambian de clasificación (pública/privada), se avisa junto al dato.
-      const recl = (id) => ind.grupo === "recursos" && ind.fuente === "siae" ? DATA.recursos.reclasificaciones.filter((x) => x.ccaa === id && x.anio > base0(ind) && x.anio <= anio) : [];
+      const recl = (id) => ind.grupo === "recursos" && ind.unidad === "camas_mil" ? DATA.recursos.reclasificaciones.filter((x) => x.ccaa === id && x.anio > base0(ind) && x.anio <= anio) : [];
       const conRecl = (id) => recl(id).length ? `; incluye camas que en ${recl(id).map((x) => x.anio).join(" y ")} pasan a contarse en otra red` : "";
       out.push({ k: `Cambio de ${base0(ind)} a ${anio}${sinInfl(ind) ? ", descontada la inflación" : ""}`, t: `El cambio más alto es el de <strong>${NOMBRE[a]}</strong> (${f(cambio[a])}${conRecl(a)}); el más bajo, el de <strong>${NOMBRE[b]}</strong> (${f(cambio[b])}${conRecl(b)}).` });
     }
@@ -1051,6 +1051,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Qué cuenta.</b> Las camas en funcionamiento (las que han funcionado de media en el año), en todos los hospitales: agudos, media y larga estancia y salud mental. Se cuentan en la comunidad donde está el hospital, aunque atienda a pacientes de otras comunidades. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública; esa definición es la misma desde 2010, por eso la serie empieza ese año.</p>
       ${rec ? `<p><b>Camas que cambian de clasificación.</b> Total = camas públicas + privadas. Señalamos los años en que las públicas cambian un 10 % o más y las totales menos de un 5 %: son camas que la estadística pasa a contar como públicas (o como privadas). La fuente no explica por qué.</p><ul>${rec}</ul>` : ""}
       <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` En las tablas de ${[...new Set(R.etiquetasSiae.map((x) => x.slice(0, 4)))].join(", ")}, la fila de Aragón lleva una etiqueta equivocada («Personal y Formación»); la identificamos por su posición y por esas comprobaciones.` : ""}</p>
+      <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. Conviene leer las camas, la ocupación y la estancia juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
       <p><b>Más camas no es por sí solo mejor ni peor:</b> depende de cómo se organiza la atención (cirugía sin ingreso, hospital de día, atención a domicilio) y de la edad de la población. Los hospitales de referencia atienden también a pacientes de otras comunidades. Ceuta y Melilla van juntas en la fuente.</p>`;
   }
 
@@ -1149,7 +1150,7 @@ export function iniciar(DATA: DatosApp): void {
     const barra = (y, v, rel) => { const a = Math.min(x(0), x(v)), w = Math.abs(x(v) - x(0));
       return `<rect x="${a}" y="${y + 5}" width="${Math.max(w, 1)}" height="${fila - 10}" rx="3" ${rel}/>`; };
     // Recursos: la referencia es España (toda la población asignada entre todos los profesionales), como en el SIAP.
-    const refEsp = ind.grupo === "recursos" && (ind.unidad === "personas" || ind.unidad === "camas_mil");
+    const refEsp = ind.grupo === "recursos" && !/~cambio$/.test(ind.id);
     const m = refEsp ? ind.espana[indice(ind, S.anioP)] : media(vals);
     const fg = css("--fg"), muted = css("--muted"), line = css("--line"), base = css("--grey-line");
     let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ranking de ${esc(ind.nombre)}">`;
@@ -1660,7 +1661,7 @@ export function iniciar(DATA: DatosApp): void {
     renderOpinionFicha(id);
     const rec = DATA.inds.filter((i) => i.grupo === "recursos");
     const ap = rec.find((i) => i.fuente === "siap"), hosp = rec.find((i) => i.fuente === "siae");
-    $("#c-recursos-sub").textContent = `Profesionales de atención primaria de la sanidad pública (a 31 de diciembre de ${ultimo(ap)}) y camas de hospital (${ultimo(hosp)}). Más personas por profesional quiere decir menos profesionales para la misma población. La raya marca España.`;
+    $("#c-recursos-sub").textContent = `Profesionales de atención primaria de la sanidad pública (a 31 de diciembre de ${ultimo(ap)}) y hospitales (${ultimo(hosp)}). Más personas por profesional quiere decir menos profesionales para la misma población. La raya marca España.`;
     $("#c-recursos").innerHTML = rec.map((i) => filaInd(i, id, S.vs, ultimo(i))).join("");
     $("#c-recursos-notas").innerHTML = plegable("recursos-ficha", "¿De dónde salen estos datos?", notasRecursos("siap") + notasRecursos("siae"));
     renderContexto(id);
@@ -1744,11 +1745,11 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Cómo lo comprobamos.</b> Con los microdatos reproducimos exactamente la satisfacción y la valoración de 2025 de su serie, en las 17 comunidades, Ceuta y Melilla. En el acceso coinciden todas las cifras que da su informe anual: en España, 9,15 días de media, 21,8 % atendido en el día o al siguiente y 5,1 % que prefirió otra fecha; y los días de País Vasco (4,91), Asturias (5,45), Andalucía (11,16), Cataluña (10,59) y Ceuta (5,55). El cálculo usa la ponderación nacional, también dentro de cada comunidad, y en las valoraciones el «no sabe o no contesta» cuenta en el total.</p>
       <p><b>Los días de espera son de atención primaria.</b> No tienen que ver con las listas de espera de la web, que son de operaciones y consultas con el especialista (registro SISLE-SNS). Aquí se pregunta a la gente por su última visita al médico de familia.</p>
 
-      <h2 id="metodo-recursos">Recursos: profesionales de atención primaria y camas de hospital</h2>
+      <h2 id="metodo-recursos">Recursos: profesionales de atención primaria y hospitales</h2>
       <dl>${lista("recursos")}</dl>
       <h3>Profesionales de atención primaria</h3>
       ${notasRecursos("siap")}
-      <h3>Camas de hospital</h3>
+      <h3>Hospitales: camas, ocupación y estancia media</h3>
       ${notasRecursos("siae")}
 
       <h2 id="metodo-notas">Notas del Ministerio</h2>
@@ -1826,7 +1827,7 @@ export function iniciar(DATA: DatosApp): void {
     pararPlay(); if ($("#ajustes").open) $("#ajustes").close(); render(); window.scrollTo(0, 0);
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
-  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y camas de hospital de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
+  $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y camas y ocupación de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}.`;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   {
     const rect = DATA.versionListas && DATA.versionListas.rectificado

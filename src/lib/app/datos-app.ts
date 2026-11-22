@@ -142,6 +142,16 @@ const RECURSOS: Record<string, TextoRecurso> = {
     ...CAMAS, corto: "Camas de hospital, públicas y privadas", nombre: "Camas de hospital en funcionamiento por 1.000 habitantes, públicas y privadas",
     desc: "Camas que han funcionado de media durante el año en todos los hospitales de la comunidad, públicos y privados, por cada 1.000 habitantes. Tasa publicada por el Ministerio de Sanidad (SIAE).",
   },
+  hosp_ocupacion: {
+    unidad: "pct", que: "de ocupación", espanaTxt: "en el conjunto de los hospitales de agudos de la red pública, con Ceuta y Melilla (dato del Ministerio)",
+    corto: "Ocupación de los hospitales públicos", nombre: "Ocupación de las camas de los hospitales de agudos de la red pública",
+    desc: "Porcentaje de las camas de los hospitales de agudos de la red pública que estuvieron ocupadas de media durante el año (estancias ÷ (camas × 365)). Solo hospitales de agudos: los de larga estancia y salud mental van casi siempre llenos y harían la media poco comparable. Una ocupación alta indica que se usan casi todas las camas (por encima del 85-90 % se suele hablar de saturación); una baja, margen libre, o estancias más cortas. Índice publicado por el Ministerio de Sanidad (SIAE).",
+  },
+  hosp_estancia: {
+    unidad: "dias_media", que: "de estancia media", espanaTxt: "en el conjunto de los hospitales de agudos de la red pública, con Ceuta y Melilla (dato del Ministerio)",
+    corto: "Estancia media en el hospital", nombre: "Estancia media en los hospitales de agudos de la red pública (días)",
+    desc: "Días que pasa de media cada paciente ingresado en un hospital de agudos de la red pública (estancias ÷ altas). Depende de la gravedad y la edad de los pacientes y de cómo se organiza la atención (cirugía sin ingreso, hospitalización a domicilio), así que no mide por sí sola la calidad. Dato publicado por el Ministerio de Sanidad (SIAE).",
+  },
 };
 
 export type IndApp =

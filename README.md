@@ -53,7 +53,7 @@ npm test
 | `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
-| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) y camas de hospital por 1.000 habitantes (SIAE, 2010-2023) (generado) |
+| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación y estancia media (SIAE, 2010-2023) (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
 | `datos-originales/` | Ficheros descargados tal cual de la fuente, para trazabilidad (solo en local) |
