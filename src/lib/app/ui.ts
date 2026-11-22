@@ -47,6 +47,7 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "por_mil_hab") return nf(1).format(v);
     if (u === "sesiones_mil") return nf(0).format(v);
     if (u === "equipos_100k") return nf(2).format(v);
+    if (u === "consultas_dia") return nf(1).format(v);
     if (u === "var" || u === "pp") {
       const d = u === "pp" ? 1 : 0;
       const signo = v === 0 ? "" : Math.abs(v) < (u === "pp" ? 0.05 : 0.5) ? "≈ " : v > 0 ? "+" : "−";
@@ -130,7 +131,7 @@ export function iniciar(DATA: DatosApp): void {
     const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0144 + 0.05)) ? "#ffffff" : "#142033";
   }
-  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "pacientes por cada 1.000 habitantes", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", equipos_100k: "equipos por 100.000 habitantes", var: "% de crecimiento", pp: "puntos de cambio" };
+  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "pacientes por cada 1.000 habitantes", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", equipos_100k: "equipos por 100.000 habitantes", consultas_dia: "consultas al día por profesional", var: "% de crecimiento", pp: "puntos de cambio" };
   const soloNum = (v, u) => u === "var" || u === "pp" ? fmt(v, u).replace(/ (%|p\.)$/, "") : nf(u === "eur_hab" || u === "dias" ? 0 : 1).format(v);
   // Devuelve el color de cada comunidad y la leyenda, según la paleta.
   function escala(vals, ind, pal0 = PAL) {
@@ -542,7 +543,7 @@ export function iniciar(DATA: DatosApp): void {
 
   // «la cifra más alta, Cataluña y Madrid; la más baja, Aragón»: sin jerga de ranking y sin problemas de número.
   // Años sin dato por comunidad: en TAC y resonancia, 2022 (la tabla del SIAE trae las columnas desplazadas).
-  const sinDatosTxt = (ind, anio) => /^hosp_(tac|rm)_/.test(ind.id) && anio === DATA.recursos.anioEquiposSinDato
+  const sinDatosTxt = (ind, anio) => /^hosp_(tac|rm|mam)_/.test(ind.id) && anio === DATA.recursos.anioEquiposSinDato
     ? "sin dato por comunidad (la tabla de ese año trae las columnas desplazadas; el dato de España sí está)" : "sin datos";
   const extremosTxt = (vals, top, bot, u) => `la cifra más alta, ${empatadas(vals, top, u)}; la más baja, ${empatadas(vals, bot, u)}`;
 
@@ -559,7 +560,9 @@ export function iniciar(DATA: DatosApp): void {
       out.push({ k: `Frente a España (${fmt(ind.espana[anio], u)})`, t: `<strong>${n(1)}</strong> ${dias ? "con más días" : "por encima"}, <strong>${n(0)}</strong> que no se distinguen y <strong>${n(-1)}</strong> ${dias ? "con menos días" : "por debajo"}, teniendo en cuenta el margen de error de la encuesta.` });
       out.push({ k: "Extremos", t: `<strong>${NOMBRE[top]}</strong>: ${fmt(vals[top], u)} (${intervalo(ind, top, anio)}). <strong>${NOMBRE[bot]}</strong>: ${fmt(vals[bot], u)} (${intervalo(ind, bot, anio)}).` });
       const ch = anio > 0 ? cambioOpinion(ind, "ES", 0, anio) : null;
-      if (ch) out.push({ k: `España desde ${ind.fechas[0]}`, t: `De ${fmt(ch.desde, u)} a <strong>${fmt(ch.hasta, u)}</strong> en ${ind.fechas[anio]}: ${textoCambio(ind, ch)}.` });
+      // Urgencias: la pregunta cambió de redacción en 2024 (la serie oficial la da como continua).
+      const avisoRedaccion = ind.id === "valoracion_urgencias" && ind.fechas[0] < 2024 && ind.fechas[anio] >= 2024 ? " Ojo: en 2024 cambió la redacción de la pregunta, así que el cambio hay que tomarlo con cautela." : "";
+      if (ch) out.push({ k: `España desde ${ind.fechas[0]}`, t: `De ${fmt(ch.desde, u)} a <strong>${fmt(ch.hasta, u)}</strong> en ${ind.fechas[anio]}: ${textoCambio(ind, ch)}.${avisoRedaccion}` });
       return { out, top, bot };
     }
     if (esRecurso(ind)) {
@@ -1049,6 +1052,8 @@ export function iniciar(DATA: DatosApp): void {
   function notasOpinion(ind) {
     const unAnio = ind && ind.fechas.length === 1;
     return `<p><b>Es una encuesta.</b> Cada cifra tiene un margen de error (intervalo de confianza al 95 %). Por eso no ordenamos a las comunidades del 1 al 17: el color dice si están por encima, por debajo o no se distinguen de la media de España. El margen lo calculamos con los microdatos del CIS (con el tamaño de muestra efectivo de Kish); es una aproximación, como el error que da el propio CIS. Al comparar 17 comunidades, alguna puede salir distinta solo por azar.</p>
+      ${ind && ind.id === "valoracion_urgencias" ? `<p><b>Urgencias, 2024.</b> La pregunta cambió de redacción: de «servicio de urgencias de la sanidad pública» a «servicio de urgencias (atención primaria/hospitalaria) de la sanidad pública». El Ministerio da la serie como continua; tenlo en cuenta al comparar 2024 y 2025 con los años anteriores.</p>` : ""}
+      <p><b>Valoración de la hospitalización: no la mostramos.</b> Solo contestan quienes estuvieron ingresados en el último año, así que hay muy pocas entrevistas por comunidad: el margen de error llega a más de 30 puntos y, donde todos responden «buena», el cálculo da un margen nulo que no es real.</p>
       <p><b>Cambio de método en ${DATA.barometro.primerAnioMetodo}.</b> La encuesta pasó de entrevista en persona a telefónica, y en 2020 y 2021 no se hizo. Solo comparamos años del mismo método; la serie anterior se ve aparte en la evolución.</p>
       <p><b>Cambios entre años.</b> Decimos que un dato sube o baja solo si la diferencia supera el margen de error combinado de los dos años; si no, «no se distingue un cambio». Por eso no hay mapa de «Comparar años»: en la mayoría de comunidades los cambios no superan ese margen.</p>
       ${unAnio ? `<p><b>Solo ${periodo(ind, 0)}.</b> Es el único año que podemos comprobar por comunidad con las cifras que publica el Ministerio.</p>`
@@ -1063,6 +1068,7 @@ export function iniciar(DATA: DatosApp): void {
     const F = R.fuentes.siap;
     const rep = R.repetidos.map((x) => `${NOMBRE[x.ccaa]} (${x.anio})`);
     return `<p><b>De dónde sale.</b> <a href="${F.url}">${esc(F.texto)}</a>: ${esc(F.ruta)}. Dividimos la población asignada entre los profesionales; España es el conjunto de las 17 comunidades. La población asignada de 2024 coincide con la del <a href="${F.resumen}">resumen oficial del SIAP 2024</a> (48.034.708 personas, con Ceuta y Melilla). Ese resumen, publicado antes, da algunos profesionales más que la consulta actual (31.241 médicos de familia frente a 31.118); usamos la consulta, que es la fuente detallada.</p>
+      <p><b>Consultas al día por profesional.</b> Es la media que publica el SIAP (cubo «Actividad > Ordinaria»), tal cual, desde 2009: Cataluña no tiene datos de actividad de 2007 y 2008. Comprobamos que las consultas de las comunidades suman las de España cada año y que 2024 coincide con el resumen oficial (28 consultas al día por médico de familia, 16 por pediatra y 16 por profesional de enfermería, redondeadas).</p>
       <p><b>Qué cuenta.</b> Los profesionales de los equipos de atención primaria, del modelo tradicional y de pediatría de área, a 31 de diciembre. No cuenta los de urgencias ni los residentes. Es la población que tiene asignada cada profesional en su cupo, no cuánta gente atiende de verdad ni cuánto se espera.</p>
       <p><b>Cataluña, 2020.</b> El Ministerio avisa: «${esc(R.ruptura.texto)}» Los años anteriores y posteriores no son del todo comparables.</p>
       ${rep.length ? `<p><b>Cifras repetidas.</b> En ${rep.join(", ")}, las cifras de médicos de familia, pediatras y enfermería son exactamente las del año anterior. La fuente no explica por qué.</p>` : ""}
@@ -1090,7 +1096,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` ${erroresTablas(R.etiquetasSiae)}` : ""}</p>
       <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. Es una media de todo el año y de todas las camas de agudos de la comunidad: los picos de unas semanas o de unas unidades concretas (como las UCI) no se ven en ella. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
       <p><b>Ingresos y hospital de día.</b> Los ingresos son los de los hospitales de la red pública por 1.000 habitantes (cálculo propio: la tasa de ingresos que publica el Ministerio por su porcentaje de la red pública). El hospital de día cuenta las sesiones de todos los hospitales, públicos y privados, porque la tabla no las separa; en 2010-2013 solo trae el número de sesiones y calculamos la tasa con la población de esa misma tabla (desde 2014, cuando la tabla sí la publica, ese cálculo coincide con ella). Comprobamos que cada tasa cuadra con el número dividido entre la población.${(R.picos || []).length ? ` Años con una cifra muy distinta (un 40 % o más) de la del año anterior y la del siguiente: ${R.picos.map((x) => `${esc(NOMBRE[x.ccaa])} ${x.anio} (${fmt(x.valores[0], "sesiones_mil")}, ${fmt(x.valores[1], "sesiones_mil")} y ${fmt(x.valores[2], "sesiones_mil")} sesiones por 1.000 habitantes)`).join("; ")}. La cifra es la oficial; la fuente no explica el salto.` : ""}</p>
-      <p><b>TAC y resonancia.</b> Equipos en funcionamiento a 31 de diciembre, en la red pública y en total (públicos y privados), por cada 100.000 habitantes. Las tablas dan el número de equipos y el porcentaje de la red pública; la tasa la calculamos con la población de esa misma estadística (en 2023, que el Ministerio sí la publica, nuestro cálculo coincide). Comprobamos que la suma de las comunidades, con Ceuta y Melilla, coincide con las tablas nacionales del SIAE. ${DATA.recursos.anioEquiposSinDato}: sin dato por comunidad, porque la tabla de ese año trae las columnas desplazadas, tanto en Excel como en PDF; el dato de España sí está, en la tabla nacional. No mostramos PET ni aceleradores lineales: hay tan pocos que, en una comunidad pequeña, un solo equipo cambia mucho la tasa.</p>
+      <p><b>TAC, resonancia y mamógrafos.</b> Equipos en funcionamiento a 31 de diciembre, en la red pública y en total (públicos y privados), por cada 100.000 habitantes. Las tablas dan el número de equipos y el porcentaje de la red pública; la tasa la calculamos con la población de esa misma estadística (en 2023, que el Ministerio sí la publica, nuestro cálculo coincide). Comprobamos que la suma de las comunidades, con Ceuta y Melilla, coincide con las tablas nacionales del SIAE. ${DATA.recursos.anioEquiposSinDato}: sin dato por comunidad, porque la tabla de ese año trae las columnas desplazadas, tanto en Excel como en PDF; el dato de España sí está, en la tabla nacional. Los mamógrafos son solo los de los hospitales: muchos de los del cribado de cáncer de mama están en centros sin ingreso, que esta estadística no cuenta. No mostramos PET ni aceleradores lineales: hay tan pocos que, en una comunidad pequeña, un solo equipo cambia mucho la tasa.</p>
       <p><b>Hospitalización a domicilio: no la mostramos.</b> Las mismas tablas la traen, pero la serie no es coherente: Extremadura declara cero todos los años y Andalucía pasa de 12 a 1,4 pacientes por 1.000 ingresos y, en 2020, a 40. La fuente no explica estas diferencias, y con una serie así comparar comunidades sería engañoso.</p>
       <p><b>No está ajustado por edad.</b> Una comunidad con más población mayor necesita, en principio, más camas, más ingresos y estancias más largas. El porcentaje de mayores de 65 años de cada comunidad está en su ficha, en «Contexto».</p>
       <p><b>Más camas no es por sí solo mejor ni peor:</b> depende de cómo se organiza la atención (cirugía sin ingreso, hospital de día, atención a domicilio) y de la edad de la población. Los hospitales de referencia atienden también a pacientes de otras comunidades. Ceuta y Melilla van juntas en la fuente.</p>`;
@@ -1171,7 +1177,7 @@ export function iniciar(DATA: DatosApp): void {
       const a = ultimo(ind), v = ind.serie[id]?.[a], c = claseOpinion(ind, id, a);
       return `<div class="ctx"><div class="ctx-t">${esc(ind.corto)} · ${periodo(ind, a)}</div><div class="ctx-v">${fmt(v, ind.unidad)}</div>
         <div class="ctx-d">${v == null ? "Sin dato" : `${intervalo(ind, id, a)}. ${textoClase(ind, c)} (${fmt(ind.espana[a], ind.unidad)})`}</div>
-        ${(() => { const ch = a > 0 ? cambioOpinion(ind, id, 0, a) : null; return ch ? `<div class="ctx-d">Desde ${ind.fechas[0]} (${fmt(ch.desde, ind.unidad)}): <b>${textoCambio(ind, ch, true)}</b></div>` : ""; })()}
+        ${(() => { const ch = a > 0 ? cambioOpinion(ind, id, 0, a) : null; return ch ? `<div class="ctx-d">Desde ${ind.fechas[0]} (${fmt(ch.desde, ind.unidad)}): <b>${textoCambio(ind, ch, true)}</b>${ind.id === "valoracion_urgencias" ? " (la pregunta cambió de redacción en 2024)" : ""}</div>` : ""; })()}
         ${vs && ind.serie[vs]?.[a] != null ? `<div class="vs">${esc(NOMBRE[vs])}: ${fmt(ind.serie[vs][a], ind.unidad)}</div>` : ""}</div>`;
     }).join("");
     $("#c-opinion-notas").innerHTML = plegable("opinion-ficha", "¿Qué mide cada dato y de dónde sale?",
@@ -1281,7 +1287,7 @@ export function iniciar(DATA: DatosApp): void {
     else if (esRecurso(ind)) {
       // Qué es dato publicado tal cual y qué es cálculo propio, indicador a indicador
       const fuente = ind.fuente === "siap" ? "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)"
-        : /^hosp_(tac|rm)_/.test(ind.id) ? "Ministerio de Sanidad, SIAE (cálculo propio: equipos / población de la propia estadística; España, de la tabla nacional)"
+        : /^hosp_(tac|rm|mam)_/.test(ind.id) ? "Ministerio de Sanidad, SIAE (cálculo propio: equipos / población de la propia estadística; España, de la tabla nacional)"
         : ind.id === "hosp_ingresos" ? "Ministerio de Sanidad, SIAE (cálculo propio: ingresos por 1.000 hab. × % de la red pública, ambos publicados)"
         : ind.id === "hosp_dia" ? "Ministerio de Sanidad, SIAE (dato publicado; 2010-2013, cálculo propio con la población de la propia estadística)"
         : "Ministerio de Sanidad, SIAE (dato publicado en las tablas por comunidad de cada año)";
