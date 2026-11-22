@@ -30,12 +30,12 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_medicos_sns" ? [1, 3.5] : i.id === "hosp_enfermeria_sns" ? [2, 7] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
+      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_medicos_sns" ? [1, 3.5] : /hosp_quir/.test(i.id) ? [3, 15] : i.id === "hosp_enfermeria_sns" ? [2, 7] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
         s.forEach((v, k) => {
-          if (v === null && /hosp_(tac|rm|mam)/.test(i.id) && i.anios[k] === rec.anio_equipos_sin_dato) return; // 2022 sin dato
+          if (v === null && /hosp_(tac|rm|mam|quir)/.test(i.id) && i.anios[k] === rec.anio_equipos_sin_dato) return; // 2022 sin dato
           expect(v, `${i.id} ${c.id} ${i.anios[k]}`).toBeGreaterThan(lo), expect(v).toBeLessThan(hi);
         });
       }

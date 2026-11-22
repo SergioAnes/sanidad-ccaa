@@ -65,9 +65,9 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   comprobaciones (población implícita igual en pública y total, % SNS, fila TOTAL = suma, España = tablas de evolución).
   No usar INCLASNS para hospitales (no cuadra en 2022-2023) ni el cubo del portal (solo hospitales de agudos). Médicos y
   enfermería de la red pública por 1.000 hab. (2016-2023; antes no hay % SNS por comunidad): recuentos de las tablas 4.2 y
-  4.4 × % SNS de la tabla 4.5 (2023: del informe anual en PDF, el Excel viene descolocado; 2020: la fila del % SNS de
-  médicos trae la etiqueta «Personal y Formación»). Enfermería = enfermeros + matronas + otros especialistas, como la tabla
-  nacional. Comprobado: recuento / población = tasa publicada, suma = Total (2016-2019 la columna Total de médicos no
+  4.4 × % SNS de la tabla 4.5 (2023: del informe anual en PDF, el Excel viene descolocado; 2020 y 2021: la fila del % SNS
+  de médicos trae la etiqueta «Personal y Formación»). Enfermería = enfermeros + matronas + otros especialistas, como la tabla
+  nacional. Comprobado: recuento / población = tasa publicada, suma = Total (2016-2020 la columna Total de médicos no
   cuadra: se usa la suma), España = tablas nacionales. Sin «públicos y privados»: los colaboradores (sin contrato, no
   contados) son sobre todo de privados. Saltos de un año ≥ 20 % en `saltos_personal`, sin explicarlos. Años con camas que pasan
   de privadas a públicas (o al revés): `reclasificaciones` (≥ 10 % en la pública y < 5 % en el total), sin explicarlas.
@@ -79,6 +79,9 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   hospital de día por 1.000 hab. (todos los hospitales; 2010-2013 con la población de la tabla de camas). Picos de un año
   (≥ 40 % frente al anterior y al siguiente) en `picos`, sin explicarlos. Hospitalización a domicilio: no usar (serie
   incoherente: Extremadura 0 todos los años, Andalucía 12 → 1,4 → 40).
+  Quirófanos por 100.000 hab. (red pública y total, 2010-2023, 2022 sin dato ni España: tabla 3.1 desplazada en Excel
+  y PDF; 2023 traspuesta): tasa = número / población comprobada con la publicada; España 2010-2019 = tabla nacional
+  2010-2019 (la de 2014-2023 repite bajo «Quirófanos» la de hospital de día; 2020-2021 fila TOTAL; 2023 suma).
   TAC y resonancia por 100.000 hab. (red pública y total; cálculo propio con la población de la tabla de camas): cuatro
   formatos de la tabla de dotación tecnológica; 2022 sin dato por comunidad (columnas desplazadas en Excel y PDF);
   comprobado que la suma de comunidades + Ceuta y Melilla = tablas nacionales de evolución (España sale de ahí). Tasas

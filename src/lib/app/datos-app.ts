@@ -193,6 +193,16 @@ const RECURSOS: Record<string, TextoRecurso> = {
     corto: "Operaciones sin ingreso", nombre: "Cirugía mayor ambulatoria: operaciones de cirugía mayor que se hacen sin ingreso en la red pública (%)",
     desc: "Porcentaje de las operaciones de cirugía mayor de los hospitales de la red pública que se hacen sin ingresar al paciente (cirugía mayor ambulatoria: se va a casa el mismo día), sobre el total de cirugía mayor (con ingreso o sin él). Ayuda a entender las camas y la estancia media: lo que se opera sin ingreso no ocupa cama. Depende también del tipo de operaciones que se hacen en cada comunidad. «Porcentaje de ambulatorización» publicado por el Ministerio de Sanidad (SIAE).",
   },
+  hosp_quir_sns: {
+    unidad: "quir_100k", que: "quirófanos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla",
+    corto: "Quirófanos públicos", nombre: "Quirófanos de la red pública por 100.000 habitantes",
+    desc: "Quirófanos en funcionamiento en los hospitales de la red pública de la comunidad, por cada 100.000 habitantes. Más quirófanos no significa por sí solo más operaciones: depende también de cuántas horas se usan. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. No está ajustado por edad. Cálculo propio: el número de quirófanos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística (coincide con la tasa que publica). 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
+  hosp_quir_total: {
+    unidad: "quir_100k", que: "quirófanos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla",
+    corto: "Quirófanos, públicos y privados", nombre: "Quirófanos por 100.000 habitantes, públicos y privados",
+    desc: "Quirófanos en funcionamiento en todos los hospitales de la comunidad, públicos y privados, por cada 100.000 habitantes. Más quirófanos no significa por sí solo más operaciones: depende también de cuántas horas se usan. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. No está ajustado por edad. Cálculo propio: el número de quirófanos que publica el Ministerio de Sanidad (SIAE) entre la población de esa misma estadística (coincide con la tasa que publica). 2022 sin dato por comunidad: la tabla de ese año trae las columnas desplazadas.",
+  },
   hosp_ingresos: {
     unidad: "por_mil_hab", que: "ingresos por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla",
     corto: "Ingresos en hospitales públicos", nombre: "Ingresos en hospitales de la red pública por 1.000 habitantes",
