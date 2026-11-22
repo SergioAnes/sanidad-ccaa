@@ -57,8 +57,12 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   «Modalidades asistenciales») en `datos-originales/siap/`. Personas asignadas por médico de familia, por pediatra y por
   profesional de enfermería (cálculo propio: población asignada / profesionales). España = conjunto de las 17, no media.
   El script comprueba la población de 2024 con el resumen oficial y que el cubo EAP = suma de modalidades. Ruptura de
-  serie oficial: Cataluña 2020. Los hospitales (SIAE) quedan pendientes: INCLASNS no cuadra con las tablas del SIAE en
-  2022-2023 y el cubo del portal omite hospitales; usar las tablas anuales `Tablas_CCAA_AAAA.xlsx` (formatos cambiantes).
+  serie oficial: Cataluña 2020. Camas de hospital (red pública y total, por 1.000 hab., 2010-2023): tasas publicadas en
+  las tablas anuales del SIAE (`datos-originales/siae/Tablas_CCAA_AAAA.xls(x)`, tabla de camas según dependencia), con
+  comprobaciones (población implícita igual en pública y total, % SNS, fila TOTAL = suma, España = tablas de evolución).
+  No usar INCLASNS para hospitales (no cuadra en 2022-2023) ni el cubo del portal (solo hospitales de agudos). Personal
+  y TAC de hospital, pendientes: sus tablas traen filas o columnas desplazadas en algunos años. Años con camas que pasan
+  de privadas a públicas (o al revés): `reclasificaciones` (≥ 10 % en la pública y < 5 % en el total), sin explicarlas.
 - `src/data/listas-espera.json` se genera con `python scripts/extraer_sisle.py` a partir de los PDF
   `datos-originales/Datos_ccaa_*.pdf` del SISLE-SNS. No editarlo a mano.
 - `src/data/ipc.json` se genera con `python scripts/extraer_ipc.py` (API del INE, serie IPC251852).

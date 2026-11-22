@@ -1,4 +1,4 @@
-"""Recursos de la sanidad pública por comunidad: profesionales de atención primaria (SIAP).
+"""Recursos de la sanidad por comunidad: profesionales de atención primaria (SIAP) y camas de hospital (SIAE).
 
 Uso:
     python scripts/extraer_recursos.py
@@ -22,14 +22,31 @@ Comprobaciones (se detiene si fallan):
   - la población asignada de 2024 (17 comunidades + Ceuta y Melilla) es la del resumen del SIAP 2024: 48.034.708;
   - el cubo EAP es la suma de las modalidades «AP», «Modelo tradicional» y «Pediatría de Área» del otro cubo.
 
+Camas de hospital (datos-originales/siae/, no se suben a git): tablas anuales por comunidad de la Estadística de
+Centros Sanitarios de Atención Especializada (SIAE), Tablas_CCAA_2010.xls ... Tablas_CCAA_2023.xlsx, de
+https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm y «Años anteriores».
+Tabla de camas según dependencia (D.1. en 2010-2013, 2.1.1-2.1.2 en 2014-2015, 2.1 desde 2016): camas en
+funcionamiento de la red pública (SNS) y del total, con su tasa por 1.000 habitantes publicada. Se toman las tasas tal
+cual. España: la fila TOTAL (incluye Ceuta y Melilla). Todos los hospitales (agudos, media y larga estancia, salud
+mental), públicos y privados, en la comunidad donde está el hospital. La red pública incluye los privados con concierto
+sustitutorio o de la Red de Utilización Pública; la definición es la misma desde 2010.
+Comprobaciones (se detiene si fallan): cada fila da la misma población en la parte pública y en el total (detecta filas
+desplazadas), el % SNS cuadra con las camas, la fila TOTAL es la suma de las comunidades, y España coincide con las
+tablas nacionales de evolución (Dotacion_evol_2010_19.xlsx y Dotacion_Evolucion_2014-2023.xlsx).
+
 Escribe src/data/recursos.json.
 """
 from __future__ import annotations
 
 import csv
 import json
+import re
+import unicodedata
 from collections import defaultdict
 from pathlib import Path
+
+import openpyxl
+import xlrd
 
 RAIZ = Path(__file__).resolve().parent.parent
 SIAP = RAIZ / "datos-originales" / "siap"
@@ -49,6 +66,93 @@ POBLACION_2024 = 48_034_708  # resumen gráfico SIAP 2024 (Ministerio de Sanidad
 URL_SIAP = "https://pestadistico.inteligenciadegestion.sanidad.gob.es/publicoSNS/S/sistema-de-informacion-de-atencion-primaria-siap"
 URL_RESUMEN = "https://www.sanidad.gob.es/estadEstudios/estadisticas/docs/siap/RGraficoSIAP_SNS_2024.pdf"
 RUPTURA = {"ccaa": "CT", "anio": 2020, "texto": "A partir del año 2020, ruptura de serie por revisión de los datos de recursos humanos de Cataluña."}
+
+
+SIAE = RAIZ / "datos-originales" / "siae"
+URL_SIAE = "https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm"
+URL_SIAE_ANTERIORES = "https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/anteriores.htm"
+# Orden de las comunidades en las tablas del SIAE y una pista de su nombre (algunos años traen etiquetas erróneas)
+ORDEN_SIAE = [("AN", "andal"), ("AR", "arag"), ("AS", "astur"), ("IB", "bale"), ("CN", "canar"), ("CB", "cantab"),
+              ("CL", "castilla y le"), ("CM", "mancha"), ("CT", "catal"), ("VC", "valen"), ("EX", "extrem"), ("GA", "galic"),
+              ("MD", "madrid"), ("MC", "murcia"), ("NC", "navarra"), ("PV", "vasco"), ("RI", "rioja")]
+
+
+def hoja_camas(anio: int) -> list[list]:
+    f = next(SIAE.glob(f"Tablas_CCAA_{anio}.xls*"))
+    nombre = "D.1." if anio <= 2013 else "2.1.1-2.1.2" if anio <= 2015 else "2.1"
+    if f.suffix == ".xlsx":
+        return [list(r) for r in openpyxl.load_workbook(f, data_only=True, read_only=True)[nombre].iter_rows(values_only=True)]
+    h = xlrd.open_workbook(f).sheet_by_name(nombre)
+    return [h.row_values(i) for i in range(h.nrows)]
+
+
+def sin_tildes(t) -> str:
+    return unicodedata.normalize("NFKD", str(t)).encode("ascii", "ignore").decode().lower()
+
+
+def camas():
+    """Camas en funcionamiento por 1.000 hab., red pública (SNS) y total, por comunidad y año (tablas anuales del SIAE)."""
+    anios = sorted(int(re.search(r"(\d{4})", f.name).group(1)) for f in SIAE.glob("Tablas_CCAA_*.xls*"))
+    sns = {c: [] for c, _ in ORDEN_SIAE}
+    tot = {c: [] for c, _ in ORDEN_SIAE}
+    esp_sns, esp_tot, n_sns, n_tot, avisos = [], [], [], [], []
+    for a in anios:
+        filas = []
+        for r in hoja_camas(a):
+            # la etiqueta es la primera celda con texto (en 2010-2013 no está en la primera columna)
+            j = next((i for i, x in enumerate(r) if isinstance(x, str) and x.strip()), None)
+            if j is None:
+                continue
+            nums = [x for x in r[j + 1:] if isinstance(x, (int, float)) and not isinstance(x, bool)]
+            if len(nums) >= 10:
+                filas.append((r[j].strip(), nums[:10]))
+        if len(filas) < 19:
+            raise SystemExit(f"SIAE {a}: solo {len(filas)} filas con datos en la tabla de camas")
+        # columnas: instaladas (SNS nº, tasa, total nº, tasa, % SNS) y en funcionamiento (las mismas cinco)
+        for (c, pista), (etq, v) in zip(ORDEN_SIAE, filas[:17]):
+            if pista not in sin_tildes(etq):
+                if any(p in sin_tildes(etq) for _, p in ORDEN_SIAE):
+                    raise SystemExit(f"SIAE {a}: en la posición de {c} aparece «{etq}»")
+                avisos.append(f"{a}: la fila de {c} trae la etiqueta «{etq}»")
+            n_s, t_s, n_t, t_t, pct = v[5], v[6], v[7], v[8], v[9]
+            pob_s, pob_t = n_s / t_s * 1000, n_t / t_t * 1000
+            if abs(pob_s / pob_t - 1) > 0.015:
+                raise SystemExit(f"SIAE {a} {c}: la población implícita no cuadra ({pob_s:.0f} frente a {pob_t:.0f})")
+            if abs(n_s / n_t - (pct if pct <= 1 else pct / 100)) > 0.006:
+                raise SystemExit(f"SIAE {a} {c}: el % SNS ({pct}) no cuadra con las camas ({n_s}/{n_t})")
+            sns[c].append(round(t_s, 3))
+            tot[c].append(round(t_t, 3))
+        total = next(v for etq, v in filas[17:] if sin_tildes(etq).startswith("total"))
+        ceml = next(v for etq, v in filas[17:] if "ceuta" in sin_tildes(etq))
+        for i in (5, 7):
+            suma = sum(v[i] for _, v in filas[:17]) + ceml[i]
+            if abs(suma - total[i]) > 2:
+                raise SystemExit(f"SIAE {a}: la fila TOTAL ({total[i]}) no es la suma de las comunidades ({suma})")
+        esp_sns.append(round(total[6], 3)); esp_tot.append(round(total[8], 3)); n_sns.append(total[5]); n_tot.append(total[7])
+    # España frente a las tablas nacionales de evolución (la edición más reciente sustituye a la anterior)
+    ref = {}
+    for fichero, hoja in (("Dotacion_evol_2010_19.xlsx", "TABLA 1.5 1.6"), ("Dotacion_Evolucion_2014-2023.xlsx", "TABLA 1.8 1.9")):
+        rs = [list(r) for r in openpyxl.load_workbook(SIAE / fichero, data_only=True, read_only=True)[hoja].iter_rows(values_only=True)]
+        cab = next(r for r in rs if any(str(x).strip() == "2014" for x in r if x is not None))
+        cols = {i: int(str(x).strip()) for i, x in enumerate(cab) if x is not None and re.fullmatch(r"\d{4}", str(x).strip())}
+        etq = lambda r: next((str(x).strip() for x in r if isinstance(x, str) and x.strip()), "")
+        f_sns = next(r for r in rs if etq(r) == "Públicos-SNS")
+        f_tot = next(r for r in rs[rs.index(f_sns):] if sin_tildes(etq(r)) == "total")
+        for i, y in cols.items():
+            ref[y] = (f_sns[i], f_tot[i])
+    peor = 0.0
+    for k, a in enumerate(anios):
+        if a not in ref:
+            raise SystemExit(f"SIAE: no hay dato nacional de evolución para {a}")
+        d = max(abs(n_sns[k] / ref[a][0] - 1), abs(n_tot[k] / ref[a][1] - 1))
+        print(f"   {a}: tabla anual {n_sns[k]} / {n_tot[k]} · evolución {ref[a][0]} / {ref[a][1]}")
+        if d > 0.01:
+            raise SystemExit(f"SIAE {a}: España frente a la tabla de evolución difiere un {d:.2%}")
+        peor = max(peor, d)
+    print(f"  SIAE {anios[0]}-{anios[-1]}: filas cuadradas; España frente a las tablas de evolución, diferencia máxima {peor:.2%}")
+    for x in avisos:
+        print("   aviso:", x)
+    return anios, sns, tot, {"hosp_camas_sns": esp_sns, "hosp_camas_total": esp_tot}, avisos
 
 
 def leer(nombre: str):
@@ -101,20 +205,39 @@ def main() -> None:
                  if all(d[(a, c)][t][1] == d[(a - 1, c)][t][1] for t in ("mf", "ped", "enf"))]
     profesionales = {c: {t: [d[(a, c)][t][1] for a in anios] for t in ("mf", "ped", "enf")} for c in IDS}
 
+    anios_h, c_sns, c_tot, esp_h, avisos_h = camas()
+    # Años en que las camas de la red pública cambian mucho (≥ 10 %) y las totales poco (< 5 %): camas que la estadística
+    # pasa a contar como públicas o como privadas. Solo el hecho aritmético (total = pública + privada), sin explicarlo.
+    reclasif = []
+    for c in c_sns:
+        for k in range(1, len(anios_h)):
+            ds, dt = c_sns[c][k] / c_sns[c][k - 1] - 1, c_tot[c][k] / c_tot[c][k - 1] - 1
+            if abs(ds) >= 0.10 and abs(dt) < 0.05:
+                reclasif.append({"ccaa": c, "anio": anios_h[k], "sns": [c_sns[c][k - 1], c_sns[c][k]], "total": [c_tot[c][k - 1], c_tot[c][k]]})
+    print(f"  Cambios de clasificación pública/privada: {[(x['ccaa'], x['anio']) for x in reclasif]}")
+    indicadores = [{"id": k, "fuente": "siap", "anios": anios, "valor": v, "espana": espana[k]} for k, v in inds.items()]
+    indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
+                    {"id": "hosp_camas_total", "fuente": "siae", "anios": anios_h, "valor": c_tot, "espana": esp_h["hosp_camas_total"]}]
     datos = {
-        "fuente": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
-                   "ruta": "Profesionales > Equipos de Atención primaria (EAP): Nº de profesionales y Población asignada, por año, comunidad y tipo de profesional",
-                   "resumen": URL_RESUMEN},
-        "anios": anios,
+        "fuentes": {
+            "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
+                     "ruta": "Profesionales > Equipos de Atención primaria (EAP): Nº de profesionales y Población asignada, por año, comunidad y tipo de profesional",
+                     "resumen": URL_RESUMEN},
+            "siae": {"texto": "Ministerio de Sanidad, Estadística de Centros Sanitarios de Atención Especializada (SIAE)", "url": URL_SIAE,
+                     "anteriores": URL_SIAE_ANTERIORES,
+                     "ruta": "Tablas por Comunidades Autónomas de cada año: dotación de camas según dependencia, camas en funcionamiento por 1.000 habitantes"},
+        },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
+        "etiquetas_siae": avisos_h,
+        "reclasificaciones": reclasif,
         "profesionales": profesionales,
-        "indicadores": [{"id": k, "valor": v, "espana": espana[k]} for k, v in inds.items()],
+        "indicadores": indicadores,
     }
     SALIDA.write_text(json.dumps(datos, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     print(f"Escrito {SALIDA.relative_to(RAIZ)}. Años en que se repiten las tres cifras de profesionales: {repetidos}")
-    for k in inds:
-        print(f"  {k}: España {espana[k][0]} ({anios[0]}) -> {espana[k][-1]} ({anios[-1]})")
+    for i in indicadores:
+        print(f"  {i['id']}: España {i['espana'][0]} ({i['anios'][0]}) -> {i['espana'][-1]} ({i['anios'][-1]})")
 
 
 if __name__ == "__main__":
