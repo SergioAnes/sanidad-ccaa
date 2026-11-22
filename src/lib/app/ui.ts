@@ -524,8 +524,8 @@ export function iniciar(DATA: DatosApp): void {
       if (pos === n) return `La mejor de las ${n}: la que menos espera`;
       return arriba(pos, n) ? `La ${pos}.ª con más espera de ${n}` : `La ${n - pos + 1}.ª con menos espera de ${n}`;
     }
-    if (pos === 1) return `La que más de las ${n}`;
-    if (pos === n) return `La que menos de las ${n}`;
+    if (pos === 1) return `La cifra más alta de las ${n}`;
+    if (pos === n) return `La cifra más baja de las ${n}`;
     return arriba(pos, n) ? `La ${pos}.ª más alta de ${n}` : `La ${n - pos + 1}.ª más baja de ${n}`;
   }
 
@@ -534,6 +534,9 @@ export function iniciar(DATA: DatosApp): void {
     const ids = IDS.filter((k) => vals[k] != null && fmt(vals[k], u) === fmt(vals[id], u));
     return ids.length > 1 ? `${ids.slice(0, -1).map((k) => NOMBRE[k]).join(", ")} y ${NOMBRE[ids.at(-1)]}` : NOMBRE[id];
   }
+
+  // «la cifra más alta, Cataluña y Madrid; la más baja, Aragón»: sin jerga de ranking y sin problemas de número.
+  const extremosTxt = (vals, top, bot, u) => `la cifra más alta, ${empatadas(vals, top, u)}; la más baja, ${empatadas(vals, bot, u)}`;
 
   // ---------- titulares automáticos ----------
   function titulares(ind, anio) {
@@ -691,7 +694,7 @@ export function iniciar(DATA: DatosApp): void {
       const orden = ordenados(vals);
       out.splice(1, out.length - 1,
         { k: `Media de las ${mo.length}, de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `${resumenCambio}${infl ? ` (${infl})` : ""}.` },
-        { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `<strong>${NOMBRE[orden[0]]}</strong> está arriba (${fmt(vals[orden[0]], ind.unidad)}) y <strong>${NOMBRE[orden.at(-1)]}</strong> abajo (${fmt(vals[orden.at(-1)], ind.unidad)}). Para verlo en el mapa, elige «${volver}».` });
+        { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `La cifra más alta es la de <strong>${empatadas(vals, orden[0], ind.unidad)}</strong> (${fmt(vals[orden[0]], ind.unidad)}) y la más baja, la de <strong>${empatadas(vals, orden.at(-1), ind.unidad)}</strong> (${fmt(vals[orden.at(-1)], ind.unidad)}). Para verlo en el mapa, elige «${volver}».` });
     }
     if (enCambio && !mo.length) out.splice(1);
     out.push(...titularesPacientes(ind, anio));
@@ -714,10 +717,10 @@ export function iniciar(DATA: DatosApp): void {
         : !mo.length ? "Ninguna comunidad tiene valores que permitan calcular el cambio entre los dos cortes."
         : `${extremos}${infl ? `, ${infl}` : ""}.${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
-      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre} en ${periodo(ind, anio)}: ${top ? `${empatadas(mapa.vals, top, mapa.ind.unidad)} arriba, ${empatadas(mapa.vals, bot, mapa.ind.unidad)} abajo` : "sin datos"}`;
+      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre} en ${periodo(ind, anio)}: ${top ? extremosTxt(mapa.vals, top, bot, mapa.ind.unidad) : "sin datos"}`;
       $("#p-sub").textContent = `${ind.grupo === "opinion" ? "Encuesta: el color tiene en cuenta el margen de error. " : ""}${esProv(anio) ? "Dato provisional. " : ""}${enEuros(ind) && anio !== ULT ? (S.real ? `En euros de ${ULT}, descontada la inflación. ` : "En euros de ese año. ") : ""}Pulsa una comunidad para elegirla como la tuya.`;
     } else {
-      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre}: ${empatadas(mapa.vals, top, mapa.ind.unidad)} arriba, ${empatadas(mapa.vals, bot, mapa.ind.unidad)} abajo`;
+      $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre}: ${extremosTxt(mapa.vals, top, bot, mapa.ind.unidad)}`;
       $("#p-sub").textContent = ind.grupo === "opinion" ? "Encuesta: el color tiene en cuenta el margen de error. Pulsa una comunidad para elegirla como la tuya." : `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
     }
     // El modo (un año / cambio entre dos años) se elige arriba, en el resumen o en Ajustes.
@@ -919,7 +922,7 @@ export function iniciar(DATA: DatosApp): void {
     } else {
       const mo = ordenados(mapa.vals);
       $("#e-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${fecha}, con su margen de error`
-        : S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}${mo.length ? `: ${NOMBRE[mo[0]]} en cabeza` : ""}`;
+        : S.modo === "cambio" ? `${mapa.ind.nombre}` : `${ind.nombre}, ${fecha}${mo.length ? `: la cifra más alta, ${empatadas(mapa.vals, mo[0], mapa.ind.unidad)}` : ""}`;
       $("#e-sub").textContent = ind.grupo === "opinion" ? "El punto es la cifra de la encuesta y la raya, su margen de error al 95 %. La línea discontinua es España. Si la raya la cruza, esa comunidad no se distingue de España. Pulsa una comunidad para destacarla."
         : tieneSerie(ind) ? "Pulsa una barra para destacar esa comunidad en la evolución." : "Pulsa una barra para destacar esa comunidad.";
       if (ind.grupo === "opinion") rankingOpinion(cont, ind, anio); else ranking(cont, mapa.vals, mapa.ind);
@@ -1657,7 +1660,7 @@ export function iniciar(DATA: DatosApp): void {
     const g = IND.gasto_hab, gv = valores(g, aC), go = ordenados(gv);
     const q = IND.q_dias, qv = valores(q, S.corteC), qo = ordenados(qv);
     const gp = go.indexOf(id) + 1, qp = qo.indexOf(id) + 1;
-    const gtx = gp === 1 ? "la que más de las 17" : gp === 17 ? "la que menos de las 17" : arriba(gp, 17) ? `la ${gp}.ª que más gasta de 17` : `la ${18 - gp}.ª que menos gasta de 17`;
+    const gtx = gp === 1 ? "la que más gasta de las 17" : gp === 17 ? "la que menos gasta de las 17" : arriba(gp, 17) ? `la ${gp}.ª que más gasta de 17` : `la ${18 - gp}.ª que menos gasta de 17`;
     const qtx = qp === 1 ? "la espera más larga de las 17" : qp === 17 ? "la espera más corta de las 17" : arriba(qp, 17) ? `la ${qp}.ª espera más larga de 17` : `la ${18 - qp}.ª espera más corta de 17`;
     const enQueEuros = aC !== ULT ? (S.real ? ` (en euros de ${ULT}, descontada la inflación)` : " (en euros de ese año)") : "";
     $("#c-resumen").innerHTML = `En ${aC} gastó <strong>${fmt(gv[id], g.unidad)}</strong> por habitante en sanidad pública${enQueEuros}: ${gtx}. En ${periodo(q, S.corteC)} sus pacientes llevaban de media <strong>${fmt(qv[id], q.unidad)}</strong> esperando una operación: ${qtx}.`;
