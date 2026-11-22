@@ -667,6 +667,85 @@ def personal(anios_h: list[int]):
     return anios, series, esp
 
 
+# ---------- Quirófanos en funcionamiento ----------
+def quirofanos(anios_h: list[int]):
+    """Quirófanos en funcionamiento por 100.000 habitantes, red pública y total (cálculo propio con la población de la tabla
+    de camas; se comprueba que coincide con la tasa publicada). 2022 sin dato: la tabla de ese año (Excel y PDF) trae las
+    columnas desplazadas (Castilla-La Mancha sale a 0). España: 2010-2019, tabla nacional de evolución 2010-2019 (la de
+    2014-2023 repite bajo «Quirófanos» la tabla de hospital de día); 2020-2021, fila TOTAL; 2023, suma de las columnas."""
+    wb = openpyxl.load_workbook(SIAE / "Dotacion_evol_2010_19.xlsx", data_only=True, read_only=True)
+    rs = [list(r) for r in wb[next(n for n in wb.sheetnames if n.strip().startswith("TABLA 1.11"))].iter_rows(values_only=True)]
+    cab = next(r for r in rs if any(str(x).strip() == "2010" for x in r if x is not None))
+    cols = {i: int(str(x).strip()) for i, x in enumerate(cab) if x is not None and re.fullmatch(r"\d{4}", str(x).strip())}
+    nac: dict = {}
+    for r in rs:
+        et = sin_tildes(next((x for x in r if isinstance(x, str) and x.strip()), "")).strip()
+        if et.startswith("publicos-sns") or et.startswith("total"):
+            for i, y in cols.items():
+                nac.setdefault(y, {})["sns" if et.startswith("publicos") else "tot"] = float(r[i])
+        if et.startswith("total"):
+            break
+    series = {k: {c: [] for c, _ in ORDEN_SIAE} for k in ("hosp_quir_sns", "hosp_quir_total")}
+    esp = {k: [] for k in series}
+    peor = peor_nac = 0.0
+    avisos: list[str] = []
+    for a in anios_h:
+        if a == ANIO_EQUIPOS_ROTO:
+            for k in series:
+                for c in series[k]:
+                    series[k][c].append(None)
+                esp[k].append(None)
+            continue
+        d: dict = {}  # ccaa -> (n público, tasa pública, n total, tasa total)
+        if a <= 2021:
+            rs = hoja(a, ("D.2.", "3.1.1-3.1.2", "3.1"))
+            filas, total = filas_ccaa(rs, 4, a, avisos)
+            d = {c: v[:4] for c, v in filas.items()}
+            tot_sns, tot_tot = total[0], total[2]
+            # la fila TOTAL incluye Ceuta y Melilla: la suma de las 17 no puede pasarse ni quedarse muy lejos
+            for i, t in ((0, tot_sns), (2, tot_tot)):
+                s17 = sum(v[i] for v in d.values())
+                if not 0 <= t - s17 <= 20:
+                    raise SystemExit(f"SIAE {a} quirófanos: TOTAL {t:.0f} frente a la suma de las 17 comunidades {s17:.0f}")
+        else:  # 2023: tabla traspuesta (comunidades en columnas, sin columna TOTAL)
+            rs = hoja(a, ("", "", "3.1"))
+            cab = next(r for r in rs if sum(1 for x in r if _col_ccaa(x)) >= 17)
+            cmap = {i: _col_ccaa(x) for i, x in enumerate(cab) if _col_ccaa(x)}
+            k0 = next(i for i, r in enumerate(rs) if sin_tildes(next((x for x in r if isinstance(x, str) and x.strip()), "")).startswith("quirofanos")
+                      and not sin_tildes(r[0] or "").startswith("quirofanos r"))
+            fila = lambda k: {c: float(rs[k][i]) for i, c in cmap.items()}
+            et = [sin_tildes(" ".join(str(x) for x in rs[k] if isinstance(x, str))) for k in range(k0, k0 + 4)]
+            if not ("total" in et[0] and "100.000" in et[1] and "publico" in et[2] and "100.000" in et[3]):
+                raise SystemExit(f"SIAE {a} quirófanos: filas inesperadas {et}")
+            n_t, r_t, n_s, r_s = (fila(k) for k in range(k0, k0 + 4))
+            d = {c: (n_s[c], r_s[c], n_t[c], r_t[c]) for c, _ in ORDEN_SIAE}
+            tot_sns, tot_tot = sum(n_s.values()), sum(n_t.values())  # con Ceuta y Melilla
+        for c, _ in ORDEN_SIAE:
+            n_s, r_s, n_t, r_t = d[c]
+            pob = POB_SIAE[(a, c)]
+            for n, r in ((n_s, r_s), (n_t, r_t)):
+                calc = n / pob * 1e5
+                if abs(calc - r) > 0.005 * r + 0.01:
+                    raise SystemExit(f"SIAE {a} {c} quirófanos: número / población ({calc:.2f}) no es la tasa publicada ({r:.2f}): ¿columnas desplazadas?")
+                peor = max(peor, abs(calc - r) / r if r else 0)
+            if not 0 < n_s <= n_t:
+                raise SystemExit(f"SIAE {a} {c} quirófanos: públicos {n_s} y totales {n_t}")
+            series["hosp_quir_sns"][c].append(round(n_s / pob * 1e5, 3))
+            series["hosp_quir_total"][c].append(round(n_t / pob * 1e5, 3))
+        if a in nac:
+            for clave, t in (("sns", tot_sns), ("tot", tot_tot)):
+                dif = abs(t / nac[a][clave] - 1)
+                if dif > 0.01:
+                    raise SystemExit(f"SIAE {a} quirófanos ({clave}): {t:.0f} frente a {nac[a][clave]:.0f} de la tabla nacional")
+                peor_nac = max(peor_nac, dif)
+            tot_sns, tot_tot = nac[a]["sns"], nac[a]["tot"]
+        esp["hosp_quir_sns"].append(round(tot_sns / POB_SIAE[(a, "ES")] * 1e5, 3))
+        esp["hosp_quir_total"].append(round(tot_tot / POB_SIAE[(a, "ES")] * 1e5, 3))
+    print(f"  SIAE quirófanos {anios_h[0]}-{anios_h[-1]} (sin {ANIO_EQUIPOS_ROTO}): número / población = tasa publicada (diferencia máxima {peor:.2%}); "
+          f"España = tabla nacional 2010-2019 (diferencia máxima {peor_nac:.2%})")
+    return series, esp, avisos
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -782,6 +861,9 @@ def main() -> None:
     # Personal, justo después de las camas
     k_camas = next(i for i, x in enumerate(indicadores) if x["id"] == "hosp_camas_total") + 1
     indicadores[k_camas:k_camas] = [{"id": k, "fuente": "siae", "anios": anios_p, "valor": pers[k], "espana": esp_p[k]} for k in pers]
+    quir, esp_q, avisos_q = quirofanos(anios_h)
+    k_q = next(i for i, x in enumerate(indicadores) if x["id"] == "hosp_cma") + 1
+    indicadores[k_q:k_q] = [{"id": k, "fuente": "siae", "anios": anios_h, "valor": quir[k], "espana": esp_q[k]} for k in quir]
     # Cambios de un año al siguiente del 20 % o más (hecho, sin explicarlo: la fuente no lo hace)
     saltos_p = [{"indicador": k, "ccaa": c, "anio": anios_p[j], "valores": [v[j - 1], v[j]]}
                 for k in pers for c, v in pers[k].items() for j in range(1, len(v)) if abs(v[j] / v[j - 1] - 1) >= 0.2]
@@ -797,7 +879,7 @@ def main() -> None:
         },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
-        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i)),
+        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i + avisos_q)),
         "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia],
         "saltos_personal": saltos_p,
         "anio_equipos_sin_dato": ANIO_EQUIPOS_ROTO,
