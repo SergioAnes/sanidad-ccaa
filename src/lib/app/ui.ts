@@ -46,7 +46,7 @@ export function iniciar(DATA: DatosApp): void {
     if (u === "camas_mil") return nf(2).format(v);
     if (u === "por_mil_hab") return nf(1).format(v);
     if (u === "sesiones_mil") return nf(0).format(v);
-    if (u === "equipos_100k") return nf(2).format(v);
+    if (u === "equipos_100k" || u === "prof_mil") return nf(2).format(v);
     if (u === "consultas_dia") return nf(1).format(v);
     if (u === "var" || u === "pp" || u === "dif_anios") {
       const d = u === "var" ? 0 : 1;
@@ -135,7 +135,7 @@ export function iniciar(DATA: DatosApp): void {
     const L = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
     return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0144 + 0.05)) ? "#ffffff" : "#142033";
   }
-  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "pacientes por cada 1.000 habitantes", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", equipos_100k: "equipos por 100.000 habitantes", consultas_dia: "consultas al día por profesional", anios_vida: "años", por_mil_nac: "muertes por 1.000 nacidos vivos", dif_anios: "años de diferencia", var: "% de crecimiento", pp: "puntos de cambio" };
+  const UNI = { eur_hab: "euros por habitante", pct: "%", por_mil: "pacientes por cada 1.000 habitantes", dias: "días", dias_media: "días", nota10: "puntos (de 1 a 10)", personas: "personas por profesional", camas_mil: "camas por 1.000 habitantes", por_mil_hab: "por 1.000 habitantes", sesiones_mil: "sesiones por 1.000 habitantes", equipos_100k: "equipos por 100.000 habitantes", consultas_dia: "consultas al día por profesional", prof_mil: "profesionales por 1.000 habitantes", anios_vida: "años", por_mil_nac: "muertes por 1.000 nacidos vivos", dif_anios: "años de diferencia", var: "% de crecimiento", pp: "puntos de cambio" };
   const soloNum = (v, u) => u === "var" || u === "pp" || u === "dif_anios" ? fmt(v, u).replace(/ (%|p\.|años)$/, "") : nf(u === "eur_hab" || u === "dias" ? 0 : 1).format(v);
   // Devuelve el color de cada comunidad y la leyenda, según la paleta.
   function escala(vals, ind, pal0 = PAL) {
@@ -1102,6 +1102,12 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Mortalidad tratable y prevenible:</b> la que una buena atención sanitaria o la prevención podrían evitar. Eurostat la publica solo para el conjunto de España, no por comunidad; estamos estudiando si se puede calcular con los datos del INE de forma que reproduzca exactamente la cifra de España.</p>`;
   }
 
+  function notasPersonal() {
+    const S = DATA.recursos.saltosPersonal || [];
+    const corto = (k) => (k === "hosp_medicos_sns" ? "médicos" : "enfermería");
+    return `<p><b>Médicos y enfermería.</b> Profesionales de los hospitales de la red pública por 1.000 habitantes, desde 2016 (antes, las tablas no separan la red pública por comunidad). Es personal con contrato con el hospital: no cuenta los residentes (MIR) ni los «colaboradores», que trabajan sin contrato con él y son sobre todo de hospitales privados (en 2023, unos 36.000 en los privados frente a unos 3.900 en los públicos); por eso no damos la cifra de públicos y privados juntos, que dejaría fuera a buena parte de los médicos de los privados. Enfermería incluye matronas y otras especialidades de enfermería, como la tabla nacional del Ministerio. Cálculo propio: el número de profesionales de cada comunidad por el porcentaje de la red pública, ambos publicados, entre la población de esa misma estadística. En 2023 la tabla de indicadores del Excel viene descolocada y tomamos el porcentaje del informe anual en PDF. Comprobamos que el número entre la población coincide con la tasa publicada, que la suma de las comunidades da el total y que España coincide con las tablas nacionales de evolución (total y red pública). De 2016 a 2019 la columna «Total» de médicos no es la suma de las comunidades (por menos de un 0,2 %); usamos la suma.${S.length ? ` Cambios de un año al siguiente del 20 % o más: ${S.map((x) => `${esc(NOMBRE[x.ccaa])} ${x.anio}, ${corto(x.indicador)} (de ${fmt(x.valores[0], "prof_mil")} a ${fmt(x.valores[1], "prof_mil")})`).join("; ")}. Las cifras son las oficiales; la fuente no explica estos saltos.` : ""}</p>`;
+  }
+
   function notasCamas() {
     const R = DATA.recursos, F = R.fuentes.siae, h = IND.hosp_camas_sns;
     const rec = R.reclasificaciones.map((x) => `<li>${esc(NOMBRE[x.ccaa])}, ${x.anio}: las camas de la red pública pasan de ${fmt(x.sns[0], "camas_mil")} a ${fmt(x.sns[1], "camas_mil")} por 1.000 habitantes y las totales, de ${fmt(x.total[0], "camas_mil")} a ${fmt(x.total[1], "camas_mil")}.</li>`).join("");
@@ -1111,6 +1117,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Cómo lo comprobamos.</b> En cada fila, la población que sale de las camas públicas y la de las totales es la misma; el porcentaje de la red pública cuadra con las camas; la fila «TOTAL» es la suma de las comunidades, y España coincide con las tablas nacionales de evolución del SIAE.${R.etiquetasSiae.length ? ` ${erroresTablas(R.etiquetasSiae)}` : ""}</p>
       <p><b>Ocupación y estancia media.</b> Son de los hospitales de agudos de la red pública (sin larga estancia ni salud mental), tal como los publica el Ministerio en las mismas tablas. Las comprobamos con su relación: ocupación = estancia media × índice de rotación (altas por cama) ÷ 365. Es una media de todo el año y de todas las camas de agudos de la comunidad: los picos de unas semanas o de unas unidades concretas (como las UCI) no se ven en ella. En 2020 la ocupación baja en las 17 comunidades; ese año coincide con la pandemia de COVID-19. La cirugía mayor ambulatoria es el «porcentaje de ambulatorización» de la red pública; lo comprobamos recalculándolo con el número de operaciones con ingreso y sin ingreso de cada fila. Conviene leer las camas, la ocupación, la estancia y la cirugía sin ingreso juntas: pocas camas muy ocupadas no es lo mismo que muchas camas medio vacías, y si los pacientes se van antes a casa, la ocupación baja aunque haya las mismas camas.</p>
       <p><b>Ingresos y hospital de día.</b> Los ingresos son los de los hospitales de la red pública por 1.000 habitantes (cálculo propio: la tasa de ingresos que publica el Ministerio por su porcentaje de la red pública). El hospital de día cuenta las sesiones de todos los hospitales, públicos y privados, porque la tabla no las separa; en 2010-2013 solo trae el número de sesiones y calculamos la tasa con la población de esa misma tabla (desde 2014, cuando la tabla sí la publica, ese cálculo coincide con ella). Comprobamos que cada tasa cuadra con el número dividido entre la población.${(R.picos || []).length ? ` Años con una cifra muy distinta (un 40 % o más) de la del año anterior y la del siguiente: ${R.picos.map((x) => `${esc(NOMBRE[x.ccaa])} ${x.anio} (${fmt(x.valores[0], "sesiones_mil")}, ${fmt(x.valores[1], "sesiones_mil")} y ${fmt(x.valores[2], "sesiones_mil")} sesiones por 1.000 habitantes)`).join("; ")}. La cifra es la oficial; la fuente no explica el salto.` : ""}</p>
+      ${notasPersonal()}
       <p><b>TAC, resonancia y mamógrafos.</b> Equipos en funcionamiento a 31 de diciembre, en la red pública y en total (públicos y privados), por cada 100.000 habitantes. Las tablas dan el número de equipos y el porcentaje de la red pública; la tasa la calculamos con la población de esa misma estadística (en 2023, que el Ministerio sí la publica, nuestro cálculo coincide). Comprobamos que la suma de las comunidades, con Ceuta y Melilla, coincide con las tablas nacionales del SIAE. ${DATA.recursos.anioEquiposSinDato}: sin dato por comunidad, porque la tabla de ese año trae las columnas desplazadas, tanto en Excel como en PDF; el dato de España sí está, en la tabla nacional. Los mamógrafos son solo los de los hospitales: muchos de los del cribado de cáncer de mama están en centros sin ingreso, que esta estadística no cuenta. No mostramos PET ni aceleradores lineales: hay tan pocos que, en una comunidad pequeña, un solo equipo cambia mucho la tasa.</p>
       <p><b>Hospitalización a domicilio: no la mostramos.</b> Las mismas tablas la traen, pero la serie no es coherente: Extremadura declara cero todos los años y Andalucía pasa de 12 a 1,4 pacientes por 1.000 ingresos y, en 2020, a 40. La fuente no explica estas diferencias, y con una serie así comparar comunidades sería engañoso.</p>
       <p><b>No está ajustado por edad.</b> Una comunidad con más población mayor necesita, en principio, más camas, más ingresos y estancias más largas. El porcentaje de mayores de 65 años de cada comunidad está en su ficha, en «Contexto».</p>
@@ -1311,6 +1318,7 @@ export function iniciar(DATA: DatosApp): void {
       const fuente = ind.fuente === "ine" ? (ind.id === "res_mort_infantil" ? "INE (cálculo propio: defunciones de menores de un año / nacimientos, media de tres años)" : "INE, Indicadores Demográficos Básicos (dato publicado)")
         : ind.fuente === "siap" ? "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)"
         : /^hosp_(tac|rm|mam)_/.test(ind.id) ? "Ministerio de Sanidad, SIAE (cálculo propio: equipos / población de la propia estadística; España, de la tabla nacional)"
+        : /^hosp_(medicos|enfermeria)_/.test(ind.id) ? "Ministerio de Sanidad, SIAE (cálculo propio: profesionales × % de la red pública / población de la propia estadística; 2023, % del informe anual)"
         : ind.id === "hosp_ingresos" ? "Ministerio de Sanidad, SIAE (cálculo propio: ingresos por 1.000 hab. × % de la red pública, ambos publicados)"
         : ind.id === "hosp_dia" ? "Ministerio de Sanidad, SIAE (dato publicado; 2010-2013, cálculo propio con la población de la propia estadística)"
         : "Ministerio de Sanidad, SIAE (dato publicado en las tablas por comunidad de cada año)";
@@ -1831,7 +1839,7 @@ export function iniciar(DATA: DatosApp): void {
       <h3>Profesionales de atención primaria</h3>
       <dl>${lista("primaria")}</dl>
       ${notasRecursos("siap")}
-      <h3>Hospitales: camas, ocupación, estancia, cirugía sin ingreso, ingresos, hospital de día, TAC y resonancia</h3>
+      <h3>Hospitales: camas, médicos y enfermería, ocupación, estancia, cirugía sin ingreso, ingresos, hospital de día, TAC y resonancia</h3>
       <dl>${lista("hospitales")}</dl>
       ${notasRecursos("siae")}
 

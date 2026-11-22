@@ -65,6 +65,12 @@ suma de las comunidades más Ceuta y Melilla coincide con las tablas nacionales 
 2023 la tasa calculada coincide con la publicada. España: tablas nacionales de evolución (también 2022).
 
 Escribe src/data/recursos.json.
+
+Médicos y enfermería de los hospitales de la red pública por 1.000 habitantes (2016-2023): recuentos de personal vinculado
+(sin MIR ni colaboradores) de las tablas 4.2 y 4.4 × % del SNS de la tabla 4.5 (antes de 2016 no hay % SNS por comunidad;
+en 2023 la tabla 4.5 del Excel viene descolocada y se usa la página de indicadores del informe anual en PDF). Enfermería =
+enfermeros + matronas + otros enfermeros especialistas, como la tabla nacional de evolución. Se comprueba recuento /
+población = tasa publicada, suma de comunidades = columna Total y España = tablas nacionales (total y red pública).
 """
 from __future__ import annotations
 
@@ -483,6 +489,184 @@ def equipos(anios: list[int]):
     return series, esp
 
 
+# ---------- Personal de los hospitales públicos (médicos y enfermería) ----------
+ANIO_PERSONAL_PDF = 2023  # la tabla 4.5 del Excel de 2023 viene descolocada: indicadores del informe anual (PDF)
+CODIGOS_SIAE = {"AN": "AN", "AR": "AR", "AS": "AS", "IB": "IB", "CN": "CN", "CB": "CB", "CL": "CL", "CM": "CM", "CT": "CT",
+                "VC": "VC", "EX": "EX", "GA": "GA", "MD": "MD", "MU": "MC", "MC": "MC", "NC": "NC", "PV": "PV", "RI": "RI"}
+
+
+def _col_ccaa(x) -> str | None:
+    """Columna de una cabecera de las tablas de personal: comunidad (código, ES-código o nombre), «CEML» o «TOTAL»."""
+    if not isinstance(x, str) or not x.strip():
+        return None
+    t = x.strip()
+    if t.upper().startswith("ES-"):  # 2022: ES-AN, …, ES-CE y ML
+        t = t[3:]
+    if t.upper() in CODIGOS_SIAE:
+        return CODIGOS_SIAE[t.upper()]
+    st = sin_tildes(t).strip()
+    if st.startswith("total"):
+        return "TOTAL"
+    if st.startswith("ce y ml") or "ceuta" in st:
+        return "CEML"
+    return _ccaa(t)
+
+
+def _bloques(rs: list[list]):
+    """Recorre una hoja con una o varias cabeceras de comunidades en columnas: devuelve (etiqueta, {columna: valor}) por fila."""
+    cols = None
+    for r in rs:
+        m = {i: c for i, x in enumerate(r) if (c := _col_ccaa(x))}
+        if len(m) >= 8:
+            cols = m
+            continue
+        et = next((x for x in r if isinstance(x, str) and x.strip()), None)
+        if cols is None or et is None:
+            continue
+        vals = {c: float(r[i]) for i, c in cols.items() if i < len(r) and isinstance(r[i], (int, float)) and not isinstance(r[i], bool)}
+        if vals:
+            yield sin_tildes(et).strip(), vals
+
+
+def _fila(rs: list[list], cond, anio: int, que: str) -> dict:
+    """Une los bloques de la hoja (algunos años parten las comunidades en dos) para la fila que cumple `cond`."""
+    out: dict = {}
+    for et, vals in _bloques(rs):
+        if cond(et):
+            out.update(vals)  # si la fila se repite (2015 trae la de 2014 delante), vale la última
+    falta = [c for c, _ in ORDEN_SIAE + [("CEML", ""), ("TOTAL", "")] if c not in out]
+    if falta:
+        raise SystemExit(f"SIAE {anio} {que}: faltan columnas {falta}")
+    return out
+
+
+def _indicadores_pdf(anio: int) -> dict:
+    """Médicos y enfermería por 1.000 hab. y % SNS por comunidad, de la página «Indicadores de personal vinculado» del informe."""
+    import pdfplumber
+    orden = [c for c, _ in ORDEN_SIAE] + ["CEML", "TOTAL"]
+    with pdfplumber.open(SIAE / f"{anio}_INFORME_ANUAL_SIAE.pdf") as pdf:
+        for pag in pdf.pages:
+            t = pag.extract_text() or ""
+            if "Indicadores de personal vinculado" not in t or "Medicina" not in t:
+                continue
+            lineas = [l.strip() for l in t.splitlines()]
+            out = {}
+            num = lambda l: [float(x.replace("%", "").replace(",", ".")) for x in re.findall(r"\d+,\d+%?", l)]
+            for clave, inicio in (("med", "Medicina"), ("enf", "Enfermer"), ("mat", "Matronas")):
+                i = next(k for k, l in enumerate(lineas) if l.startswith(inicio))
+                sns = next(l for l in lineas[i + 1:i + 7] if l.startswith("% SNS"))
+                # la tasa de matronas es por 1.000 mujeres en edad fértil: no se usa (solo su % SNS)
+                tasa = sns if clave == "mat" else next(l for l in lineas[i + 1:i + 4] if l.startswith("Por 1000"))
+                vt, vs = num(tasa), num(sns)
+                if len(vt) != 19 or len(vs) != 19:
+                    raise SystemExit(f"SIAE {anio} (informe): esperaba 19 columnas en «{inicio}» y tengo {len(vt)} y {len(vs)}")
+                out[clave] = {c: (vt[k], vs[k] / 100) for k, c in enumerate(orden)}
+            return out
+    raise SystemExit(f"SIAE {anio} (informe): no encuentro la página de indicadores de personal")
+
+
+def personal(anios_h: list[int]):
+    """Médicos y enfermería de los hospitales públicos (SNS) por 1.000 habitantes, 2016-2023.
+
+    Recuentos de personal vinculado (sin MIR ni colaboradores) de las tablas 4.2 y 4.4 × % del SNS de la tabla 4.5 (en
+    2023, del informe anual, porque el Excel viene descolocado), con la población de la tabla de camas. Antes de 2016 las
+    tablas no traen el % del SNS por comunidad. Se comprueba: recuento / población = tasa publicada (detecta bloques
+    descolocados), suma de comunidades = columna Total, y España = tablas nacionales de evolución.
+    """
+    wb = openpyxl.load_workbook(SIAE / "Personal_Evolucion_2014-2023.xlsx", data_only=True, read_only=True)
+    nac: dict = {}
+    for hoja_n, clave in (("TABLA 2.3", "med"), ("TABLA 2.7", "enf")):  # 2.7: enfermeros, matronas y otros especialistas
+        rs = [list(r) for r in wb[next(n for n in wb.sheetnames if n.strip() == hoja_n)].iter_rows(values_only=True)]
+        cab = next(r for r in rs if any(str(x).strip() == "2014" for x in r if x is not None))
+        cols = {i: int(str(x).strip()) for i, x in enumerate(cab) if x is not None and re.fullmatch(r"\d{4}", str(x).strip())}
+        for r in rs:
+            et = sin_tildes(next((x for x in r if isinstance(x, str) and x.strip()), "")).strip()
+            if et.startswith("publicos-sns") or et.startswith("total"):
+                for i, y in cols.items():
+                    nac[(clave, "sns" if et.startswith("publicos") else "tot", y)] = float(r[i])
+    anios = [a for a in anios_h if a >= 2016]
+    series = {k: {c: [] for c, _ in ORDEN_SIAE} for k in ("hosp_medicos_sns", "hosp_enfermeria_sns")}
+    esp = {k: [] for k in series}
+    peor_tasa = peor_nac = 0.0
+    avisos_p: list[str] = []
+    for a in anios:
+        med = _fila(hoja(a, ("", "", "4.2")), lambda e: e.startswith("total medico"), a, "total de médicos")
+        h44 = hoja(a, ("", "", "4.4"))
+        enf = _fila(h44, lambda e: e == "enfermeros", a, "enfermeros")
+        mat = _fila(h44, lambda e: e == "matronas", a, "matronas")
+        otr = _fila(h44, lambda e: e.startswith("otros enfer"), a, "otros enfermeros especialistas")
+        if a == ANIO_PERSONAL_PDF:
+            ind = _indicadores_pdf(a)
+            ind_m, ind_e, ind_mat = ind["med"], ind["enf"], ind["mat"]
+        else:
+            rs = hoja(a, ("", "", "4.5"))
+            filas = list(_bloques(rs))
+            def bloque(es_inicio):
+                out: dict = {}
+                for k, (et, vals) in enumerate(filas):
+                    if es_inicio(et):
+                        tasa = next(v for e, v in filas[k + 1:k + 4] if "1000" in e)
+                        sns = next((v for e, v in filas[k + 1:k + 5] if e.replace(" ", "") == "%sns"), None)
+                        if sns is None:  # 2020: la fila del % SNS de médicos trae la etiqueta «Personal y Formación»
+                            e3, sns = filas[k + 3]
+                            avisos_p.append(f"{a}: la fila del % SNS de «{et[:20]}» trae la etiqueta «{e3[:25]}» (se lee por su posición)")
+                        out.update({c: (tasa[c], sns[c]) for c in tasa if c in sns})
+                return out
+            ind_m = bloque(lambda e: ("medic" in e) and "residente" not in e and "mir" not in e and "farmac" not in e)
+            ind_e = bloque(lambda e: e.startswith("% enfermer") or e.startswith("enfermer"))
+            ind_mat = bloque(lambda e: e.startswith("% matrona") or e.startswith("matrona"))
+        for nombre, cnt, ind_x in (("médicos", med, ind_m), ("enfermería", enf, ind_e), ("matronas", mat, ind_mat), ("otros enfermeros", otr, None)):
+            todas = [c for c, _ in ORDEN_SIAE] + ["CEML"]
+            suma = sum(cnt[c] for c in todas)
+            if abs(suma / cnt["TOTAL"] - 1) > 0.005:
+                raise SystemExit(f"SIAE {a} {nombre}: la suma de comunidades ({suma:.0f}) no es la columna Total ({cnt['TOTAL']:.0f})")
+            if suma != cnt["TOTAL"]:  # 2016: la columna Total no es la suma (sí lo es la de los subtotales por especialidad)
+                avisos_p.append(f"{a}: {nombre}, columna Total {cnt['TOTAL']:.0f} y suma de comunidades {suma:.0f} (se usa la suma)")
+                cnt["TOTAL"] = suma
+            if ind_x is None:
+                continue
+            for c, _ in ORDEN_SIAE:
+                if c not in ind_x:
+                    raise SystemExit(f"SIAE {a} {nombre}: falta {c} en los indicadores")
+                pub, pct = ind_x[c]
+                if not 0.5 < pct <= 1:
+                    raise SystemExit(f"SIAE {a} {c} {nombre}: % SNS raro ({pct})")
+                if nombre == "matronas":
+                    continue  # su tasa es por 1.000 mujeres en edad fértil
+                # La tasa publicada de enfermería incluye a los «otros enfermeros especialistas» unos años (2016-2022) y otros no (2023)
+                calcs = [cnt[c] / POB_SIAE[(a, c)] * 1000] + ([(cnt[c] + otr[c]) / POB_SIAE[(a, c)] * 1000] if nombre == "enfermería" else [])
+                calc = min(calcs, key=lambda x: abs(x - pub))
+                tol = 0.005 * pub + (0.005 if a == ANIO_PERSONAL_PDF else 0)  # el informe redondea a dos decimales
+                if abs(calc - pub) > tol:
+                    raise SystemExit(f"SIAE {a} {c} {nombre}: recuento / población ({[round(x, 3) for x in calcs]}) no es la tasa publicada ({pub:.3f}): ¿bloque descolocado?")
+                peor_tasa = max(peor_tasa, abs(calc - pub) / pub)
+            # Parte pública: suma de comunidades frente a la columna Total
+            sns_suma = sum(cnt[c] * ind_x[c][1] for c in todas)
+            sns_tot = cnt["TOTAL"] * ind_x["TOTAL"][1]
+            if abs(sns_suma / sns_tot - 1) > 0.01:
+                raise SystemExit(f"SIAE {a} {nombre}: parte pública, suma de comunidades {sns_suma:.0f} frente a {sns_tot:.0f}")
+        # Enfermería = enfermeros + matronas + otros enfermeros especialistas (como la tabla nacional de evolución); la parte
+        # pública, con el % SNS de enfermería (matronas, con el suyo)
+        pub_med = lambda c: med[c] * ind_m[c][1]
+        pub_enf = lambda c: (enf[c] + otr[c]) * ind_e[c][1] + mat[c] * ind_mat[c][1]
+        # España frente a la tabla nacional de evolución: total y red pública
+        for que, tot, sns in (("med", med["TOTAL"], pub_med("TOTAL")), ("enf", enf["TOTAL"] + mat["TOTAL"] + otr["TOTAL"], pub_enf("TOTAL"))):
+            for clave, ref in (("tot", tot), ("sns", sns)):
+                d = abs(ref / nac[(que, clave, a)] - 1)
+                if d > 0.01:
+                    raise SystemExit(f"SIAE {a} {que} ({clave}): {ref:.0f} frente a {nac[(que, clave, a)]:.0f} de la tabla nacional")
+                peor_nac = max(peor_nac, d)
+        for k, f in (("hosp_medicos_sns", pub_med), ("hosp_enfermeria_sns", pub_enf)):
+            for c, _ in ORDEN_SIAE:
+                series[k][c].append(round(f(c) / POB_SIAE[(a, c)] * 1000, 3))
+            esp[k].append(round(f("TOTAL") / POB_SIAE[(a, "ES")] * 1000, 3))
+    print(f"  SIAE personal {anios[0]}-{anios[-1]}: recuento / población = tasa publicada (diferencia máxima {peor_tasa:.2%}); "
+          f"España (total y red pública) = tablas nacionales (diferencia máxima {peor_nac:.2%})")
+    for x in avisos_p:
+        print("   aviso:", x)
+    return anios, series, esp
+
+
 def leer(nombre: str):
     with open(SIAP / nombre, encoding="latin-1") as f:
         return list(csv.DictReader(f, delimiter=";"))
@@ -594,6 +778,14 @@ def main() -> None:
                     {"id": "hosp_ingresos", "fuente": "siae", "anios": anios_h, "valor": ing, "espana": esp_id["hosp_ingresos"]},
                     {"id": "hosp_dia", "fuente": "siae", "anios": anios_h, "valor": dia, "espana": esp_id["hosp_dia"]}]
     indicadores += [{"id": k, "fuente": "siae", "anios": anios_h, "valor": eq[k], "espana": esp_eq[k]} for k in eq]
+    anios_p, pers, esp_p = personal(anios_h)
+    # Personal, justo después de las camas
+    k_camas = next(i for i, x in enumerate(indicadores) if x["id"] == "hosp_camas_total") + 1
+    indicadores[k_camas:k_camas] = [{"id": k, "fuente": "siae", "anios": anios_p, "valor": pers[k], "espana": esp_p[k]} for k in pers]
+    # Cambios de un año al siguiente del 20 % o más (hecho, sin explicarlo: la fuente no lo hace)
+    saltos_p = [{"indicador": k, "ccaa": c, "anio": anios_p[j], "valores": [v[j - 1], v[j]]}
+                for k in pers for c, v in pers[k].items() for j in range(1, len(v)) if abs(v[j] / v[j - 1] - 1) >= 0.2]
+    print(f"  Personal, cambios de un año a otro del 20 % o más: {[(x['indicador'][5:9], x['ccaa'], x['anio']) for x in saltos_p]}")
     datos = {
         "fuentes": {
             "siap": {"texto": "Ministerio de Sanidad, Sistema de Información de Atención Primaria (SIAP), Portal Estadístico", "url": URL_SIAP,
@@ -607,6 +799,7 @@ def main() -> None:
         "repetidos": repetidos,
         "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i)),
         "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia],
+        "saltos_personal": saltos_p,
         "anio_equipos_sin_dato": ANIO_EQUIPOS_ROTO,
         "reclasificaciones": reclasif,
         "profesionales": profesionales,

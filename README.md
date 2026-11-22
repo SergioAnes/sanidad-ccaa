@@ -53,7 +53,7 @@ npm test
 | `src/data/poblacion-equivalente.json` | Población protegida equivalente oficial por comunidad (certificados de Sanidad en las liquidaciones de Hacienda), para el gasto ajustado por edad (generado) |
 | `src/data/listas-espera.json` | Listas de espera del SISLE-SNS por corte, lista, especialidad y territorio |
 | `src/data/barometro.json` | Barómetro Sanitario por comunidad: valor, margen de error al 95 %, serie anterior a 2022 y fuentes con enlace (generado) |
-| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación, estancia media, cirugía mayor ambulatoria, ingresos, hospital de día, TAC, resonancia y mamógrafos (SIAE, 2010-2023); consultas al día por profesional (SIAP, 2009-2025) (generado) |
+| `src/data/recursos.json` | Personas asignadas por médico de familia, pediatra y enfermería (SIAP, 2004-2025) camas de hospital por 1.000 habitantes, ocupación, estancia media, cirugía mayor ambulatoria, ingresos, hospital de día, TAC, resonancia y mamógrafos (SIAE, 2010-2023); médicos y enfermería de los hospitales públicos (SIAE, 2016-2023); consultas al día por profesional (SIAP, 2009-2025) (generado) |
 | `src/data/resultados.json` | Esperanza de vida al nacer y a los 65 años (1975-2025) y mortalidad infantil, media de tres años (1977-2025), por comunidad (INE) (generado) |
 | `src/data/ipc.json` | Media anual del IPC general nacional (INE), para descontar la inflación |
 | `src/data/mapa-ccaa.json` | Trazados SVG del mapa ya proyectados (IGN vía es-atlas) |
@@ -126,7 +126,9 @@ En el [Portal Estadístico](https://pestadistico.inteligenciadegestion.sanidad.g
 Para las camas de hospital, guarda en `datos-originales/siae/` las «Tablas por Comunidades Autónomas» de cada año
 (2010-2023) de la [Estadística de Centros Sanitarios de Atención Especializada](https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm)
 y sus «Años anteriores», con el nombre `Tablas_CCAA_AAAA.xls` o `.xlsx`, y las tablas nacionales de evolución de la
-dotación (`Dotacion_evol_2010_19.xlsx` y `Dotacion_Evolucion_2014-2023.xlsx`), que sirven para comprobar.
+dotación (`Dotacion_evol_2010_19.xlsx` y `Dotacion_Evolucion_2014-2023.xlsx`) y del personal
+(`Personal_Evolucion_2014-2023.xlsx`), que sirven para comprobar, y el informe anual de 2023 en PDF
+(`2023_INFORME_ANUAL_SIAE.pdf`: de él sale el % de la red pública del personal de 2023).
 
 Después, `python scripts/extraer_recursos.py` y `npm test`.
 
