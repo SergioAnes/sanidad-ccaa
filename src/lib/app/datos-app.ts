@@ -168,6 +168,16 @@ const RECURSOS: Record<string, TextoRecurso> = {
     ...CAMAS, corto: "Camas de hospital, públicas y privadas", nombre: "Camas de hospital en funcionamiento por 1.000 habitantes, públicas y privadas",
     desc: "Camas que han funcionado de media durante el año en todos los hospitales de la comunidad, públicos y privados, por cada 1.000 habitantes. Tasa publicada por el Ministerio de Sanidad (SIAE).",
   },
+  hosp_medicos_sns: {
+    unidad: "prof_mil", que: "médicos por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla",
+    corto: "Médicos de hospitales públicos", nombre: "Médicos de los hospitales de la red pública por 1.000 habitantes",
+    desc: "Médicos especialistas que trabajan en los hospitales de la red pública de la comunidad, por cada 1.000 habitantes. Personal con contrato con el hospital (personal «vinculado»): no cuenta los médicos internos residentes (MIR) ni los «colaboradores», que trabajan en el hospital sin contrato con él. Se cuenta en la comunidad del hospital, aunque atienda a pacientes de otras. No está ajustado por edad. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. Cálculo propio con datos del Ministerio de Sanidad (SIAE): número de profesionales × porcentaje de la red pública, entre la población de esa misma estadística. Desde 2016: antes, las tablas no separan la red pública por comunidad.",
+  },
+  hosp_enfermeria_sns: {
+    unidad: "prof_mil", que: "profesionales de enfermería por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla",
+    corto: "Enfermería de hospitales públicos", nombre: "Profesionales de enfermería de los hospitales de la red pública por 1.000 habitantes",
+    desc: "Enfermeras y enfermeros (incluidas matronas y otras especialidades de enfermería) que trabajan en los hospitales de la red pública de la comunidad, por cada 1.000 habitantes. No incluye técnicos en cuidados auxiliares de enfermería (TCAE). Personal con contrato con el hospital (personal «vinculado»): no cuenta los médicos internos residentes (MIR) ni los «colaboradores», que trabajan en el hospital sin contrato con él. Se cuenta en la comunidad del hospital, aunque atienda a pacientes de otras. No está ajustado por edad. La red pública incluye los hospitales privados con concierto sustitutorio o de una Red de Utilización Pública. Cálculo propio con datos del Ministerio de Sanidad (SIAE): número de profesionales × porcentaje de la red pública, entre la población de esa misma estadística. Desde 2016: antes, las tablas no separan la red pública por comunidad.",
+  },
   hosp_ocupacion: {
     unidad: "pct", que: "de ocupación", espanaTxt: "en el conjunto de los hospitales de agudos de la red pública, con Ceuta y Melilla (dato del Ministerio)",
     corto: "Ocupación de los hospitales públicos", nombre: "Ocupación de las camas de los hospitales de agudos de la red pública",
@@ -299,7 +309,7 @@ export type DatosApp = {
   resultados: { fuentes: typeof resultadosJson.fuentes };
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
-    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos; anioEquiposSinDato: number;
+    reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos; saltosPersonal: typeof recursosJson.saltos_personal; anioEquiposSinDato: number;
   };
   /** Versión del PDF de listas de espera del último corte y sus notas al pie */
   versionListas: VersionLista | null;
@@ -416,7 +426,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     resultados: { fuentes: resultadosJson.fuentes },
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
-      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos, anioEquiposSinDato: recursosJson.anio_equipos_sin_dato,
+      reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos, saltosPersonal: recursosJson.saltos_personal, anioEquiposSinDato: recursosJson.anio_equipos_sin_dato,
     },
     versionListas: cortes.at(-1)?.version ?? null,
     notasListas: cortes.at(-1)?.notas ?? [],

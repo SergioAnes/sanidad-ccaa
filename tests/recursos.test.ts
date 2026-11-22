@@ -11,6 +11,18 @@ const ind = (id: string) => {
 const val = (id: string, c: string, a: number) => (ind(id).valor as Record<string, number[]>)[c][ind(id).anios.indexOf(a)];
 
 describe("Recursos de atención primaria (SIAP)", () => {
+  it("médicos y enfermería de los hospitales públicos: 2016-2023 y España coherente con la tabla nacional", () => {
+    for (const id of ["hosp_medicos_sns", "hosp_enfermeria_sns"]) {
+      expect(ind(id).anios).toEqual([2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]);
+    }
+    // España 2023: 95.735 médicos y 175.088 profesionales de enfermería en la red pública (tabla nacional de evolución)
+    expect(ind("hosp_medicos_sns").espana.at(-1)).toBeCloseTo(1.98, 1);
+    expect(ind("hosp_enfermeria_sns").espana.at(-1)).toBeCloseTo(3.62, 1);
+    // Andalucía 2023: 14.084 médicos × 90,4 % de la red pública (informe anual) entre 8,59 millones
+    expect(val("hosp_medicos_sns", "AN", 2023)).toBeCloseTo(1.483, 2);
+    expect(rec.saltos_personal.map((x) => `${x.ccaa}${x.anio}`)).toContain("NC2020");
+  });
+
   it("cubre sus años con las 17 comunidades y sin huecos (SIAP 2004-2025, SIAE 2010-2023)", () => {
     expect(ind("ap_pob_medico").anios[0]).toBe(2004);
     expect(ind("ap_pob_medico").anios.at(-1)).toBe(2025);
@@ -18,7 +30,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
+      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_medicos_sns" ? [1, 3.5] : i.id === "hosp_enfermeria_sns" ? [2, 7] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
