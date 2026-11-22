@@ -1242,7 +1242,7 @@ export function iniciar(DATA: DatosApp): void {
     let filas;
     if (ind.grupo === "opinion") filas = filasCSVOpinion(ind);
     else if (ind.grupo === "recursos") {
-      const fuente = ind.fuente === "siae" ? "Ministerio de Sanidad, SIAE (tasa publicada en las tablas por comunidad de cada año)" : "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)";
+      const fuente = ind.fuente === "siae" ? "Ministerio de Sanidad, SIAE (dato publicado en las tablas por comunidad de cada año)" : "Ministerio de Sanidad, SIAP (cálculo propio: población asignada / profesionales)";
       filas = [["indicador", "comunidad", "anio", "valor", "fuente"]];
       [...IDS, "ES"].forEach((id) => periodos(ind).forEach((a, i) => filas.push([ind.nombre, id === "ES" ? (ind.fuente === "siae" ? "España (con Ceuta y Melilla)" : "España (las 17)") : NOMBRE[id], a, n(id === "ES" ? ind.espana[i] : ind.serie[id][i]), fuente])));
     }
