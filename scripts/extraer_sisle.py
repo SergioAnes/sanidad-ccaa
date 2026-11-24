@@ -174,6 +174,38 @@ RESUMENES = {
     "2023-06": "jun2023", "2023-12": "dic2023", "2024-06": "jun2024", "2024-12": "dic2024",
 }
 
+# Totales de las tablas territoriales de los informes nacionales de 2025.
+# Junio: LISTAS_PUBLICACION_jun25.pdf. Diciembre: LISTAS_PUBLICACION_Dic_2025_rectificado.pdf.
+# Por orden: pacientes, tasa, días de cirugía y, para consultas, tasa y días.
+TOTALES_NACIONALES_2025 = {
+    "2025-06": (832_728, 17.35, 119, 81.37, 96),
+    "2025-12": (853_740, 17.70, 122, 84.42, 102),
+}
+
+
+def totales_sns(corte: str, carpeta: Path, filas: list[dict], rectificado: bool) -> dict | None:
+    if corte in RESUMENES:
+        ruta = carpeta / f"LISTAS_PUBLICACION_{RESUMENES[corte]}.pdf"
+        with pdfplumber.open(ruta) as pdf:
+            q = re.search(r"^TOTAL +([\d.]+) +([\d,]+) +[\d,]+ +(\d+)$", norm(pdf.pages[7].extract_text()), re.M)
+            c = re.search(r"^TOTAL +(\d+,\d+) +(\d+) +\d+,\d+(?:\*| +\*)? *$",
+                          "\n".join(norm(p.extract_text()) for p in pdf.pages[13:16]), re.M)
+        if not q or not c:
+            raise SystemExit(f"Faltan los totales nacionales en {ruta.name}")
+        pacientes, tasa_q, dias_q = map(valor, q.groups())
+        tasa_c, dias_c = map(valor, c.groups())
+    elif corte in TOTALES_NACIONALES_2025 and (corte != "2025-12" or rectificado):
+        pacientes, tasa_q, dias_q, tasa_c, dias_c = TOTALES_NACIONALES_2025[corte]
+    else:
+        return None
+
+    suma_q = sum(f["valor"] for f in filas if (f["tipo"], f["campo"], f["medida"]) == ("quirurgica", "total", "pacientes"))
+    if suma_q != pacientes:
+        raise SystemExit(f"El total nacional de pacientes quirúrgicos de {corte} ({pacientes}) no coincide con la suma ({suma_q})")
+    # El detalle autonómico de consultas de junio de 2023 repite cifras de diciembre de 2022.
+    return {"quirurgica": {"dias": int(dias_q), "tasa": tasa_q},
+            "consultas": None if corte == "2023-06" else {"dias": int(dias_c), "tasa": tasa_c}}
+
 
 def totales_quirurgicos(corte: str, carpeta: Path) -> list[dict]:
     nombre = f"LISTAS_PUBLICACION_{RESUMENES[corte]}.pdf"
@@ -307,13 +339,16 @@ def main() -> None:
         if anterior is None or prioridad > anterior[0]:
             informes[corte] = (prioridad, r, version, notas)
     cortes = sorted(informes)
-    versiones, notas_pdf = {}, []
+    versiones, notas_pdf, nacionales = {}, [], {}
     for corte in cortes:
         _, r, version, notas = informes[corte]
         corte, f = extraer(r)
         if corte in RESUMENES:
             version["resumen"] = f"LISTAS_PUBLICACION_{RESUMENES[corte]}.pdf"
         versiones[corte] = version
+        nacional = totales_sns(corte, r.parent, f, version["rectificado"])
+        if nacional is not None:
+            nacionales[corte] = nacional
         notas_pdf += [{"corte": corte, "texto": t} for t in notas]
         filas += f
         print(f"{r.name}: corte {corte}, {len(f)} valores")
@@ -327,6 +362,7 @@ def main() -> None:
         "url": "https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm",
         "cortes": cortes,
         "versiones": versiones,
+        "totales_sns": nacionales,
         "notas_pdf": notas_pdf,
         "tipos": TIPOS,
         "medidas": MEDIDAS,

@@ -66,6 +66,95 @@
       "fecha_pdf": "2026-09-18"
     }
   },
+  "totales_sns": {
+    "2021-12": {
+      "quirurgica": {
+        "dias": 123,
+        "tasa": 15.39
+      },
+      "consultas": {
+        "dias": 89,
+        "tasa": 77.23
+      }
+    },
+    "2022-06": {
+      "quirurgica": {
+        "dias": 113,
+        "tasa": 16.09
+      },
+      "consultas": {
+        "dias": 79,
+        "tasa": 79.3
+      }
+    },
+    "2022-12": {
+      "quirurgica": {
+        "dias": 120,
+        "tasa": 17.1
+      },
+      "consultas": {
+        "dias": 95,
+        "tasa": 85.43
+      }
+    },
+    "2023-06": {
+      "quirurgica": {
+        "dias": 112,
+        "tasa": 17.55
+      },
+      "consultas": null
+    },
+    "2023-12": {
+      "quirurgica": {
+        "dias": 128,
+        "tasa": 18.11
+      },
+      "consultas": {
+        "dias": 101,
+        "tasa": 81.47
+      }
+    },
+    "2024-06": {
+      "quirurgica": {
+        "dias": 121,
+        "tasa": 17.93
+      },
+      "consultas": {
+        "dias": 94,
+        "tasa": 83.79
+      }
+    },
+    "2024-12": {
+      "quirurgica": {
+        "dias": 126,
+        "tasa": 17.8
+      },
+      "consultas": {
+        "dias": 105,
+        "tasa": 83.21
+      }
+    },
+    "2025-06": {
+      "quirurgica": {
+        "dias": 119,
+        "tasa": 17.35
+      },
+      "consultas": {
+        "dias": 96,
+        "tasa": 81.37
+      }
+    },
+    "2025-12": {
+      "quirurgica": {
+        "dias": 122,
+        "tasa": 17.7
+      },
+      "consultas": {
+        "dias": 102,
+        "tasa": 84.42
+      }
+    }
+  },
   "notas_pdf": [
     {
       "corte": "2024-12",
