@@ -68,17 +68,19 @@ export const ESQUELETO = `<div class="wrap">
   <section id="v-comunidad" hidden>
     <div class="ficha-cab">
       <div>
-        <label for="c-sel" class="ayuda">Elige tu comunidad</label><br>
+        <label for="c-sel" class="ayuda">Elige una comunidad o ciudad autónoma</label><br>
         <select id="c-sel"></select>
         <h1 id="c-nombre" style="margin-top:12px"></h1>
         <p class="resumen" id="c-resumen"></p>
-        <div class="comparar"><label for="c-vs">Comparar con</label><select id="c-vs"></select><span class="leyenda-vs" id="c-leyenda-vs"></span></div>
+        <div class="comparar" id="c-comparar"><label for="c-vs">Comparar con</label><select id="c-vs"></select><span class="leyenda-vs" id="c-leyenda-vs"></span></div>
       </div>
       <div>
-        <p class="ayuda">O púlsala en el mapa</p>
+        <p class="ayuda">También puedes elegir en el mapa</p>
         <div class="tilemap" id="c-mapa"></div>
       </div>
     </div>
+    <div id="c-ciudad-datos" hidden></div>
+    <div id="c-comunidad-datos">
     <div class="bloque">
       <h2>Gasto sanitario público</h2>
       <p class="sub" id="c-gasto-sub"></p>
@@ -120,6 +122,7 @@ export const ESQUELETO = `<div class="wrap">
       <p class="sub" id="c-resultados-sub"></p>
       <div class="filas" id="c-resultados"></div>
       <div class="notas-min" id="c-resultados-notas"></div>
+    </div>
     </div>
   </section>
 

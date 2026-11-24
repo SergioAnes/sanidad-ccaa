@@ -45,6 +45,30 @@ describe("datos de la interfaz", () => {
     for (const { id } of d.ccaa) expect(i.serie[id]).toHaveLength(i.anios.length);
   });
 
+  it("conserva cifras distintas para las ciudades sin incluirlas en la lista de comunidades", () => {
+    expect(d.ingesa.ciudades.CE.hospitales.camas).toBe(171);
+    expect(d.ingesa.ciudades.ML.hospitales.camas).toBe(231);
+    expect(d.ingesa.ciudades.CE.consultas.familia.at(-1)).toBe(279519);
+    expect(d.ingesa.ciudades.ML.consultas.familia.at(-1)).toBe(334920);
+    const esperanza = d.inds.find((i) => i.id === "res_esperanza");
+    expect(esperanza?.serie.CE.at(-1)).toBe(82.36);
+    expect(esperanza?.serie.ML.at(-1)).toBe(81.5);
+    expect(d.ccaa.map((c) => c.id)).not.toContain("CE");
+    expect(d.ccaa.map((c) => c.id)).not.toContain("ML");
+  });
+
+  it("usa la tasa ajustada PQI 92 y conserva el total SNS y las ciudades", () => {
+    const i = d.inds.find((ind) => ind.id === "hosp_evitables_cronicas");
+    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador PQI 92");
+    expect(i.fuente).toBe("icmbd");
+    expect(i.anios).toEqual([2017, 2018, 2019, 2020, 2021, 2022, 2023]);
+    expect(i.espana.at(-1)).toBe(34.59);
+    expect(i.serie.MD.at(-1)).toBe(39.08);
+    expect(i.serie.CE.at(-1)).toBe(22.93);
+    expect(i.serie.ML.at(-1)).toBe(21.63);
+    for (const { id } of d.ccaa) expect(i.serie[id]).toHaveLength(i.anios.length);
+  });
+
   it("los totales de espera cubren los nueve cortes semestrales para las 17 comunidades", () => {
     expect(d.cortes.map((c) => c.id)).toEqual([
       "2021-12", "2022-06", "2022-12", "2023-06", "2023-12", "2024-06", "2024-12", "2025-06", "2025-12",

@@ -223,6 +223,7 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .notas-min ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
 /* Comparar en la ficha */
 .comparar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; font-size: 0.88rem; color: var(--muted); }
+.comparar[hidden] { display: none; }
 .comparar label { font-weight: 600; }
 .comparar select { font-weight: 600; color: var(--fg); }
 .leyenda-vs { display: inline-flex; gap: 12px; align-items: center; }
