@@ -143,6 +143,13 @@ Descarga de la API del INE las tablas 1448, 1449, 1414, 1415 (esperanza de vida)
 volver a descargarlo). Comprueba que la tasa del INE es defunciones ÷ nacimientos en cada comunidad y año, y que España
 coincide con la nota de prensa del año (actualiza `NOTA_2025` y la fecha `publicado` cuando salga un año nuevo).
 
+## Actualizar las necesidades de atención médica no cubiertas y los reingresos
+
+`python scripts/extraer_acceso_reingresos.py` genera `src/data/acceso-reingresos.json`. Lee la tabla 79194 del INE desde 2015
+y el indicador 225 de INCLASNS para 2024. Las cifras de reingresos de 2021–2023 proceden de los gráficos de los informes
+anuales del SNS, transcritos con su referencia en el script. Los archivos descargados se guardan en `datos-originales/ine/`
+y `datos-originales/rae-cmbd/`. El script comprueba que las 17 series están completas y que el total SNS de cada informe coincide con INCLASNS.
+
 ## Actualizar el IPC (inflación)
 
 ```bash

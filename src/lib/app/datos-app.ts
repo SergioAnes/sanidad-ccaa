@@ -11,6 +11,7 @@ import contextoJson from "@/data/contexto-ccaa.json";
 import barometroJson from "@/data/barometro.json";
 import recursosJson from "@/data/recursos.json";
 import resultadosJson from "@/data/resultados.json";
+import accesoReingresosJson from "@/data/acceso-reingresos.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -268,6 +269,7 @@ export type IndApp =
   | { id: string; grupo: "gasto"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Record<string, (number | null)[]> }
   | {
       id: string; grupo: "opinion"; corto: string; nombre: string; unidad: Unidad; desc: string; mejorAlto: boolean;
+      fuente?: "ecv";
       /** Años (los periodos son sus índices, como los cortes de las listas de espera) */
       fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[];
       /** Semiamplitud del intervalo al 95 % de cada comunidad y de España, por año */
@@ -278,9 +280,9 @@ export type IndApp =
   | {
       id: string; grupo: "primaria" | "hospitales" | "resultados"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
-      /** Fuente (siap / siae), unidad en palabras y qué es «España» en este indicador */
-      fuente: "siap" | "siae" | "ine"; que: string; espanaTxt: string;
-      /** España: el conjunto de las 17 (toda la población asignada entre todos los profesionales), no la media */
+      /** Fuente, unidad en palabras y qué representa «España» en este indicador */
+      fuente: "siap" | "siae" | "ine" | "rae"; que: string; espanaTxt: string;
+      /** Serie nacional, según el ámbito de la fuente */
       espana: (number | null)[];
     }
   | { id: string; grupo: "espera"; corto: string; nombre: string; unidad: Unidad; desc: string; serie: Serie; tipo: TipoLista; medida: MedidaLista };
@@ -314,6 +316,10 @@ export type DatosApp = {
   contexto: typeof contextoJson;
   /** Fuentes del Barómetro Sanitario (para citar y contrastar) */
   barometro: { fuentes: typeof barometroJson.fuentes; primerAnioMetodo: number };
+  accesoReingresos: {
+    acceso: Pick<typeof accesoReingresosJson.acceso, "tabla" | "metodologia">;
+    reingresos: Pick<typeof accesoReingresosJson.reingresos, "perfil" | "informes">;
+  };
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
   /** Resultados en salud (INE): fuentes y fecha de publicación */
   resultados: { fuentes: typeof resultadosJson.fuentes };
@@ -355,6 +361,28 @@ function opinion(): IndApp[] {
       ...(h ? { historico: { fechas: h.anios, serie: h.valor, espana: h.espana } } : {}),
     };
   });
+}
+
+function acceso(): IndApp {
+  const i = accesoReingresosJson.acceso;
+  return {
+    id: "acceso_no_cubierto", grupo: "opinion", fuente: "ecv", unidad: "pct", mejorAlto: false,
+    corto: "Necesidad de atención médica no cubierta",
+    nombre: "Personas con una necesidad de atención médica no cubierta",
+    desc: "Porcentaje de personas de 16 años o más que declaran haber necesitado atención médica en los últimos 12 meses y no haberla recibido por coste, lista de espera o distancia. La base es toda la población de 16 años o más. Excluye la atención dental. Fuente: Encuesta de Condiciones de Vida, INE.",
+    fechas: i.anios, serie: i.valor, espana: i.espana, margen: {}, margenEspana: [],
+  };
+}
+
+function reingresos(): IndApp {
+  const i = accesoReingresosJson.reingresos;
+  return {
+    id: "hosp_reingresos", grupo: "hospitales", fuente: "rae", unidad: "pct",
+    corto: "Reingresos urgentes a 30 días", nombre: "Reingresos urgentes a 30 días en hospitales de agudos del SNS",
+    desc: "Porcentaje de altas elegibles seguidas de un ingreso urgente en el mismo hospital durante los 30 días posteriores. Incluye hospitales del SNS de agudos y aplica las exclusiones del Ministerio. La cifra es bruta y depende también del perfil de los pacientes atendidos.",
+    que: "de reingresos en hospitales de agudos", espanaTxt: "dato del Ministerio para el conjunto del SNS",
+    anios: i.anios, serie: i.valor, espana: i.espana,
+  };
 }
 
 /** Profesionales de atención primaria (src/data/recursos.json, generado por scripts/extraer_recursos.py). */
@@ -423,7 +451,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion(), ...recursos(), ...resultados()],
+    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), ...resultados()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -433,6 +461,10 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     edad: ajusteEdad(valores, ids),
     contexto: contextoJson,
     barometro: { fuentes: barometroJson.fuentes, primerAnioMetodo: barometroJson.primer_anio_metodo },
+    accesoReingresos: {
+      acceso: { tabla: accesoReingresosJson.acceso.tabla, metodologia: accesoReingresosJson.acceso.metodologia },
+      reingresos: { perfil: accesoReingresosJson.reingresos.perfil, informes: accesoReingresosJson.reingresos.informes },
+    },
     resultados: { fuentes: resultadosJson.fuentes },
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
