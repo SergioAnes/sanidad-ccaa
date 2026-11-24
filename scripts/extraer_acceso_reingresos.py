@@ -37,8 +37,8 @@ INFORMES = {
 
 
 def empaquetar(datos: dict[str, dict[int, float]], primero: int) -> dict:
-    if set(datos) != {*IDS, "ES"}:
-        raise SystemExit("Faltan comunidades o el total nacional")
+    if set(datos) != {*IDS, "CE", "ML", "ES"}:
+        raise SystemExit("Faltan comunidades, ciudades autónomas o el total nacional")
     anios = list(range(primero, max(datos["ES"]) + 1))
     for territorio, valores in datos.items():
         if set(anios) - valores.keys() or any(not 0 <= valores[a] <= 100 for a in anios):
@@ -46,6 +46,7 @@ def empaquetar(datos: dict[str, dict[int, float]], primero: int) -> dict:
     return {
         "anios": anios,
         "valor": {c: [datos[c][a] for a in anios] for c in IDS},
+        "ciudades": {c: [datos[c][a] for a in anios] for c in ("CE", "ML")},
         "espana": [datos["ES"][a] for a in anios],
     }
 
@@ -53,7 +54,7 @@ def empaquetar(datos: dict[str, dict[int, float]], primero: int) -> dict:
 def acceso() -> dict:
     # En 2015 cambió el cuestionario. La tabla del ODS 3.8.1 ofrece los tres motivos de acceso combinados.
     return {
-        **empaquetar(series("79194"), 2015),
+        **empaquetar(series("79194", incluir_ciudades=True), 2015),
         "tabla": URL_INE_TABLA.format("79194"),
         "metodologia": "https://www.ine.es/metodologia/ICV/metodologia_ICV.pdf",
     }
@@ -90,7 +91,7 @@ def reingresos() -> dict:
     for c, clave in (MAPA_RAE | {"ES": "espana"}).items():
         datos[c][2024] = round(mapa[clave], 1)
     return {
-        **empaquetar({c: datos[c] for c in [*IDS, "ES"]}, 2021),
+        **empaquetar(datos, 2021),
         "perfil": URL_INCLASNS,
         "informes": [
             {"anio": a, "url": URL_INFORMES + ruta, "grafico": grafico, "pagina": pagina_impresa}

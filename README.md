@@ -150,6 +150,16 @@ y el indicador 225 de INCLASNS para 2024. Las cifras de reingresos de 2021–202
 anuales del SNS, transcritos con su referencia en el script. Los archivos descargados se guardan en `datos-originales/ine/`
 y `datos-originales/rae-cmbd/`. El script comprueba que las 17 series están completas y que el total SNS de cada informe coincide con INCLASNS.
 
+## Actualizar las fichas de Ceuta y Melilla y los años de vida saludable
+
+- `python scripts/extraer_ingesa.py` lee las ratios, las consultas y el inventario hospitalario de la Memoria INGESA 2025. Guarda el PDF en `datos-originales/memoria-ingesa-2025.pdf` y comprueba los totales publicados de consultas y recursos.
+- `python scripts/extraer_resultados.py` y `python scripts/extraer_acceso_reingresos.py` incluyen las cifras oficiales de las dos ciudades. La mortalidad infantil trienal omite las ventanas con 2006, cuando la tasa anual y los recuentos del INE discrepan en ambas ciudades.
+- `python scripts/extraer_vida_saludable.py` lee la transcripción de la tabla 7 de Sanidad (2006–2024) y comprueba el último año contra el cuadro oficial de bienestar. La fila de Ceuta y Melilla es conjunta.
+
+## Actualizar las hospitalizaciones potencialmente evitables
+
+En [iCMBD](https://icmbd.sanidad.gob.es/), elige «Hospitalizaciones potencialmente evitables», «PQI 92» y «Descriptivo básico», sin filtros y agrupando por comunidad del hospital. Exporta el CSV de cada año de 2017 a 2023 como `datos-originales/rae-cmbd/icmbd-pqi/pqi92-AAAA.csv`. Ejecuta `python scripts/extraer_hospitalizaciones_evitables.py`. Lee la tasa ajustada tal como la publica Sanidad, comprueba la tasa bruta contra los recuentos y verifica que las altas y la población cuadran con el total nacional.
+
 ## Actualizar el IPC (inflación)
 
 ```bash

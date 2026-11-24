@@ -44,10 +44,18 @@ describe("Resultados en salud (INE)", () => {
     }
   });
 
-  it("entra en la interfaz como tema propio con años, España y fuente INE", () => {
+  it("presenta las series del INE y de Sanidad con sus años y su dato nacional", () => {
     const D = construirDatos();
     const r = D.inds.filter((i) => i.grupo === "resultados");
-    expect(r.map((i) => i.id)).toEqual(["res_esperanza", "res_esperanza65", "res_mort_infantil"]);
-    for (const i of r) expect(i.grupo === "resultados" && i.fuente).toBe("ine");
+    expect(r.map((i) => i.id)).toEqual(["res_esperanza", "res_esperanza65", "res_mort_infantil", "res_vida_saludable"]);
+    expect(r.map((i) => i.grupo === "resultados" && i.fuente)).toEqual(["ine", "ine", "ine", "sanidad"]);
+    const vida = r[3];
+    if (vida.grupo !== "resultados") throw new Error("falta el indicador de años de vida saludable");
+    expect(vida.anios).toEqual(Array.from({ length: 19 }, (_, i) => 2006 + i));
+    expect(vida.espana.at(-1)).toBe(80.19);
+    expect(vida.serie.MD.at(-1)).toBe(83.23);
+    expect(vida.serie.CE).toBeUndefined();
+    expect(vida.serie.ML).toBeUndefined();
+    expect(D.vidaSaludable.ceutaMelilla.at(-1)).toBe(77.94);
   });
 });

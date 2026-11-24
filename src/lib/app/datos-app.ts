@@ -12,6 +12,9 @@ import barometroJson from "@/data/barometro.json";
 import recursosJson from "@/data/recursos.json";
 import resultadosJson from "@/data/resultados.json";
 import accesoReingresosJson from "@/data/acceso-reingresos.json";
+import ingesaJson from "@/data/ingesa.json";
+import vidaSaludableJson from "@/data/vida-saludable.json";
+import hospitalizacionesEvitablesJson from "@/data/hospitalizaciones-evitables.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -281,7 +284,7 @@ export type IndApp =
       id: string; grupo: "primaria" | "hospitales" | "resultados"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
       /** Fuente, unidad en palabras y qué representa «España» en este indicador */
-      fuente: "siap" | "siae" | "ine" | "rae"; que: string; espanaTxt: string;
+      fuente: "siap" | "siae" | "ine" | "rae" | "sanidad" | "icmbd"; que: string; espanaTxt: string;
       /** Serie nacional, según el ámbito de la fuente */
       espana: (number | null)[];
     }
@@ -323,6 +326,9 @@ export type DatosApp = {
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
   /** Resultados en salud (INE): fuentes y fecha de publicación */
   resultados: { fuentes: typeof resultadosJson.fuentes };
+  vidaSaludable: Pick<typeof vidaSaludableJson, "fuente" | "cuadro" | "ceutaMelilla">;
+  hospitalizacionesEvitables: Pick<typeof hospitalizacionesEvitablesJson, "fuente" | "ficha">;
+  ingesa: typeof ingesaJson;
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
     reclasificaciones: typeof recursosJson.reclasificaciones; etiquetasSiae: string[]; picos: typeof recursosJson.picos; saltosPersonal: typeof recursosJson.saltos_personal; anioEquiposSinDato: number;
@@ -370,7 +376,7 @@ function acceso(): IndApp {
     corto: "Necesidad de atención médica no cubierta",
     nombre: "Personas con una necesidad de atención médica no cubierta",
     desc: "Porcentaje de personas de 16 años o más que declaran haber necesitado atención médica en los últimos 12 meses y no haberla recibido por coste, lista de espera o distancia. La base es toda la población de 16 años o más. Excluye la atención dental. Fuente: Encuesta de Condiciones de Vida, INE.",
-    fechas: i.anios, serie: i.valor, espana: i.espana, margen: {}, margenEspana: [],
+    fechas: i.anios, serie: { ...i.valor, ...i.ciudades }, espana: i.espana, margen: {}, margenEspana: [],
   };
 }
 
@@ -381,7 +387,7 @@ function reingresos(): IndApp {
     corto: "Reingresos urgentes a 30 días", nombre: "Reingresos urgentes a 30 días en hospitales de agudos del SNS",
     desc: "Porcentaje de altas elegibles seguidas de un ingreso urgente en el mismo hospital durante los 30 días posteriores. Incluye hospitales del SNS de agudos y aplica las exclusiones del Ministerio. La cifra es bruta y depende también del perfil de los pacientes atendidos.",
     que: "de reingresos en hospitales de agudos", espanaTxt: "dato del Ministerio para el conjunto del SNS",
-    anios: i.anios, serie: i.valor, espana: i.espana,
+    anios: i.anios, serie: { ...i.valor, ...i.ciudades }, espana: i.espana,
   };
 }
 
@@ -399,8 +405,31 @@ function resultados(): IndApp[] {
   return resultadosJson.indicadores.map((i) => {
     const t = RESULTADOS[i.id];
     if (!t) throw new Error(`Resultados: falta el texto de ${i.id}`);
-    return { id: i.id, grupo: "resultados" as const, ...t, fuente: "ine" as const, anios: i.anios, serie: i.valor as Record<string, number[]>, espana: i.espana };
+    return { id: i.id, grupo: "resultados" as const, ...t, fuente: "ine" as const, anios: i.anios, serie: { ...i.valor, ...i.ciudades }, espana: i.espana };
   });
+}
+
+function vidaSaludable(): IndApp {
+  const i = vidaSaludableJson;
+  return {
+    id: "res_vida_saludable", grupo: "resultados", fuente: "sanidad", unidad: "anios_vida",
+    corto: "Años de vida saludable al nacer", nombre: "Años de vida saludable al nacer",
+    desc: "Años que se espera vivir desde el nacimiento sin limitación grave de la actividad. El Ministerio combina las tablas de mortalidad con las estimaciones de limitación grave de las encuestas de salud.",
+    que: "de vida sin limitación grave", espanaTxt: "dato del Ministerio para toda España",
+    anios: i.anios, serie: i.valor, espana: i.espana,
+  };
+}
+
+function hospitalizacionesEvitables(): IndApp {
+  const i = hospitalizacionesEvitablesJson;
+  return {
+    id: "hosp_evitables_cronicas", grupo: "hospitales", fuente: "icmbd", unidad: "por_10k_hab",
+    corto: "Hospitalizaciones evitables por enfermedades crónicas",
+    nombre: "Hospitalizaciones potencialmente evitables por enfermedades crónicas por 10.000 habitantes",
+    desc: "Tasa ajustada que publica el Ministerio para las altas de hospitales del SNS incluidas en el indicador PQI 92. Agrupa las altas por territorio del hospital y usa la población de 15 años o más.",
+    que: "hospitalizaciones potencialmente evitables por 10.000 habitantes", espanaTxt: "tasa ajustada del Ministerio para España",
+    anios: i.anios, serie: { ...i.valor, ...i.ciudades }, espana: i.espana,
+  };
 }
 
 export function construirDatos(valores: Valor[] = VALORES): DatosApp {
@@ -451,7 +480,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), ...resultados()],
+    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), hospitalizacionesEvitables(), ...resultados(), vidaSaludable()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -466,6 +495,9 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
       reingresos: { perfil: accesoReingresosJson.reingresos.perfil, informes: accesoReingresosJson.reingresos.informes },
     },
     resultados: { fuentes: resultadosJson.fuentes },
+    vidaSaludable: { fuente: vidaSaludableJson.fuente, cuadro: vidaSaludableJson.cuadro, ceutaMelilla: vidaSaludableJson.ceutaMelilla },
+    hospitalizacionesEvitables: { fuente: hospitalizacionesEvitablesJson.fuente, ficha: hospitalizacionesEvitablesJson.ficha },
+    ingesa: ingesaJson,
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,
       reclasificaciones: recursosJson.reclasificaciones, etiquetasSiae: recursosJson.etiquetas_siae, picos: recursosJson.picos, saltosPersonal: recursosJson.saltos_personal, anioEquiposSinDato: recursosJson.anio_equipos_sin_dato,

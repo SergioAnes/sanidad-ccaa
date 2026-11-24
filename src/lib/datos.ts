@@ -85,6 +85,7 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
     case "anios_vida":
       return `${numero(valor, 2)} años`;
     case "por_mil_nac":
+    case "por_10k_hab":
       return numero(valor, 2);
   }
 }
