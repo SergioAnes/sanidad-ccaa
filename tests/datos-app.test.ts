@@ -21,6 +21,30 @@ describe("datos de la interfaz", () => {
     }
   });
 
+  it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {
+    const i = d.inds.find((ind) => ind.id === "acceso_no_cubierto");
+    if (!i || i.grupo !== "opinion") throw new Error("falta el indicador ECV");
+    expect(i.fuente).toBe("ecv");
+    expect(i.fechas).toEqual(Array.from({ length: 11 }, (_, k) => 2015 + k));
+    expect(i.espana.at(-1)).toBe(1.6);
+    expect(i.serie.CM.at(-1)).toBe(3.1);
+    expect(i.serie.MD.at(-1)).toBe(1.5);
+    for (const { id } of d.ccaa) expect(i.serie[id]).toHaveLength(i.fechas.length);
+    expect(i.margen).toEqual({});
+    expect(i.margenEspana).toEqual([]);
+  });
+
+  it("alinea los reingresos de los informes y de INCLASNS con el total publicado para el SNS", () => {
+    const i = d.inds.find((ind) => ind.id === "hosp_reingresos");
+    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador RAE-CMBD");
+    expect(i.fuente).toBe("rae");
+    expect(i.anios).toEqual([2021, 2022, 2023, 2024]);
+    expect(i.espana).toEqual([7.9, 8.4, 8.3, 8.4]);
+    expect(i.serie.MD).toEqual([8, 8.4, 8.2, 8.4]);
+    expect(i.serie.NC).toEqual([5.4, 6.4, 6.5, 6.4]);
+    for (const { id } of d.ccaa) expect(i.serie[id]).toHaveLength(i.anios.length);
+  });
+
   it("los totales de espera cubren los nueve cortes semestrales para las 17 comunidades", () => {
     expect(d.cortes.map((c) => c.id)).toEqual([
       "2021-12", "2022-06", "2022-12", "2023-06", "2023-12", "2024-06", "2024-12", "2025-06", "2025-12",
