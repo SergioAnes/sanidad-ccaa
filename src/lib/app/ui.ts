@@ -87,6 +87,7 @@ export function iniciar(DATA: DatosApp): void {
   const pendienteGuardia = "Por confirmar";
   let ordenGuardias = "laborable";
   const pendienteRetribucion = "Pendiente de verificación";
+  const perfilRetribucion = "Especialista a jornada completa, con cinco años de servicio, sin guardias ni carrera profesional reconocida.";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
   let territorioDedicacion;
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
@@ -843,7 +844,7 @@ export function iniciar(DATA: DatosApp): void {
         : `${extremos}${infl ? `, ${infl}` : ""}.${esPQI(ind) ? " Cambio de la tasa por 10.000 habitantes, según la ubicación del hospital." : ""}${esProv(anio) || esProv(S.desde) ? ` Los datos de ${[S.desde, anio].filter(esProv).join(" y ")} son provisionales.` : ""} Pulsa una comunidad para elegirla como la tuya.`;
     } else if (esRetribucion(ind)) {
       $("#p-titulo").textContent = ind.nombre;
-      $("#p-sub").textContent = `Euros brutos anuales según las tablas del ${corteRetribucion}. Pulsa una comunidad para elegirla como la tuya.`;
+      $("#p-sub").textContent = `${perfilRetribucion} Tablas del ${corteRetribucion}. Pulsa una comunidad para elegirla como la tuya.`;
     } else if (tieneSerie(ind)) {
       $("#p-titulo").textContent = esEstimacion(ind) ? `${ind.nombre}, ${periodo(ind, anio)}`
         : ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre} en ${periodo(ind, anio)}: ${top ? extremosTxt(mapa.vals, top, bot, mapa.ind.unidad) : sinDatosTxt(ind, anio)}`;
@@ -856,7 +857,7 @@ export function iniciar(DATA: DatosApp): void {
     const contextoMovil = enEuros(ind) ? S.real ? `En euros de ${ULT}` : enCambio ? "En euros de cada año" : `En euros de ${anio}`
       : esCribado(ind) ? "Encuesta, 50 a 69 años · últimos dos años"
       : esECV(ind) ? "Estimación de encuesta"
-      : esRetribucion(ind) ? "Bruto anual sin guardias"
+      : esRetribucion(ind) ? "5 años de servicio, sin guardias ni carrera"
       : ind.grupo === "opinion" ? "Encuesta con margen de error"
       : esPQI(ind) ? "Tasa ajustada por 10.000 hab., según ubicación del hospital" : "";
     const avisoMovil = !mo.length ? enCambio ? "Sin cambios comparables" : sinDatosTxt(ind, anio) : "";
@@ -1131,7 +1132,7 @@ export function iniciar(DATA: DatosApp): void {
       if (esRetribucion(ind)) tablaRetribuciones(cont, ind, vals);
       else if (graficoEncuesta(ind)) tablaOpinion(cont, ind, anio);
       else tabla(cont, ind, anio, mapa.vals);
-      const desplazable = cont.querySelector(".tabla-wrap");
+      const desplazable = cont.querySelector(":scope > .tabla-wrap");
       if (desplazable.scrollWidth > desplazable.clientWidth) {
         desplazable.tabIndex = 0;
         desplazable.setAttribute("role", "region");
@@ -1146,6 +1147,10 @@ export function iniciar(DATA: DatosApp): void {
         : ind.grupo === "opinion" ? "El punto es la cifra de la encuesta y la raya, su margen de error al 95 %. La línea discontinua es España. Si la raya la cruza, esa comunidad no se distingue de España. Pulsa una comunidad para destacarla."
         : tieneSerie(ind) ? `Pulsa ${ind.unidad === "anios_vida" ? "un punto" : "una barra"} para destacar esa comunidad en la evolución.` : "Pulsa una barra para destacar esa comunidad.";
       if (graficoEncuesta(ind)) rankingOpinion(cont, ind, anio); else ranking(cont, mapa.vals, mapa.ind);
+    }
+    if (esRetribucion(ind)) {
+      const acceso = S.vistaE === "tabla" ? "Abre las simulaciones para ver cuánto cambia." : "En «Tabla» puedes simular el efecto de la carrera y la dedicación.";
+      $("#e-sub").textContent = `${perfilRetribucion} El orden puede cambiar con otros complementos. ${acceso}`;
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
@@ -1679,8 +1684,8 @@ export function iniciar(DATA: DatosApp): void {
       .map(({ id, importe, fuente, sinCarrera, conCarrera }) => `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         <td>${euros(sinCarrera)}</td><td>${euros(importe)}</td><td><b>${euros(conCarrera)}</b></td></tr>`).join("");
-    return plegable("retribuciones-carrera", "Simular la carrera profesional", `<p class="sub">Piloto con Aragón, Asturias y Madrid.
-      Especialista con 12 años de servicio (cuatro trienios), a jornada completa y sin guardias. El total con carrera supone que el servicio ya le ha reconocido el nivel II.</p>
+    return plegable("retribuciones-carrera", "Simular la carrera profesional", `<p class="sub">Simulación para Aragón, Asturias y Madrid.
+      Comparamos a un especialista con 12 años de servicio, con y sin el nivel II de carrera reconocido. Las filas se ordenan por el total con nivel II. El ranking general usa el perfil de cinco años.</p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de carrera profesional">
         <table class="tabla tabla-retribuciones" aria-label="Fijo anual con y sin carrera profesional"><thead><tr>
           <th scope="col">Territorio</th><th scope="col">Sin carrera</th><th scope="col">Complemento de carrera</th>
@@ -1695,7 +1700,7 @@ export function iniciar(DATA: DatosApp): void {
       .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"));
     const seleccionado = territorioDedicacion ?? (ids.includes(S.com) ? S.com : ids[0]);
     return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `<p class="sub">
-      Especialista con cinco años de servicio, sin carrera reconocida ni guardias. Elige un servicio con ambas modalidades verificadas.</p>
+      Elige un servicio para ver cuánto cambia el fijo si el mismo especialista trabaja con o sin dedicación exclusiva. El ranking general usa la modalidad exclusiva donde las tablas la distinguen.</p>
       <div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-territorio">Territorio</label>
         <select id="retribuciones-dedicacion-territorio">${ids.map((id) =>
           opt(id, nombreRetribucion(id), id === seleccionado)).join("")}</select>
