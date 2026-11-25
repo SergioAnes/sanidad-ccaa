@@ -141,10 +141,23 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla .neg { color: var(--muted); }
 #p-vista[hidden], #e-vista[hidden], .guardias[hidden] { display: none; }
 .guardias, .guardias-ics { scroll-margin-top: 85px; }
+.guardias .seg { margin-bottom: 14px; }
+.guardias .guardias-contexto { margin-top: 10px; padding: 8px 10px; background: var(--accent-soft); border-radius: 8px; }
 .guardias-orden { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 0.85rem; }
+.guardias-ranking { list-style: none; padding: 0; margin: 10px 0; font-size: 0.9rem; }
+.guardias-ranking li { display: grid; grid-template-columns: 2.5ch minmax(10ch, 180px) minmax(14px, 1fr) 9ch; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.guardias-ranking .puesto { color: var(--muted); font-variant-numeric: tabular-nums; }
+.guardias-ranking .importe { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.guardias-ranking .pista { display: block; height: 9px; background: var(--bg); border-radius: 4px; }
+.guardias-ranking .pista span { display: block; height: 100%; background: var(--grey-line); border-radius: inherit; }
+.guardias-ranking li.tuya { background: var(--accent-soft); font-weight: 600; }
+.guardias-ranking li.tuya .pista span { background: var(--accent); }
 .tabla-guardias :is(th, td):first-child { width: auto; white-space: normal; }
 .tabla-guardias :is(th, td):nth-child(n + 2) { text-align: right; }
+.tabla-guardias-territorios :is(th, td):nth-child(2) { text-align: left; }
+.tabla-guardias-territorios .puesto:first-child { width: 2.6em; }
 .tabla-guardias thead th { white-space: normal; }
+.tabla-guardias thead th[aria-sort="descending"] { background: var(--accent-soft); color: var(--fg); }
 .tabla-guardias .neg { font-size: 0.8rem; white-space: normal; }
 .guardias-ics { padding: 16px 0 0; margin-top: 20px; border-top: 1px solid var(--line); }
 .guardias-ics h3 { font-size: 1rem; }
@@ -374,7 +387,7 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .tip-marcas { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
 .tip-ayuda { opacity: 0.75; font-size: 0.9em; }
 .pliegue a { color: var(--accent); }
-.campo .btn-link, .guardias-orden .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.campo .btn-link, .guardias-contexto .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
 /* Ajuste por edad: el «¿Cómo se calcula?» ocupa toda la fila y usa la letra pequeña de la zona */
 .real.edad { margin-top: 8px; }
 .real.edad .pliegue { flex-basis: 100%; margin-top: 0; font-size: 0.82rem; }
@@ -430,10 +443,17 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .tabla-total-nota { display: block; }
   .tabla-guardias { table-layout: fixed; }
   .tabla-guardias th, .tabla-guardias td, .tabla-guardias th[scope="row"] { padding-inline: 5px; white-space: normal; }
-  .tabla-guardias thead th:first-child:nth-last-child(3) { width: 40%; }
+  .tabla-guardias-territorios thead th:nth-child(2) { width: 36%; }
   .tabla-guardias th[scope="row"] { overflow-wrap: anywhere; }
+  .guardias-ranking li { grid-template-columns: 2ch minmax(8ch, 1.5fr) minmax(14px, 1fr) auto; padding-inline: 3px; gap: 6px; }
   .tabla-ranking tr:not(.sep) > :nth-child(2),
   .tabla-encuesta tr > :first-child { position: sticky; left: 0; z-index: 1; max-width: 125px; white-space: normal; background: var(--surface); box-shadow: 1px 0 var(--line), 6px 0 8px -7px var(--muted); }
   .tabla-ranking tr.tuya > :nth-child(2),
   .tabla-encuesta tr.tuya > td:first-child { background: var(--accent-soft); }
+}
+
+@media (max-width: 360px) {
+  .tabla-guardias-territorios thead th:nth-child(2) { width: 32%; }
+  .tabla-guardias-territorios :is(th, td), .tabla-guardias-territorios th[scope="row"] { padding-inline: 3px; }
+  .tabla-guardias-territorios .neg { font-size: 0.74rem; }
 }

@@ -902,13 +902,15 @@ export function iniciar(DATA: DatosApp): void {
     };
   }
   function filtrosModificados(base) {
-    if (esGuardia(base)) return ordenGuardias !== "laborable";
+    if (esGuardia(base)) return ordenGuardias !== "laborable" || S.vistaE !== "ranking";
     return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
   }
   function restablecer() {
     const actual = periodoActual();
-    if (esGuardia(actual)) ordenGuardias = "laborable";
-    else Object.assign(S, filtrosIniciales(actual));
+    if (esGuardia(actual)) {
+      ordenGuardias = "laborable";
+      S.vistaE = "ranking";
+    } else Object.assign(S, filtrosIniciales(actual));
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
@@ -917,7 +919,9 @@ export function iniciar(DATA: DatosApp): void {
   const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a, ind) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
   const nombreGrafComunidades = (ind) => esEstimacion(ind) ? "Comunidades" : "Ranking";
-  const opcionesGraf = (base) => [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución"], ["tabla", "Tabla"]].map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
+  const vistasGuardias = [["ranking", "Ranking"], ["tabla", "Tabla"]];
+  const opcionesGraf = (base) => (esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución"], ["tabla", "Tabla"]])
+    .map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
 
   // «31 de diciembre de 2025» -> «dic. 2025» (para que quepa en una etiqueta)
   const corteCorto = () => { const m = DATA.corteListas.match(/de (\w+) de (\d{4})/); return m ? `${m[1].slice(0, 3)}. ${m[2]}` : DATA.corteListas; };
@@ -942,8 +946,9 @@ export function iniciar(DATA: DatosApp): void {
     } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (S.indP === "gasto_hab" && EDAD) h += `<button type="button" id="rs-edad" class="chip-s boton${S.edad ? " cambiado" : ""}" aria-pressed="${S.edad}" title="Pulsa para ${S.edad ? "ver el dato oficial, sin ajustar" : "ajustar por la edad de la población"}"><span class="et">Edad</span>${S.edad ? "Ajustado" : "Sin ajustar"}</button>`;
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
-    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esGuardia(base) ? "Se resalta en la tabla" : "Se resalta en el mapa y en los gráficos"));
-    if (!esGuardia(base)) h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false, ayuda("El gráfico que aparece debajo del mapa"));
+    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esGuardia(base) ? "Se resalta en la comparación" : "Se resalta en el mapa y en los gráficos"));
+    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false,
+      ayuda(esGuardia(base) ? "Ver ranking o tabla de guardias" : "El gráfico que aparece debajo del mapa"));
     // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
     const cambiado = filtrosModificados(base);
     if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
@@ -1009,8 +1014,9 @@ export function iniciar(DATA: DatosApp): void {
       : fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
     if (S.indP === "gasto_hab" && EDAD) h += fila("Edad", radios("edad", S.edad ? "1" : "0", [["0", "Por habitante", "(dato oficial)"], ["1", "Ajustado por edad"]]), `Ajustado: corrige que unas comunidades tienen más población mayor. Desde ${EDAD.anios[0]}. <a href="#metodo-edad">Cómo se calcula</a>.`);
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
-    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esGuardia(base) ? "Se resalta en la tabla." : "Se resalta en el mapa y en los gráficos.");
-    if (!esGuardia(base)) h += fila("Gráfico", radios("graf", S.vistaE, [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]), "El gráfico que aparece debajo del mapa.");
+    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esGuardia(base) ? "Se resalta en la comparación." : "Se resalta en el mapa y en los gráficos.");
+    h += fila("Gráfico", radios("graf", S.vistaE, esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]),
+      esGuardia(base) ? "" : "El gráfico que aparece debajo del mapa.");
     const cambiado = filtrosModificados(base);
     h += `<div class="aj-pie">${cambiado ? '<button type="button" class="btn" id="aj-reset">Restablecer</button>' : ""}<button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
     $("#aj-cuerpo").innerHTML = h;
@@ -1186,9 +1192,8 @@ export function iniciar(DATA: DatosApp): void {
     if (S.anioP !== ultimo(ind) || S.modo === "cambio") q.set("anio", fecha(S.anioP));
     if (S.modo !== "valor") q.set("modo", S.modo);
     if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
-    if (esGuardia(ind)) {
-      if (ordenGuardias !== "laborable") q.set("orden", ordenGuardias);
-    } else if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
+    if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
+    if (esGuardia(ind) && ordenGuardias !== "laborable") q.set("orden", ordenGuardias);
     if (!S.real) q.set("inflacion", "no");
     if (conEdad()) q.set("edad", "si");
     if (S.com !== "AN") q.set("com", S.com.toLowerCase());
@@ -1534,44 +1539,75 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Por confirmar.</b> Falta el anexo definitivo de Cantabria, la tabla específica de guardias de Osasunbidea y la tarifa de domingo no festivo de La Rioja. La tarifa laborable de La Rioja está confirmada.</p>`;
   }
 
+  function rankingGuardias(ind, orden, puestos, importes) {
+    const max = Math.max(...Object.values(importes));
+    return `<ol class="guardias-ranking" aria-label="Ranking de comunidades por tarifa" role="list">${orden.map((id) => {
+      const importe = importes[id];
+      return `<li class="${id === S.com ? "tuya" : ""}">
+        <span class="puesto"><span class="sr">Puesto </span>${puestos.get(id)}</span>
+        <span>${esc(NOMBRE[id])}</span>
+        <span class="pista" aria-hidden="true"><span style="width:${importe / max * 100}%"></span></span>
+        <span class="importe">${fmt(importe, ind.unidad)}</span>
+      </li>`;
+    }).join("")}</ol>`;
+  }
+
   function renderGuardias(ind) {
     const { territorios, ics } = DATA.guardias;
-    const ids = IDS.filter((id) => id !== "CT").sort((a, b) =>
-      (territorios[b][ordenGuardias] ?? -1) - (territorios[a][ordenGuardias] ?? -1) || NOMBRE[a].localeCompare(NOMBRE[b], "es"));
+    const ids = IDS.filter((id) => territorios[id]);
+    const importes = Object.fromEntries(ids.map((id) => [id, territorios[id][ordenGuardias]]));
+    const orden = ordenados(importes);
+    const pendientes = ids.filter((id) => importes[id] == null).sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es"));
+    const puestos = new Map();
+    orden.forEach((id, i) => {
+      const anterior = orden[i - 1];
+      puestos.set(id, importes[id] === importes[anterior] ? puestos.get(anterior) : i + 1);
+    });
+    const dia = ordenGuardias === "laborable" ? "laborable" : "domingo no festivo";
     const tarifa = (importe) => importe == null ? `<span class="neg">${pendienteGuardia}</span>` : fmt(importe, ind.unidad);
     const fila = (id) => {
       const datos = territorios[id];
-      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+      return `<tr class="${id === S.com ? "tuya" : ""}"><td class="puesto">${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
         <td>${tarifa(datos.laborable)}</td><td>${tarifa(datos.domingo)}</td></tr>`;
     };
+    const columna = (clave, texto) => `<th scope="col"${ordenGuardias === clave ? ' aria-sort="descending"' : ""}>${texto}${ordenGuardias === clave ? ' <span aria-hidden="true">↓</span>' : ""}</th>`;
+    const tabla = `<div class="tabla-wrap"><table class="tabla tabla-guardias tabla-guardias-territorios" aria-label="Tarifas de guardias presenciales por territorio">
+        <thead><tr><th scope="col" class="puesto" aria-label="Puesto">#</th><th scope="col">Territorio</th>
+          ${columna("laborable", "Laborable")}${columna("domingo", "Domingo no festivo")}</tr></thead>
+        <tbody>${[...orden, ...pendientes].map(fila).join("")}<tr class="sep"><td colspan="4">Ceuta y Melilla · Fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody>
+      </table></div>`;
     const enlacesICS = ics.fuentes.map((url, i) => `<a href="${esc(url)}">${i ? "Acuerdo del ICS" : "Tabla retributiva del ICS"}</a>`).join(" · ");
     const fuentes = [...ids, "INGESA"].filter((id) => territorios[id].fuente)
       .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"))
       .map((id) => `<li><a href="${esc(territorios[id].fuente)}">${esc(nombreRetribucion(id))}</a></li>`).join("");
-    $("#guardias").innerHTML = `<h2 id="guardias-titulo">${esc(ind.nombre)}</h2>
+    $("#guardias").innerHTML = `<div class="seg" id="guardias-vistas" role="group" aria-label="Tipo de gráfico">
+        ${vistasGuardias.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
+      </div>
+      <h2 id="guardias-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Guardia presencial de un especialista. Tarifas vigentes a ${corteGuardias}.</p>
-      <div class="guardias-orden"><label for="guardias-orden">Ordenar por</label>
-        <select id="guardias-orden">${opt("laborable", "Tarifa en laborable", ordenGuardias === "laborable")}${opt("domingo", "Tarifa en domingo", ordenGuardias === "domingo")}</select>
-        <button type="button" class="btn-link" id="guardias-ir-ics">Ver módulos del ICS</button></div>
-      <div class="tabla-wrap"><table class="tabla tabla-guardias" aria-label="Tarifas de guardias presenciales por territorio">
-        <thead><tr><th scope="col">Territorio</th><th scope="col" ${ordenGuardias === "laborable" ? 'aria-sort="descending"' : ""}>Laborable</th>
-          <th scope="col" ${ordenGuardias === "domingo" ? 'aria-sort="descending"' : ""}>Domingo no festivo</th></tr></thead>
-        <tbody>${ids.map(fila).join("")}<tr class="sep"><td colspan="3">Ceuta y Melilla</td></tr>${fila("INGESA")}</tbody>
-      </table></div>
+      <p class="sub guardias-contexto">El Institut Català de la Salut (ICS) paga parte de sus guardias por turnos completos de 24 horas. El ranking compara lo que se paga por una hora de guardia.
+        <button type="button" class="btn-link" id="guardias-ir-ics">Ver el caso de Cataluña</button></p>
+      <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
+        <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
+      <p class="sub guardias-criterio">De mayor a menor por la tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
+      ${S.vistaE === "tabla" ? tabla : `${rankingGuardias(ind, orden, puestos, importes)}
+        ${pendientes.length ? `<p class="sub">Tarifa por confirmar en ${new Intl.ListFormat("es").format(pendientes.map((id) => esc(NOMBRE[id])))}.</p>` : ""}
+        <p class="sub">Ceuta y Melilla (INGESA) figuran juntas, fuera del ranking autonómico. Tarifa en ${dia} de <b>${tarifa(territorios.INGESA[ordenGuardias])}</b>.</p>`}
       <section class="guardias-ics${S.com === "CT" ? " tuya" : ""}" aria-labelledby="guardias-ics-titulo">
         <h3 id="guardias-ics-titulo" tabindex="-1">Cataluña · Institut Català de la Salut (ICS)</h3>
-        <p class="sub">Importe bruto por módulo de 24 horas para un especialista sin carrera reconocida.</p>
+        <p class="sub">En laborables, el módulo de 24 horas incluye horas de jornada habitual y horas de guardia. Dividir lo que se cobra por el módulo entre 24 daría un promedio de ambas. Los importes corresponden a un especialista sin carrera reconocida del ICS, uno de los proveedores públicos de Cataluña.</p>
         <div class="tabla-wrap"><table class="tabla tabla-guardias" aria-labelledby="guardias-ics-titulo">
           <thead><tr><th scope="col">Día del módulo</th><th scope="col">Importe por módulo</th></tr></thead>
           <tbody>${ics.modulos.map(({ dia, importe }) => `<tr><th scope="row">${esc(dia)}</th><td>${fmt(importe, "eur_anual")}</td></tr>`).join("")}</tbody>
         </table></div>
-        <p class="sub">Cuando la guardia se paga por hora fuera del sistema de módulos, la tarifa es de ${tarifa(ics.porHora.laborable)} en laborable y de ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
+        <p class="sub">Para las guardias que el ICS programa fuera de los módulos, paga ${tarifa(ics.porHora.laborable)} en laborable y ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
         <p class="sub">${enlacesICS}</p>
       </section>
       <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
+    $("#guardias-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => { S.vistaE = b.dataset.v; render(); });
     $("#guardias-ir-ics").onclick = () => { $("#guardias-ics-titulo").focus({ preventScroll: true }); $(".guardias-ics").scrollIntoView(); };
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
