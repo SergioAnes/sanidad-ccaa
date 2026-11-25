@@ -340,6 +340,8 @@ export function iniciar(DATA: DatosApp): void {
   // Selector: tema (Gasto / Listas de espera) + tarjetas con la media de las 17 y una minigráfica.
   function selector(cont, actualId, onPick) {
     const grupo = IND[actualId].grupo;
+    const carruselAnterior = cont.querySelector(".kpis");
+    const desplazamiento = carruselAnterior?.dataset.grupo === grupo ? carruselAnterior.scrollLeft : 0;
     const acc = css("--accent"), soft = css("--accent-soft"), grey = css("--grey-line");
     const tarjetas = DATA.inds.filter((i) => i.grupo === grupo).map((i) => {
       const anio = ultimo(i);
@@ -384,7 +386,7 @@ export function iniciar(DATA: DatosApp): void {
         <button type="button" data-g="hospitales" aria-pressed="${grupo === "hospitales"}">Hospitales</button>
         <button type="button" data-g="prevencion" aria-pressed="${grupo === "prevencion"}">Prevención</button>
         <button type="button" data-g="resultados" aria-pressed="${grupo === "resultados"}">Resultados en salud</button>
-      </div><div class="kpis">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
+      </div><div class="kpis" data-grupo="${grupo}">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
         <div class="seg sm" role="group" aria-label="Inflación">
           <button type="button" data-r="1" aria-pressed="${S.real}">Descontando la inflación</button>
           <button type="button" data-r="0" aria-pressed="${!S.real}">Sin descontar</button>
@@ -406,7 +408,9 @@ export function iniciar(DATA: DatosApp): void {
     cont.querySelectorAll('.seg[aria-label="Tema"] button').forEach((b) => b.onclick = () => {
       if (b.dataset.g !== grupo) onPick(DATA.inds.find((i) => i.grupo === b.dataset.g).id);
     });
-    cont.querySelectorAll(".kpi").forEach((b) => b.onclick = () => onPick(b.dataset.id));
+    const carrusel = cont.querySelector(".kpis");
+    carrusel.scrollLeft = desplazamiento;
+    carrusel.querySelectorAll(".kpi").forEach((b) => b.onclick = () => onPick(b.dataset.id));
   }
 
   // Mapa con las siluetas reales (IGN, vía es-atlas), ya proyectado. Canarias va en un recuadro.
