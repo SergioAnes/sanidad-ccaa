@@ -136,7 +136,8 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tabla th:nth-child(2), .tabla td:nth-child(2) { text-align: left; }
 .tabla th:first-child, .tabla td:first-child { text-align: left; color: var(--muted); width: 2.5em; }
-.tabla tr.tuya td { background: var(--accent-soft); font-weight: 600; }
+.tabla th[scope="row"] { color: var(--fg); font-size: inherit; font-weight: 400; padding: 7px 10px; }
+.tabla tr.tuya > :is(td, th) { background: var(--accent-soft); font-weight: 600; }
 .tabla .neg { color: var(--muted); }
 /* Gasto frente a espera */
 .xy { margin-top: 20px; }
@@ -417,6 +418,6 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .tabla-total-nota { display: block; }
   .tabla-ranking tr:not(.sep) > :nth-child(2),
   .tabla-encuesta tr > :first-child { position: sticky; left: 0; z-index: 1; max-width: 125px; white-space: normal; background: var(--surface); box-shadow: 1px 0 var(--line), 6px 0 8px -7px var(--muted); }
-  .tabla-ranking tr.tuya > td:nth-child(2),
+  .tabla-ranking tr.tuya > :nth-child(2),
   .tabla-encuesta tr.tuya > td:first-child { background: var(--accent-soft); }
 }

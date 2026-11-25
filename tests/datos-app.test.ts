@@ -21,6 +21,19 @@ describe("datos de la interfaz", () => {
     }
   });
 
+  it("solo muestra retribuciones verificadas a la fecha de referencia", () => {
+    const i = d.inds.find((ind) => ind.id === "hosp_retribuciones");
+    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de retribuciones");
+    expect(d.retribuciones.fecha).toBe("2026-07-31");
+    expect(i.anios).toEqual([2026]);
+    expect(i.espana).toEqual([]);
+    expect(i.serie.CB).toEqual([null]);
+    expect(d.retribuciones.territorios.CB).toBeNull();
+    expect(d.ccaa.filter(({ id }) => Number.isFinite(i.serie[id][0]))).toHaveLength(16);
+    expect(d.retribuciones.territorios.INGESA).toMatchObject({ fijoBruto: 68655.38, residencia: 14030.88 });
+    expect(i.serie.INGESA).toEqual([68655.38]);
+  });
+
   it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {
     const i = d.inds.find((ind) => ind.id === "acceso_no_cubierto");
     if (!i || i.grupo !== "opinion") throw new Error("falta el indicador ECV");
