@@ -341,7 +341,9 @@ export function iniciar(DATA: DatosApp): void {
   function selector(cont, actualId, onPick) {
     const grupo = IND[actualId].grupo;
     const carruselAnterior = cont.querySelector(".kpis");
-    const desplazamiento = carruselAnterior?.dataset.grupo === grupo ? carruselAnterior.scrollLeft : 0;
+    const mismoTema = carruselAnterior?.dataset.grupo === grupo;
+    const desplazamiento = mismoTema ? carruselAnterior.scrollLeft : 0;
+    const indicadorAnterior = carruselAnterior?.querySelector('[aria-pressed="true"]')?.dataset.id;
     const acc = css("--accent"), soft = css("--accent-soft"), grey = css("--grey-line");
     const tarjetas = DATA.inds.filter((i) => i.grupo === grupo).map((i) => {
       const anio = ultimo(i);
@@ -381,8 +383,8 @@ export function iniciar(DATA: DatosApp): void {
     cont.innerHTML = `<div class="seg" role="group" aria-label="Tema">
         <button type="button" data-g="gasto" aria-pressed="${grupo === "gasto"}">Gasto sanitario</button>
         <button type="button" data-g="espera" aria-pressed="${grupo === "espera"}">Listas de espera</button>
-        <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}">Lo que opina la gente</button>
-        <button type="button" data-g="primaria" aria-pressed="${grupo === "primaria"}">Atención primaria</button>
+        <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}"><span class="solo-escritorio">Lo que opina la gente</span><span class="solo-movil">Opinión</span></button>
+        <button type="button" data-g="primaria" aria-pressed="${grupo === "primaria"}"><span class="solo-escritorio">Atención primaria</span><span class="solo-movil">Primaria</span></button>
         <button type="button" data-g="hospitales" aria-pressed="${grupo === "hospitales"}">Hospitales</button>
         <button type="button" data-g="prevencion" aria-pressed="${grupo === "prevencion"}">Prevención</button>
         <button type="button" data-g="resultados" aria-pressed="${grupo === "resultados"}">Resultados en salud</button>
@@ -410,6 +412,14 @@ export function iniciar(DATA: DatosApp): void {
     });
     const carrusel = cont.querySelector(".kpis");
     carrusel.scrollLeft = desplazamiento;
+    // Al abrir un indicador que queda fuera de vista, muestra su tarjeta. Una pulsación en una tarjeta visible conserva el desplazamiento.
+    if (indicadorAnterior !== actualId && carrusel.scrollWidth > carrusel.clientWidth) {
+      const tarjeta = carrusel.querySelector('[aria-pressed="true"]').getBoundingClientRect();
+      const vista = carrusel.getBoundingClientRect();
+      if (tarjeta.left >= vista.right || tarjeta.right <= vista.left || (!mismoTema && tarjeta.right > vista.right)) {
+        carrusel.scrollLeft += tarjeta.left - vista.left;
+      }
+    }
     carrusel.querySelectorAll(".kpi").forEach((b) => b.onclick = () => onPick(b.dataset.id));
   }
 
@@ -791,6 +801,15 @@ export function iniciar(DATA: DatosApp): void {
       $("#p-titulo").textContent = ind.grupo === "opinion" ? `${ind.nombre}, ${periodo(ind, anio)}, frente a la media de España` : `${ind.nombre}: ${extremosTxt(mapa.vals, top, bot, mapa.ind.unidad)}`;
       $("#p-sub").textContent = ind.grupo === "opinion" ? "Encuesta: el color tiene en cuenta el margen de error. Pulsa una comunidad para elegirla como la tuya." : `Situación a ${DATA.corteListas}. Pulsa una comunidad para elegirla como la tuya.`;
     }
+    const fechaMovil = enCambio ? `Cambio ${fechaGrafico(ind, S.desde)} → ${fechaGrafico(ind, anio)}` : fechaGrafico(ind, anio);
+    const contextoMovil = enEuros(ind) ? S.real ? `En euros de ${ULT}` : enCambio ? "En euros de cada año" : `En euros de ${anio}`
+      : esCribado(ind) ? "Encuesta, 50 a 69 años · últimos dos años"
+      : esECV(ind) ? "Estimación de encuesta"
+      : ind.grupo === "opinion" ? "Encuesta con margen de error"
+      : esPQI(ind) ? "Tasa ajustada por 10.000 hab., según ubicación del hospital" : "";
+    const avisoMovil = !mo.length ? enCambio ? "Sin cambios comparables" : sinDatosTxt(ind, anio) : "";
+    $("#p-titulo-movil").textContent = ind.campoNombre ? `${ind.corto} · ${ind.campoNombre}` : ind.corto;
+    $("#p-sub-movil").textContent = [fechaMovil, contextoMovil, avisoMovil].filter(Boolean).join(" · ");
     // El modo (un año / cambio entre dos años) se elige arriba, en el resumen o en Ajustes.
     leyenda($("#p-leyenda"), tileMap($("#p-mapa"), mapa.vals, mapa.ind, { selIds: [S.com], onClick: (id) => { S.com = id; render(); },
       onCiudad: ind.grupo === "espera" ? (id) => { location.hash = `comunidad-${id.toLowerCase()}?corte=${CORTES[anio].id}`; } : null }));
@@ -896,10 +915,10 @@ export function iniciar(DATA: DatosApp): void {
     if (serie) partes.push(S.modo === "cambio" ? parte(`${periodo(base, S.desde, true)} → ${periodo(base, S.anioP, true)}`, true) : parte(periodo(base, S.anioP, true), S.anioP !== ultimo(base)));
     else partes.push(parte(base.grupo === "opinion" ? periodo(base, ultimo(base)) : corteCorto()));
     if (conEdad()) partes.push(parte("ajustado por edad", true));
-    if (enEuros(base)) partes.push(parte(S.real ? "sin inflación" : "con inflación", !S.real));
+    if (enEuros(base)) partes.push(parte(S.real ? "inflación descontada" : "euros corrientes", !S.real));
     partes.push(parte(NOMBRE[S.com]));
-    $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas" aria-hidden="true">▾</span>`;
-    $("#rs-texto").setAttribute("aria-label", `Estás viendo: ${$("#rs-texto").textContent.replace("▾", "")}. Pulsa para cambiarlo`);
+    $("#rs-texto").innerHTML = `<span class="rs-linea">${partes.join('<span class="sep"> · </span>')}</span><span class="rs-mas">Filtros <span aria-hidden="true">▾</span></span>`;
+    $("#rs-texto").setAttribute("aria-label", `Filtros. Estás viendo: ${$("#rs-texto .rs-linea").textContent}`);
     $("#rs-texto").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
     const on = (id, fn) => { const el = $("#" + id); if (el) el.onchange = (e) => aplicar(() => fn(e.target.value)); };
     on("rs-dato", (v) => { cambiarIndicador(v); });
@@ -912,7 +931,6 @@ export function iniciar(DATA: DatosApp): void {
     on("rs-graf", (v) => { S.vistaE = v; });
     if ($("#rs-infl")) $("#rs-infl").onclick = () => aplicar(() => { S.real = !S.real; });
     if ($("#rs-edad")) $("#rs-edad").onclick = () => aplicar(() => { S.edad = !S.edad; });
-    $("#rs-ajustes").onclick = () => { renderAjustes(); $("#ajustes").showModal(); };
     if ($("#ajustes").open) renderAjustes();
   }
 
@@ -1042,6 +1060,13 @@ export function iniciar(DATA: DatosApp): void {
       $("#e-titulo").textContent = `${ind.nombre}, ${usaTotalEspana(ind) && enCambio ? `de ${S.desde} a ${anio}` : fechasTabla}`;
       $("#e-sub").textContent = `Ordenada por ${esEstimacion(ind) ? "nombre de la comunidad" : enCambio ? "cambio entre las fechas elegidas" : "valor en la fecha elegida"}. Tu comunidad va resaltada.`;
       if (graficoEncuesta(ind)) tablaOpinion(cont, ind, anio); else tabla(cont, ind, anio, mapa.vals);
+      const desplazable = cont.querySelector(".tabla-wrap");
+      if (desplazable.scrollWidth > desplazable.clientWidth) {
+        desplazable.tabIndex = 0;
+        desplazable.setAttribute("role", "region");
+        desplazable.setAttribute("aria-labelledby", "e-titulo");
+        desplazable.insertAdjacentHTML("beforebegin", '<p class="tabla-deslizar solo-movil">Desliza la tabla para ver más columnas <span aria-hidden="true">→</span></p>');
+      }
     } else {
       const mo = ordenados(mapa.vals);
       $("#e-titulo").textContent = graficoEncuesta(ind) ? `${ind.nombre}, ${fecha}${esEstimacion(ind) ? "" : ", con su margen de error"}`
@@ -1314,7 +1339,7 @@ export function iniciar(DATA: DatosApp): void {
     const estimacion = esEstimacion(ind), vals = valores(ind, a), o = ordenOpinion(ind, vals), u = ind.unidad;
     const margen = (m) => m != null ? `± ${fmt(m, u)}` : "—";
     const filas = o.map((id) => `<tr class="${id === S.com ? "tuya" : ""}"><td>${esc(NOMBRE[id])}</td><td>${fmt(vals[id], u)}</td>${estimacion ? "" : `<td>${margen(ind.margen[id]?.[a])}</td><td>${textoClase(ind, claseOpinion(ind, id, a))}</td>`}</tr>`).join("");
-    cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead><tr><th>Comunidad</th><th>${periodo(ind, a)}</th>${estimacion ? "" : "<th>Margen de error (95 %)</th><th>Frente a España</th>"}</tr></thead><tbody>${filas}
+    cont.innerHTML = `<div class="tabla-wrap tabla-encuesta"><table class="tabla"><thead><tr><th>Comunidad</th><th>${periodo(ind, a)}</th>${estimacion ? "" : "<th>Margen de error (95 %)</th><th>Frente a España</th>"}</tr></thead><tbody>${filas}
       <tr><td>España</td><td>${fmt(ind.espana[indice(ind, a)], u)}</td>${estimacion ? "" : `<td>${margen(ind.margenEspana[a])}</td><td></td>`}</tr></tbody></table></div>
       <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV (${periodo(ind, primero(ind))}${tieneSerie(ind) ? ` – ${periodo(ind, ultimo(ind))}` : ""}${ind.historico ? ", con la serie anterior" : ""})</button></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
@@ -1460,14 +1485,14 @@ export function iniciar(DATA: DatosApp): void {
     const recuentos = pac ? IDS.map((id) => pac[id]).filter((v) => v != null) : [];
     const totalPac = recuentos.length ? recuentos.reduce((s, v) => s + v, 0) : null;
     const cobertura = cambioPac?.total != null
-      ? ` <span style="font-weight:400">${cambioPac.n === IDS.length ? "en total" : `en ${cambioPac.n} ${cambioPac.n === 1 ? "comunidad" : "comunidades"}`}</span>` : "";
+      ? ` <span class="tabla-total-nota" style="font-weight:400">${cambioPac.n === IDS.length ? "en total" : `en ${cambioPac.n} ${cambioPac.n === 1 ? "comunidad" : "comunidades"}`}</span>` : "";
     const m0 = serie ? (espana ? ind.espana[indice(ind, b0)] : media(base)) : null;
-    const pie = `<tr><td></td><td>${rae || esPQI(ind) ? "España (SNS)" : espana ? "España" : "Media de las comunidades con dato"}</td>${serie ? `<td>${fmt(m0, u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? `<td>${espana ? fmt(m - m0, unidadCambio(u)) : ""}</td>` : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")}${totalPac != null ? ' <span style="font-weight:400">en total</span>' : ""}</td>` : ""}${mostrarCambioPac ? `<td>${deltaPac(cambioPac?.total)}${cobertura}</td>` : ""}</tr>`;
+    const pie = `<tr><td></td><td>${rae || esPQI(ind) ? "España (SNS)" : espana ? "España" : "Media de las comunidades con dato"}</td>${serie ? `<td>${fmt(m0, u)}</td>` : ""}<td>${fmt(m, u)}</td>${serie ? `<td>${espana ? fmt(m - m0, unidadCambio(u)) : ""}</td>` : ""}<td></td>${pac ? `<td>${fmt(totalPac, "num")}${totalPac != null ? ' <span class="tabla-total-nota" style="font-weight:400">en total</span>' : ""}</td>` : ""}${mostrarCambioPac ? `<td>${deltaPac(cambioPac?.total)}${cobertura}</td>` : ""}</tr>`;
     const nCol = 4 + (serie ? 2 : 0) + (pac ? 1 : 0) + (mostrarCambioPac ? 1 : 0);
     const ciu = ind.grupo === "espera" ? Object.keys(CIUDADES).filter((k) => datoCiudad(ind, k) != null || pac?.[k] != null || serie && datoCiudad(ind, k, b0) != null) : [];
     const filasC = ciu.length ? `<tr class="sep"><td colspan="${nCol}">Aparte: no cuentan para la media ni los puestos</td></tr>` +
       ciu.map((k) => `<tr class="ciudad"><td>—</td><td><a href="#comunidad-${k.toLowerCase()}?corte=${CORTES[anio].id}">${CIUDADES[k]}*</a></td>${serie ? `<td>${fmt(datoCiudad(ind, k, b0), u)}</td>` : ""}<td>${fmt(datoCiudad(ind, k), u)}</td>${serie ? `<td>${cambio(k)}</td>` : ""}<td>${difMedia(datoCiudad(ind, k))}</td>${celdasPac(k)}</tr>`).join("") : "";
-    cont.innerHTML = `<div class="tabla-wrap"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
+    cont.innerHTML = `<div class="tabla-wrap tabla-ranking"><table class="tabla"><thead>${cab}</thead><tbody>${filas}${pie}${filasC}</tbody></table></div>
       <div class="cta" style="margin-top:14px"><button type="button" class="btn" id="csv">Descargar CSV${serie ? ` (${periodo(ind, primero(ind), true)} – ${periodo(ind, ultimo(ind), true)})` : ""}</button></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
   }
@@ -2190,6 +2215,7 @@ export function iniciar(DATA: DatosApp): void {
   }
   // Fechas de los textos fijos, sacadas de los datos (así no se quedan viejas al actualizar).
   $("#p-intro").textContent = `Datos oficiales del Ministerio de Sanidad: gasto de ${ANIOS[0]} a ${ULT}, listas de espera de ${periodo(IND.q_dias, 0)} a ${periodo(IND.q_dias, ULT_CORTE)}, el Barómetro Sanitario (encuesta, con el CIS) de ${DATA.barometro.primerAnioMetodo} a ${Math.max(...DATA.inds.filter((i) => i.grupo === "opinion").map((i) => i.fechas.at(-1)))}, profesionales de atención primaria de ${primero(IND.ap_pob_medico)} a ${ultimo(IND.ap_pob_medico)} y actividad y recursos de los hospitales de ${primero(IND.hosp_camas_sns)} a ${ultimo(IND.hosp_camas_sns)}. Del INE, esperanza de vida y mortalidad infantil de ${primero(IND.res_esperanza)} a ${ultimo(IND.res_esperanza)}.`;
+  $("#p-intro-movil").textContent = $("#p-intro").textContent;
   $("#f-gasto").textContent = `gasto real ${ANIOS[0]}-${ULT}` + (DATA.prov.length ? `; ${DATA.prov.join(" y ")} provisionales` : "");
   {
     const rect = DATA.versionListas && DATA.versionListas.rectificado
