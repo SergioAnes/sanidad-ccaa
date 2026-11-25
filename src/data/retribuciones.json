@@ -19,5 +19,8 @@
     "PV": {"fijoBruto": 60026.72, "residencia": 0.0, "fuentes": ["https://www.osakidetza.euskadi.eus/contenidos/informacion/osk_trbg_informacion_economica/es_def/adjuntos/Instruccion-2_2026.pdf"]},
     "RI": {"fijoBruto": 56021.32, "residencia": 0.0, "fuentes": ["https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf"]},
     "INGESA": {"fijoBruto": 68655.38, "residencia": 14030.88, "fuentes": ["https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf"]}
+  },
+  "provisionales": {
+    "CB": {"fijoBruto": 58763.46, "residencia": 0.0, "fuentes": ["https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=38"]}
   }
 }

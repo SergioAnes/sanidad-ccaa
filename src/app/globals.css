@@ -139,6 +139,7 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla th[scope="row"] { color: var(--fg); font-size: inherit; font-weight: 400; padding: 7px 10px; }
 .tabla tr.tuya > :is(td, th) { background: var(--accent-soft); font-weight: 600; }
 .tabla .neg { color: var(--muted); }
+.tabla .dato-provisional { display: block; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
 #p-vista[hidden], #e-vista[hidden], .guardias[hidden] { display: none; }
 .guardias, .guardias-ics { scroll-margin-top: 85px; }
 .guardias .seg { margin-bottom: 14px; }
@@ -456,4 +457,5 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .tabla-guardias-territorios thead th:nth-child(2) { width: 32%; }
   .tabla-guardias-territorios :is(th, td), .tabla-guardias-territorios th[scope="row"] { padding-inline: 3px; }
   .tabla-guardias-territorios .neg { font-size: 0.74rem; }
+  .tabla-guardias-territorios .dato-provisional { font-size: 0.7rem; }
 }

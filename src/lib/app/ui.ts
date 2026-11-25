@@ -1177,8 +1177,10 @@ export function iniciar(DATA: DatosApp): void {
       (avisosV.length ? `<p><b>${S.modo === "cambio" ? `Variaciones inusuales entre ${S.desde} y ${anio} que influyen en el crecimiento` : `Variación inusual en ${anio}`}:</b></p><ul>${avisosV.map((a) => `<li>${esc(textoAviso(a))}</li>`).join("")}</ul><p><a href="#metodo-calidad">Cómo las detectamos</a>.</p>` : "") +
       (ccEnt.length ? `<p><b>Entre ${S.desde} y ${anio} cambió la lista de entidades que cuenta la estadística</b> en ${ccEnt.map((k) => esc(NOMBRE[k])).join(", ")}. ${esc(AVISO_ENTIDADES)} Detalle en la ficha de cada comunidad. <a href="#metodo-entidades">Más información</a>.</p>` : "") +
       (S.vistaE !== "evolucion" && !esRetribucion(ind) ? `<p><b>Ceuta y Melilla.</b> ${esVidaSaludable(ind) ? "Sanidad publica el dato de las dos ciudades en conjunto." : esECV(ind) || ind.fuente === "rae" || esPQI(ind) || ind.grupo === "resultados" || ind.grupo === "prevencion" ? "La fuente publica sus cifras. El mapa y los gráficos muestran las 17 comunidades." : ind.grupo === "gasto" ? AVISO_GASTO : ind.grupo === "opinion" ? AVISO_OPINION_CIUDADES : esRecurso(ind) ? AVISO_RECURSOS_CIUDADES : AVISO_CIUDADES} <a href="#comunidad-ce">Ficha de Ceuta</a> · <a href="#comunidad-ml">Ficha de Melilla</a>.</p>` : "");
-    const nombresSinDato = sinDato.map((k) => esc(NOMBRE[k])).join(", ");
-    $("#e-nota").innerHTML = (sinDato.length ? `${esRetribucion(ind) ? pendienteRetribucion : "Sin dato en la fuente"}: ${nombresSinDato}.` : "") +
+    const sinDatoVerificado = esRetribucion(ind) ? sinDato.filter((id) => !DATA.retribuciones.provisionales[id]) : sinDato;
+    const conProvisional = esRetribucion(ind) ? sinDato.filter((id) => DATA.retribuciones.provisionales[id]) : [];
+    $("#e-nota").innerHTML = (sinDatoVerificado.length ? `${esRetribucion(ind) ? pendienteRetribucion : "Sin dato en la fuente"}: ${sinDatoVerificado.map((id) => esc(NOMBRE[id])).join(", ")}.` : "") +
+      (conProvisional.length ? `<p>Importe provisional en la tabla: ${conProvisional.map((id) => esc(NOMBRE[id])).join(", ")}. El ranking usa los importes verificados.</p>` : "") +
       plegable("e-nota", `Qué mide este dato${cuenta.length ? ` · ${cuenta.join(" · ")}` : ""}`, cuerpo);
   }
 
@@ -1530,13 +1532,21 @@ export function iniciar(DATA: DatosApp): void {
     return `<p>El fijo incluye las pagas extraordinarias y la antigüedad. Se excluyen guardias, complementos variables y pagos ligados a funciones adicionales. Es el importe anualizado de un perfil de referencia, basado en el puesto y la antigüedad indicados.</p>
       <p><b>Residencia.</b> Las cuantías de Illes Balears y Canarias corresponden a Mallorca y a Tenerife o Gran Canaria, respectivamente. El complemento depende de la isla. La tabla muestra el importe de residencia de esos dos servicios y de INGESA dentro del total. INGESA aplica la misma tabla a Ceuta y Melilla y figura fuera del ranking autonómico.</p>
       <p><b>Cataluña y Navarra.</b> En Cataluña se usa el puesto C039 del Institut Català de la Salut (ICS). En Navarra se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
-      <p><b>Cantabria.</b> Pendiente de verificar el anexo retributivo definitivo de 2026. El ranking incluye las comunidades con importe verificado.</p>`;
+      <p><b>Cantabria.</b> El importe provisional usa la fila «Adjunto / FEA» (modalidad B) del anexo de 2026 difundido como borrador, más el primer trienio. El ranking incluye las comunidades con importe verificado.</p>`;
   }
 
   function notasGuardias() {
     return `<p>Se compara la tarifa bruta por una hora presencial fuera de la jornada ordinaria, en la tarde de un laborable de lunes a viernes o de un domingo no festivo. Cuando la tarifa sube a partir de cierto número de guardias, se toma el primer tramo. El importe de un turno completo depende de sus horas y de las reglas de cada servicio.</p>
       <p><b>Ámbito.</b> Canarias corresponde a Tenerife y Gran Canaria. Para Ceuta y Melilla se muestra la tarifa conjunta de INGESA, en su régimen tradicional. El ICS es uno de los proveedores de la red pública catalana. Sus módulos presuponen las condiciones de descanso del acuerdo e incluyen jornada ordinaria y complementaria en días laborables.</p>
-      <p><b>Por confirmar.</b> Falta el anexo definitivo de Cantabria, la tabla específica de guardias de Osasunbidea y la tarifa de domingo no festivo de La Rioja. La tarifa laborable de La Rioja está confirmada.</p>`;
+      <p><b>Tarifas provisionales.</b> Las de Cantabria proceden de un borrador del anexo de 2026 y las de Navarra, de la tabla de Osasunbidea difundida por CCOO. Para el domingo de La Rioja se usa provisionalmente el importe de «Sábados y festivos» de la tabla del SERIS, cuya cabecera omite el domingo. El ranking incluye las tarifas verificadas para el día seleccionado.</p>`;
+  }
+
+  function datoGuardia(id, dia) {
+    const datos = DATA.guardias.territorios[id];
+    const provisional = DATA.guardias.provisionales[id];
+    if (datos[dia] != null) return { importe: datos[dia], estado: "Verificado", fuente: datos.fuente };
+    if (provisional?.[dia] != null) return { importe: provisional[dia], estado: "Provisional", fuente: provisional.fuente };
+    return { importe: null, estado: pendienteGuardia, fuente: null };
   }
 
   function rankingGuardias(ind, orden, puestos, importes) {
@@ -1553,7 +1563,7 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function renderGuardias(ind) {
-    const { territorios, ics } = DATA.guardias;
+    const { territorios, provisionales, ics } = DATA.guardias;
     const ids = IDS.filter((id) => territorios[id]);
     const importes = Object.fromEntries(ids.map((id) => [id, territorios[id][ordenGuardias]]));
     const orden = ordenados(importes);
@@ -1564,11 +1574,15 @@ export function iniciar(DATA: DatosApp): void {
       puestos.set(id, importes[id] === importes[anterior] ? puestos.get(anterior) : i + 1);
     });
     const dia = ordenGuardias === "laborable" ? "laborable" : "domingo no festivo";
-    const tarifa = (importe) => importe == null ? `<span class="neg">${pendienteGuardia}</span>` : fmt(importe, ind.unidad);
+    const tarifa = (importe) => fmt(importe, ind.unidad);
+    const celdaTarifa = (id, clave) => {
+      const { importe, estado } = datoGuardia(id, clave);
+      if (importe == null) return `<span class="neg">${estado}</span>`;
+      return tarifa(importe) + (estado === "Provisional" ? ' <span class="dato-provisional">Provisional</span>' : "");
+    };
     const fila = (id) => {
-      const datos = territorios[id];
       return `<tr class="${id === S.com ? "tuya" : ""}"><td class="puesto">${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td>${tarifa(datos.laborable)}</td><td>${tarifa(datos.domingo)}</td></tr>`;
+        <td>${celdaTarifa(id, "laborable")}</td><td>${celdaTarifa(id, "domingo")}</td></tr>`;
     };
     const columna = (clave, texto) => `<th scope="col"${ordenGuardias === clave ? ' aria-sort="descending"' : ""}>${texto}${ordenGuardias === clave ? ' <span aria-hidden="true">↓</span>' : ""}</th>`;
     const tabla = `<div class="tabla-wrap"><table class="tabla tabla-guardias tabla-guardias-territorios" aria-label="Tarifas de guardias presenciales por territorio">
@@ -1580,6 +1594,12 @@ export function iniciar(DATA: DatosApp): void {
     const fuentes = [...ids, "INGESA"].filter((id) => territorios[id].fuente)
       .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"))
       .map((id) => `<li><a href="${esc(territorios[id].fuente)}">${esc(nombreRetribucion(id))}</a></li>`).join("");
+    const fuentesProvisionales = Object.entries(provisionales)
+      .map(([id, { fuente }]) => `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))} (provisional)</a></li>`).join("");
+    const nombresProvisionales = new Intl.ListFormat("es").format(pendientes
+      .filter((id) => provisionales[id]?.[ordenGuardias] != null).map((id) => esc(NOMBRE[id])));
+    const nombresPendientes = new Intl.ListFormat("es").format(pendientes
+      .filter((id) => provisionales[id]?.[ordenGuardias] == null).map((id) => esc(NOMBRE[id])));
     $("#guardias").innerHTML = `<div class="seg" id="guardias-vistas" role="group" aria-label="Tipo de gráfico">
         ${vistasGuardias.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
       </div>
@@ -1591,7 +1611,8 @@ export function iniciar(DATA: DatosApp): void {
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
       <p class="sub guardias-criterio">De mayor a menor por la tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
       ${S.vistaE === "tabla" ? tabla : `${rankingGuardias(ind, orden, puestos, importes)}
-        ${pendientes.length ? `<p class="sub">Tarifa por confirmar en ${new Intl.ListFormat("es").format(pendientes.map((id) => esc(NOMBRE[id])))}.</p>` : ""}
+        ${nombresProvisionales ? `<p class="sub">La tabla recoge las tarifas provisionales de ${nombresProvisionales}.</p>` : ""}
+        ${nombresPendientes ? `<p class="sub">Tarifa por confirmar en ${nombresPendientes}.</p>` : ""}
         <p class="sub">Ceuta y Melilla (INGESA) figuran juntas, fuera del ranking autonómico. Tarifa en ${dia} de <b>${tarifa(territorios.INGESA[ordenGuardias])}</b>.</p>`}
       <section class="guardias-ics${S.com === "CT" ? " tuya" : ""}" aria-labelledby="guardias-ics-titulo">
         <h3 id="guardias-ics-titulo" tabindex="-1">Cataluña · Institut Català de la Salut (ICS)</h3>
@@ -1603,7 +1624,7 @@ export function iniciar(DATA: DatosApp): void {
         <p class="sub">Para las guardias que el ICS programa fuera de los módulos, paga ${tarifa(ics.porHora.laborable)} en laborable y ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
         <p class="sub">${enlacesICS}</p>
       </section>
-      <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}</ul>`)}</div>
+      <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
@@ -1612,19 +1633,22 @@ export function iniciar(DATA: DatosApp): void {
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
 
-  function fuentesRetribucion(id) {
-    const fuentes = DATA.retribuciones.territorios[id]?.fuentes ?? [];
-    return fuentes.map((url, i) => `<a href="${esc(url)}" aria-label="${i ? "Documento complementario" : "Tabla retributiva"} de ${esc(nombreRetribucion(id))}">${i ? "Documento complementario" : "Tabla retributiva"}</a>`).join(" · ");
+  function fuentesRetribucion(id, fuentes, provisional) {
+    return fuentes.map((url, i) => {
+      const titulo = i ? "Documento complementario" : provisional ? "Anexo en borrador" : "Tabla retributiva";
+      return `<a href="${esc(url)}" aria-label="${titulo} de ${esc(nombreRetribucion(id))}">${titulo}</a>`;
+    }).join(" · ");
   }
 
   function tablaRetribuciones(cont, ind, vals) {
     const orden = ordenados(vals);
     const fila = (id, puesto = "—") => {
-      const datos = DATA.retribuciones.territorios[id];
+      const confirmado = DATA.retribuciones.territorios[id];
+      const datos = confirmado ?? DATA.retribuciones.provisionales[id];
       return `<tr class="${id === S.com ? "tuya" : ""}"><td>${puesto}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td>${datos ? fmt(datos.fijoBruto, ind.unidad) : "—"}</td>
+        <td>${datos ? fmt(datos.fijoBruto, ind.unidad) : "—"}${datos && !confirmado ? ' <span class="dato-provisional">Provisional</span>' : ""}</td>
         <td>${datos?.residencia ? fmt(datos.residencia, ind.unidad) : "—"}</td>
-        <td>${datos ? fuentesRetribucion(id) : pendienteRetribucion}</td></tr>`;
+        <td>${datos ? fuentesRetribucion(id, datos.fuentes, !confirmado) : pendienteRetribucion}</td></tr>`;
     };
     const filas = orden.map((id, i) => fila(id, i + 1)).join("") + IDS.filter((id) => vals[id] == null).map((id) => fila(id)).join("");
     cont.innerHTML = `<div class="tabla-wrap tabla-ranking"><table class="tabla"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th><th scope="col">Fijo bruto anual</th><th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
@@ -1684,11 +1708,13 @@ export function iniciar(DATA: DatosApp): void {
     if (esGuardia(ind)) {
       const { fecha, territorios, ics } = DATA.guardias;
       filas = [["territorio", "fecha_referencia", "modalidad", "dia", "unidad", "importe_bruto", "estado", "fuente"]];
-      const fila = (id, modalidad, dia, unidad, v, fuente) => [id, fecha, modalidad, dia, unidad,
-        v == null ? "" : v.toFixed(2).replace(".", ","), v == null ? pendienteGuardia : "Verificado", fuente ?? ""];
-      for (const [id, datos] of Object.entries(territorios)) {
-        filas.push(fila(nombreRetribucion(id), "Presencia física", "Laborable", "€/h", datos.laborable, datos.fuente),
-          fila(nombreRetribucion(id), "Presencia física", "Domingo no festivo", "€/h", datos.domingo, datos.domingo == null ? null : datos.fuente));
+      const fila = (id, modalidad, dia, unidad, importe, fuente, estado = "Verificado") => [id, fecha, modalidad, dia, unidad,
+        importe == null ? "" : importe.toFixed(2).replace(".", ","), estado, fuente ?? ""];
+      for (const id of Object.keys(territorios)) {
+        for (const [clave, dia] of [["laborable", "Laborable"], ["domingo", "Domingo no festivo"]]) {
+          const { importe, fuente, estado } = datoGuardia(id, clave);
+          filas.push(fila(nombreRetribucion(id), "Presencia física", dia, "€/h", importe, fuente, estado));
+        }
       }
       const icsFuente = ics.fuentes.join(" | ");
       for (const { dia, importe } of ics.modulos) filas.push(fila("Cataluña (ICS)", "Módulo de 24 h", dia, "€/módulo", importe, icsFuente));
@@ -1698,9 +1724,12 @@ export function iniciar(DATA: DatosApp): void {
       filas = [["territorio", "fecha_referencia", "fijo_bruto_anual_eur", "residencia_incluida_eur", "estado", "fuentes"]];
       const euros = (v) => v == null ? "" : v.toFixed(2).replace(".", ",");
       for (const id of [...IDS, "INGESA"]) {
-        const datos = DATA.retribuciones.territorios[id];
+        const verificado = DATA.retribuciones.territorios[id];
+        const datos = verificado ?? DATA.retribuciones.provisionales[id];
+        const estado = id === "INGESA" ? "Verificado, fuera del ranking autonómico"
+          : verificado ? "Verificado" : datos ? "Provisional" : pendienteRetribucion;
         filas.push([nombreRetribucion(id), DATA.retribuciones.fecha, euros(datos?.fijoBruto), euros(datos?.residencia),
-          datos ? id === "INGESA" ? "Verificado, fuera del ranking autonómico" : "Verificado" : pendienteRetribucion, datos?.fuentes.join(" | ") ?? ""]);
+          estado, datos?.fuentes.join(" | ") ?? ""]);
       }
     } else if (ind.grupo === "opinion") filas = filasCSVOpinion(ind);
     else if (esRecurso(ind)) {

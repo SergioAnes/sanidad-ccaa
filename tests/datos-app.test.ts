@@ -21,7 +21,7 @@ describe("datos de la interfaz", () => {
     }
   });
 
-  it("solo muestra retribuciones verificadas a la fecha de referencia", () => {
+  it("mantiene las retribuciones provisionales fuera de la serie de importes verificados", () => {
     const i = d.inds.find((ind) => ind.id === "hosp_retribuciones");
     if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de retribuciones");
     expect(d.retribuciones.fecha).toBe("2026-07-31");
@@ -29,20 +29,27 @@ describe("datos de la interfaz", () => {
     expect(i.espana).toEqual([]);
     expect(i.serie.CB).toEqual([null]);
     expect(d.retribuciones.territorios.CB).toBeNull();
+    expect(d.retribuciones.provisionales.CB).toMatchObject({ fijoBruto: 58763.46, residencia: 0 });
     expect(d.ccaa.filter(({ id }) => Number.isFinite(i.serie[id][0]))).toHaveLength(16);
     expect(d.retribuciones.territorios.INGESA).toMatchObject({ fijoBruto: 68655.38, residencia: 14030.88 });
     expect(i.serie.INGESA).toEqual([68655.38]);
   });
 
-  it("distingue las tarifas de guardia verificadas, las pendientes y los módulos del ICS", () => {
+  it("distingue las tarifas de guardia verificadas, las provisionales y los módulos del ICS", () => {
     const i = d.inds.find((ind) => ind.id === "hosp_guardias");
     if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de guardias");
-    const { fecha, territorios, ics } = d.guardias;
+    const { fecha, territorios, provisionales, ics } = d.guardias;
     expect(fecha).toBe("2026-07-31");
     expect(Object.keys(territorios).sort()).toEqual([...d.ccaa.map(({ id }) => id).filter((id) => id !== "CT"), "INGESA"].sort());
     expect(territorios.CB).toMatchObject({ laborable: null, domingo: null });
     expect(territorios.NC).toMatchObject({ laborable: null, domingo: null });
     expect(territorios.RI).toMatchObject({ laborable: 28.57, domingo: null });
+    expect(provisionales.CB).toMatchObject({ laborable: 31.2, domingo: 34.93 });
+    expect(provisionales.NC).toMatchObject({ laborable: 32.31, domingo: 32.31 });
+    expect(provisionales.RI).toMatchObject({ domingo: 29.94 });
+    expect(i.serie.CB).toEqual([null]);
+    expect(i.serie.NC).toEqual([null]);
+    expect(i.serie.RI).toEqual([28.57]);
     expect(territorios.VC).toMatchObject({ laborable: 30.26, domingo: 32.26 });
     expect(territorios.INGESA).toMatchObject({ laborable: 24.91, domingo: 25.52 });
     expect(Object.values(territorios).filter((fila) => fila.domingo != null)).toHaveLength(14);
