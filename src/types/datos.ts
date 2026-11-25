@@ -1,4 +1,4 @@
-export type Unidad = "eur_hab" | "pct" | "eur_mill" | "num" | "por_mil" | "dias" | "nota10" | "dias_media" | "personas" | "camas_mil" | "por_mil_hab" | "por_10k_hab" | "sesiones_mil" | "equipos_100k" | "consultas_dia" | "anios_vida" | "por_mil_nac" | "prof_mil" | "quir_100k";
+export type Unidad = "eur_hab" | "eur_anual" | "eur_hora" | "pct" | "eur_mill" | "num" | "por_mil" | "dias" | "nota10" | "dias_media" | "personas" | "camas_mil" | "por_mil_hab" | "por_10k_hab" | "sesiones_mil" | "equipos_100k" | "consultas_dia" | "anios_vida" | "por_mil_nac" | "prof_mil" | "quir_100k";
 
 export type Ccaa = {
   id: string;

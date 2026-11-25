@@ -38,7 +38,7 @@ export const ESQUELETO = `<div class="wrap">
       </div>
       <p class="rs-aviso" id="rs-aviso" hidden><span id="rs-motivo" role="status"></span> <a href="#e-nota" id="rs-notas">Ver notas del informe</a></p>
     </div>
-    <div class="portada-grid">
+    <div class="portada-grid" id="p-vista">
       <div class="panel">
         <h2><span class="solo-escritorio" id="p-titulo"></span><span class="solo-movil" id="p-titulo-movil"></span></h2>
         <p class="sub"><span class="solo-escritorio" id="p-sub"></span><span class="solo-movil" id="p-sub-movil"></span></p>
@@ -52,7 +52,7 @@ export const ESQUELETO = `<div class="wrap">
       </div>
       <div class="insights" id="p-insights"></div>
     </div>
-    <div class="panel detalle">
+    <div class="panel detalle" id="e-vista">
       <div class="fila">
         <div class="seg" id="e-vistas" role="group" aria-label="Tipo de gráfico">
           <button type="button" data-v="ranking">Ranking</button>
@@ -68,6 +68,7 @@ export const ESQUELETO = `<div class="wrap">
       <div class="descargas" id="e-desc"></div>
       <div class="nota" id="e-nota"></div>
     </div>
+    <section class="panel guardias" id="guardias" aria-labelledby="guardias-titulo" hidden></section>
     <div class="panel xy">
       <h2 id="x-titulo"></h2>
       <p class="sub" id="x-sub"></p>

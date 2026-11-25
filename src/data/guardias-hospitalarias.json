@@ -1,0 +1,134 @@
+{
+  "fecha": "2026-07-31",
+  "territorios": {
+    "AN": {
+      "laborable": 28.17,
+      "domingo": 30.66,
+      "fuente": "https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/Resolucion_0002_2026_DGP_Retribuciones_2026.pdf"
+    },
+    "AR": {
+      "laborable": 28.9,
+      "domingo": 30.97,
+      "fuente": "https://iam.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0"
+    },
+    "AS": {
+      "laborable": 30.93,
+      "domingo": 33.06,
+      "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=64"
+    },
+    "CB": {
+      "laborable": null,
+      "domingo": null,
+      "fuente": null
+    },
+    "CL": {
+      "laborable": 31.34,
+      "domingo": 34.94,
+      "fuente": "https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf#page=57"
+    },
+    "CM": {
+      "laborable": 32.91,
+      "domingo": 35.28,
+      "fuente": "https://sanidad.castillalamancha.es/profesionales/normativa/all/Retribuciones"
+    },
+    "CN": {
+      "laborable": 23.96,
+      "domingo": 37.03,
+      "fuente": "https://www3.gobiernodecanarias.org/sanidad/scs/content/80498e32-f2b2-11f0-beee-ebafe1564515/2026-01-14-Instruccion_1_2026_Instruccion_retribuciones.pdf"
+    },
+    "EX": {
+      "laborable": 30.81,
+      "domingo": 33.63,
+      "fuente": "https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/RESOLUCION%20D.GERENTE%20SUBIDA%20AC%202026(F).pdf#page=2"
+    },
+    "GA": {
+      "laborable": 29.14,
+      "domingo": 31.22,
+      "fuente": "https://ficheiros-web.xunta.gal/transparencia/retribucions/2026/persoal-estatutario-saude.pdf"
+    },
+    "IB": {
+      "laborable": 33.12,
+      "domingo": 36.42,
+      "fuente": "https://www.ibsalut.es/docs/rrhh/normativa/instrucciones%20y%20circulares/ca/Taules%20retributives_2026_CAT.pdf"
+    },
+    "INGESA": {
+      "laborable": 24.91,
+      "domingo": 25.52,
+      "fuente": "https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf#page=21"
+    },
+    "MC": {
+      "laborable": 33.3,
+      "domingo": 37,
+      "fuente": "https://www.borm.es/services/anuncio/841766/pdf"
+    },
+    "MD": {
+      "laborable": 28.49,
+      "domingo": 31.19,
+      "fuente": "https://bocm.es/boletin/CM_Orden_BOCM/2026/07/30/BOCM-20260730-9.PDF#page=4"
+    },
+    "NC": {
+      "laborable": null,
+      "domingo": null,
+      "fuente": null
+    },
+    "PV": {
+      "laborable": 38.34,
+      "domingo": 42.17,
+      "fuente": "https://www.euskadi.eus/bopv2/datos/2026/08/2603490a.pdf#page=6"
+    },
+    "RI": {
+      "laborable": 28.57,
+      "domingo": null,
+      "fuente": "https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf#page=2"
+    },
+    "VC": {
+      "laborable": 30.26,
+      "domingo": 32.26,
+      "fuente": "https://www.ivass.gva.es/dam/jcr%3A8596fab2-07e4-4502-91fd-2781859dd9ef/taules%20retributives%20-%20tablas%20retributivas%202026.pdf#page=31"
+    }
+  },
+  "provisionales": {
+    "CB": {
+      "laborable": 31.2,
+      "domingo": 34.93,
+      "fuente": "https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=23"
+    },
+    "NC": {
+      "laborable": 32.31,
+      "domingo": 32.31,
+      "fuente": "https://sanidad.ccoo.es/b582d227584104728d9dcfead546e621000058.pdf"
+    },
+    "RI": {
+      "domingo": 29.94,
+      "fuente": "https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf#page=2"
+    }
+  },
+  "ics": {
+    "porHora": {
+      "laborable": 37.54,
+      "domingo": 40.95
+    },
+    "modulos": [
+      {
+        "dia": "Lunes a jueves",
+        "importe": 506.55
+      },
+      {
+        "dia": "Viernes",
+        "importe": 719.82
+      },
+      {
+        "dia": "Sábado",
+        "importe": 1119.72
+      },
+      {
+        "dia": "Domingo o festivo",
+        "importe": 906.45
+      }
+    ],
+    "fuentes": [
+      "https://www.som-hi.eu/wp-content/uploads/2026/02/Llibre-de-retribucions-2026-ics.pdf#page=37",
+      "https://administraciopublica.gencat.cat/web/.content/empleats-publics/acords-pactes-convenis/personal-estatutari/Estatutaris-ICS-Acord-2023.12.12.pdf"
+    ]
+  }
+}
