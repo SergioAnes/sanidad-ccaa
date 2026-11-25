@@ -1196,7 +1196,7 @@ export function iniciar(DATA: DatosApp): void {
       const F = DATA.hospitalizacionesEvitables;
       return `<p><b>Qué cuenta.</b> Altas de los hospitales del SNS que cumplen la definición PQI 92 para enfermedades crónicas como insuficiencia cardiaca, EPOC o asma, hipertensión y complicaciones de la diabetes. Una misma alta cuenta una vez. La población de referencia es la de 15 años o más.</p>
         <p><b>Cómo leerla.</b> La tasa ajustada por 10.000 habitantes se toma tal como la publica Sanidad. El territorio corresponde a la ubicación del hospital. También influyen la frecuencia de las enfermedades, los criterios de ingreso y las derivaciones entre territorios. Una hospitalización incluida puede haber sido necesaria para ese paciente.</p>
-        <p><b>Fuente.</b> <a href="${F.fuente}">Consulta iCMBD del Ministerio de Sanidad (RAE-CMBD)</a>, PQI 92, agrupación por comunidad del hospital. <a href="${F.ficha}">Definición del indicador</a>.</p>`;
+        <p><b>Fuente.</b> <a href="${F.fuente}">Consulta iCMBD del Ministerio de Sanidad (RAE-CMBD)</a>, PQI 92, agrupación por comunidad del hospital. <a href="${F.ficha}">Ficha técnica (Excel, hoja AACHRONICPATHOLOGIES)</a>.</p>`;
     }
     if (fuente === "siae") return notasCamas();
     if (fuente === "rae") {
