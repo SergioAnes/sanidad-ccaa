@@ -382,6 +382,10 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .ctx-d, .ctx .vs { font-size: 0.76rem; color: var(--muted); line-height: 1.35; }
 .ctx-ref { font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
 .ctx-ref strong { color: var(--fg); font-variant-numeric: tabular-nums; }
+.contexto-grafico { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 10px 0 14px; padding: 8px 0; border-block: 1px solid var(--line); font-size: 0.82rem; }
+.contexto-grafico div { display: flex; flex-wrap: wrap; gap: 3px 6px; min-width: 0; }
+.contexto-grafico dt { font-weight: 600; color: var(--muted); }
+.contexto-grafico dd { margin: 0; }
 
 /* Barómetro: la serie anterior al cambio de método va en un gráfico aparte */
 .evo-hist { margin-top: 22px; padding-top: 14px; border-top: 1px dashed var(--line); }

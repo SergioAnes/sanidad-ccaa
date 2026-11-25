@@ -15,6 +15,7 @@ import accesoReingresosJson from "@/data/acceso-reingresos.json";
 import ingesaJson from "@/data/ingesa.json";
 import vidaSaludableJson from "@/data/vida-saludable.json";
 import hospitalizacionesEvitablesJson from "@/data/hospitalizaciones-evitables.json";
+import prevencionJson from "@/data/prevencion.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -281,10 +282,10 @@ export type IndApp =
       historico?: { fechas: number[]; serie: Record<string, (number | null)[]>; espana: (number | null)[] };
     }
   | {
-      id: string; grupo: "primaria" | "hospitales" | "resultados"; corto: string; nombre: string; unidad: Unidad; desc: string;
+      id: string; grupo: "primaria" | "hospitales" | "resultados" | "prevencion"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
       /** Fuente, unidad en palabras y qué representa «España» en este indicador */
-      fuente: "siap" | "siae" | "ine" | "rae" | "sanidad" | "icmbd"; que: string; espanaTxt: string;
+      fuente: "siap" | "siae" | "ine" | "rae" | "sanidad" | "icmbd" | "sivamin" | "esde"; que: string; espanaTxt: string;
       /** Serie nacional, según el ámbito de la fuente */
       espana: (number | null)[];
     }
@@ -330,6 +331,10 @@ export type DatosApp = {
   resultados: { fuentes: typeof resultadosJson.fuentes };
   vidaSaludable: Pick<typeof vidaSaludableJson, "fuente" | "cuadro" | "ceutaMelilla">;
   hospitalizacionesEvitables: Pick<typeof hospitalizacionesEvitablesJson, "fuente" | "ficha">;
+  prevencion: {
+    vacunacion: Pick<typeof prevencionJson.vacunacion, "fuente" | "plan" | "objetivo">;
+    cribado: Pick<typeof prevencionJson.cribado, "tablas" | "metodologia">;
+  };
   ingesa: typeof ingesaJson;
   recursos: {
     fuentes: typeof recursosJson.fuentes; ruptura: typeof recursosJson.ruptura; repetidos: typeof recursosJson.repetidos;
@@ -434,6 +439,26 @@ function hospitalizacionesEvitables(): IndApp {
   };
 }
 
+function prevencion(): IndApp[] {
+  const { vacunacion: v, cribado: c } = prevencionJson;
+  return [
+    {
+      id: "prev_triple_virica", grupo: "prevencion", fuente: "sivamin", unidad: "pct",
+      corto: "Triple vírica, dos dosis", nombre: "Cobertura de la segunda dosis de triple vírica",
+      desc: "Porcentaje de niños y niñas de la cohorte correspondiente con al menos dos dosis frente a sarampión, rubéola y parotiditis. El año es el de evaluación de la cobertura.",
+      que: "con al menos dos dosis", espanaTxt: "cobertura publicada para España",
+      anios: v.anios, serie: { ...v.valor, ...v.ciudades }, espana: v.espana,
+    },
+    {
+      id: "prev_cribado_colorrectal", grupo: "prevencion", fuente: "esde", unidad: "pct",
+      corto: "Prueba de detección colorrectal", nombre: "Personas con prueba de sangre oculta en heces en los últimos dos años",
+      desc: "Estimación de la Encuesta de Salud de España para personas de 50 a 69 años. El porcentaje se calcula sobre quienes respondieron a la pregunta, con los recuentos ponderados que publica el INE.",
+      que: "que declara haberse hecho la prueba", espanaTxt: "estimación de la encuesta para España",
+      anios: c.anios, serie: { ...c.valor, ...c.ciudades }, espana: c.espana,
+    },
+  ];
+}
+
 export function construirDatos(valores: Valor[] = VALORES): DatosApp {
   const ids = CCAA.map((c) => c.id);
   const anios = [...new Set(valores.filter((v) => v.indicador === "gasto_hab").map((v) => v.anio))].sort((a, b) => a - b);
@@ -482,7 +507,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), hospitalizacionesEvitables(), ...resultados(), vidaSaludable()],
+    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), hospitalizacionesEvitables(), ...resultados(), vidaSaludable(), ...prevencion()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -499,6 +524,10 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     resultados: { fuentes: resultadosJson.fuentes },
     vidaSaludable: { fuente: vidaSaludableJson.fuente, cuadro: vidaSaludableJson.cuadro, ceutaMelilla: vidaSaludableJson.ceutaMelilla },
     hospitalizacionesEvitables: { fuente: hospitalizacionesEvitablesJson.fuente, ficha: hospitalizacionesEvitablesJson.ficha },
+    prevencion: {
+      vacunacion: { fuente: prevencionJson.vacunacion.fuente, plan: prevencionJson.vacunacion.plan, objetivo: prevencionJson.vacunacion.objetivo },
+      cribado: { tablas: prevencionJson.cribado.tablas, metodologia: prevencionJson.cribado.metodologia },
+    },
     ingesa: ingesaJson,
     recursos: {
       fuentes: recursosJson.fuentes, ruptura: recursosJson.ruptura, repetidos: recursosJson.repetidos,

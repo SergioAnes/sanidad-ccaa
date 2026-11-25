@@ -160,6 +160,13 @@ y `datos-originales/rae-cmbd/`. El script comprueba que las 17 series están com
 
 En [iCMBD](https://icmbd.sanidad.gob.es/), elige «Hospitalizaciones potencialmente evitables», «PQI 92» y «Descriptivo básico», sin filtros y agrupando por comunidad del hospital. Exporta el CSV de cada año de 2017 a 2023 como `datos-originales/rae-cmbd/icmbd-pqi/pqi92-AAAA.csv`. Ejecuta `python scripts/extraer_hospitalizaciones_evitables.py`. Lee la tasa ajustada tal como la publica Sanidad, comprueba la tasa bruta contra los recuentos y verifica que las altas y la población cuadran con el total nacional.
 
+## Actualizar los indicadores de prevención
+
+`python scripts/extraer_prevencion.py` regenera `src/data/prevencion.json` con la cobertura de dos dosis de triple vírica
+(INCLASNS, indicador 60) y la prueba de sangre oculta en heces en personas de 50 a 69 años (tablas 71927 y 81219 del INE).
+El script descarga los originales que falten a `datos-originales/`. Conserva los huecos de vacunación y verifica las cifras
+nacionales de referencia y la coherencia de las categorías de respuesta de la encuesta.
+
 ## Actualizar el IPC (inflación)
 
 ```bash
