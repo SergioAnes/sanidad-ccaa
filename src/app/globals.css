@@ -139,6 +139,18 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla th[scope="row"] { color: var(--fg); font-size: inherit; font-weight: 400; padding: 7px 10px; }
 .tabla tr.tuya > :is(td, th) { background: var(--accent-soft); font-weight: 600; }
 .tabla .neg { color: var(--muted); }
+#p-vista[hidden], #e-vista[hidden], .guardias[hidden] { display: none; }
+.guardias, .guardias-ics { scroll-margin-top: 85px; }
+.guardias-orden { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 0.85rem; }
+.tabla-guardias :is(th, td):first-child { width: auto; white-space: normal; }
+.tabla-guardias :is(th, td):nth-child(n + 2) { text-align: right; }
+.tabla-guardias thead th { white-space: normal; }
+.tabla-guardias .neg { font-size: 0.8rem; white-space: normal; }
+.guardias-ics { padding: 16px 0 0; margin-top: 20px; border-top: 1px solid var(--line); }
+.guardias-ics h3 { font-size: 1rem; }
+.guardias-ics.tuya h3 { background: var(--accent-soft); padding: 8px; border-radius: 8px; }
+.guardias-fuentes { columns: 3 140px; }
+.guardias-enlaces { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 /* Gasto frente a espera */
 .xy { margin-top: 20px; }
 .xy .fila { margin-top: 12px; }
@@ -362,7 +374,7 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .tip-marcas { margin-top: 6px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
 .tip-ayuda { opacity: 0.75; font-size: 0.9em; }
 .pliegue a { color: var(--accent); }
-.campo .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
+.campo .btn-link, .guardias-orden .btn-link { font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
 /* Ajuste por edad: el «¿Cómo se calcula?» ocupa toda la fila y usa la letra pequeña de la zona */
 .real.edad { margin-top: 8px; }
 .real.edad .pliegue { flex-basis: 100%; margin-top: 0; font-size: 0.82rem; }
@@ -416,6 +428,10 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .tabla-deslizar { margin: 8px 0 0; color: var(--muted); font-size: 0.83rem; }
   .tabla-ranking thead th, .tabla-encuesta thead th { white-space: normal; }
   .tabla-total-nota { display: block; }
+  .tabla-guardias { table-layout: fixed; }
+  .tabla-guardias th, .tabla-guardias td, .tabla-guardias th[scope="row"] { padding-inline: 5px; white-space: normal; }
+  .tabla-guardias thead th:first-child:nth-last-child(3) { width: 40%; }
+  .tabla-guardias th[scope="row"] { overflow-wrap: anywhere; }
   .tabla-ranking tr:not(.sep) > :nth-child(2),
   .tabla-encuesta tr > :first-child { position: sticky; left: 0; z-index: 1; max-width: 125px; white-space: normal; background: var(--surface); box-shadow: 1px 0 var(--line), 6px 0 8px -7px var(--muted); }
   .tabla-ranking tr.tuya > :nth-child(2),

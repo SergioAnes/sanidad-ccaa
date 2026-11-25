@@ -56,6 +56,8 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
       return euros(valor);
     case "eur_anual":
       return `${numero(valor, 2)} €`;
+    case "eur_hora":
+      return `${numero(valor, 2)} €/h`;
     case "pct":
       return porcentaje(valor);
     case "eur_mill":

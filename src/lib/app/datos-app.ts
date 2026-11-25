@@ -17,6 +17,7 @@ import vidaSaludableJson from "@/data/vida-saludable.json";
 import hospitalizacionesEvitablesJson from "@/data/hospitalizaciones-evitables.json";
 import prevencionJson from "@/data/prevencion.json";
 import retribucionesJson from "@/data/retribuciones.json";
+import guardiasJson from "@/data/guardias-hospitalarias.json";
 import { CCAA, INDICADORES, VALORES } from "@/lib/datos";
 import { detectarAvisos, type Aviso } from "@/lib/avisos";
 import { LISTAS, nombreCorte, type MedidaLista, type TipoLista } from "@/lib/listas";
@@ -286,7 +287,7 @@ export type IndApp =
       id: string; grupo: "primaria" | "hospitales" | "resultados" | "prevencion"; corto: string; nombre: string; unidad: Unidad; desc: string;
       anios: number[]; serie: Record<string, (number | null)[]>;
       /** Fuente, unidad en palabras y qué representa «España» en este indicador */
-      fuente: "siap" | "siae" | "ine" | "rae" | "sanidad" | "icmbd" | "sivamin" | "esde" | "retribuciones"; que: string; espanaTxt: string;
+      fuente: "siap" | "siae" | "ine" | "rae" | "sanidad" | "icmbd" | "sivamin" | "esde" | "retribuciones" | "guardias"; que: string; espanaTxt: string;
       /** Serie nacional, según el ámbito de la fuente */
       espana: (number | null)[];
     }
@@ -328,6 +329,7 @@ export type DatosApp = {
     reingresos: Pick<typeof accesoReingresosJson.reingresos, "perfil" | "informes">;
   };
   retribuciones: typeof retribucionesJson;
+  guardias: typeof guardiasJson;
   /** Profesionales de atención primaria (SIAP): fuente, ruptura de serie y años con cifras repetidas */
   /** Resultados en salud (INE): fuentes y fecha de publicación */
   resultados: { fuentes: typeof resultadosJson.fuentes };
@@ -514,12 +516,21 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
     anios: [Number(retribucionesJson.fecha.slice(0, 4))],
     serie: Object.fromEntries(Object.entries(retribucionesJson.territorios).map(([id, fila]) => [id, [fila?.fijoBruto ?? null]])),
   };
+  const guardias: IndApp = {
+    id: "hosp_guardias", grupo: "hospitales", fuente: "guardias", unidad: "eur_hora",
+    corto: "Guardias hospitalarias",
+    nombre: "Cuánto se paga por una guardia hospitalaria",
+    desc: "Tarifas brutas para especialistas hospitalarios por una hora de guardia presencial en la tarde de un laborable o de un domingo no festivo. Se usa la tarifa inicial donde cambia según el número de guardias.",
+    que: "euros brutos por hora", espanaTxt: "", espana: [],
+    anios: [Number(guardiasJson.fecha.slice(0, 4))],
+    serie: Object.fromEntries(Object.entries(guardiasJson.territorios).map(([id, fila]) => [id, [fila.laborable]])),
+  };
 
   return {
     anios, prov, cortes,
     corteListas: nombreCorte(corte),
     ccaa: CCAA.map((c) => ({ id: c.id, nombre: c.nombre, abr: ABREVIATURAS[c.id] })),
-    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), hospitalizacionesEvitables(), retribuciones, ...resultados(), vidaSaludable(), ...prevencion()],
+    inds: [...gasto, ...espera, ...opinion(), acceso(), ...recursos(), reingresos(), hospitalizacionesEvitables(), retribuciones, guardias, ...resultados(), vidaSaludable(), ...prevencion()],
     ipc: ipcJson.medias,
     detalle,
     notas: notasJson.map(({ ccaa, anio, texto }) => ({ ccaa, anio, texto })),
@@ -534,6 +545,7 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
       reingresos: { perfil: accesoReingresosJson.reingresos.perfil, informes: accesoReingresosJson.reingresos.informes },
     },
     retribuciones: retribucionesJson,
+    guardias: guardiasJson,
     resultados: { fuentes: resultadosJson.fuentes },
     vidaSaludable: { fuente: vidaSaludableJson.fuente, cuadro: vidaSaludableJson.cuadro, ceutaMelilla: vidaSaludableJson.ceutaMelilla },
     hospitalizacionesEvitables: { fuente: hospitalizacionesEvitablesJson.fuente, ficha: hospitalizacionesEvitablesJson.ficha },

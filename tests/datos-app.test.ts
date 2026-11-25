@@ -34,6 +34,27 @@ describe("datos de la interfaz", () => {
     expect(i.serie.INGESA).toEqual([68655.38]);
   });
 
+  it("distingue las tarifas de guardia verificadas, las pendientes y los módulos del ICS", () => {
+    const i = d.inds.find((ind) => ind.id === "hosp_guardias");
+    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de guardias");
+    const { fecha, territorios, ics } = d.guardias;
+    expect(fecha).toBe("2026-07-31");
+    expect(Object.keys(territorios).sort()).toEqual([...d.ccaa.map(({ id }) => id).filter((id) => id !== "CT"), "INGESA"].sort());
+    expect(territorios.CB).toMatchObject({ laborable: null, domingo: null });
+    expect(territorios.NC).toMatchObject({ laborable: null, domingo: null });
+    expect(territorios.RI).toMatchObject({ laborable: 28.57, domingo: null });
+    expect(territorios.VC).toMatchObject({ laborable: 30.26, domingo: 32.26 });
+    expect(territorios.INGESA).toMatchObject({ laborable: 24.91, domingo: 25.52 });
+    expect(Object.values(territorios).filter((fila) => fila.domingo != null)).toHaveLength(14);
+    expect(i.serie.CT).toBeUndefined();
+    expect(ics.modulos).toEqual([
+      { dia: "Lunes a jueves", importe: 506.55 },
+      { dia: "Viernes", importe: 719.82 },
+      { dia: "Sábado", importe: 1119.72 },
+      { dia: "Domingo o festivo", importe: 906.45 },
+    ]);
+  });
+
   it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {
     const i = d.inds.find((ind) => ind.id === "acceso_no_cubierto");
     if (!i || i.grupo !== "opinion") throw new Error("falta el indicador ECV");
