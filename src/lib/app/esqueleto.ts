@@ -6,7 +6,7 @@ export const ESQUELETO = `<div class="wrap">
     <div class="brand">
       <div class="brand-linea">
         <span>Sanidad por comunidades</span>
-        <a class="contacto-x" href="https://x.com/sergioA_galan" target="_blank" rel="noopener noreferrer" aria-label="Contacto en X con @sergioA_galan (abre en otra pestaña)">Contacto en X<span class="solo-escritorio"> · @sergioA_galan</span></a>
+        <a class="contacto-x" href="https://x.com/SergioA_Galan" target="_blank" rel="noopener noreferrer" aria-label="Contacto en X con @SergioA_Galan (abre en otra pestaña)">Contacto en X<span class="solo-escritorio"> · @SergioA_Galan</span></a>
       </div>
       <small>Gasto, listas de espera, opinión, recursos y resultados en salud de las 17 comunidades</small>
     </div>
