@@ -294,12 +294,14 @@ type Serie = Record<string, (number | null)[]>;
 /** Valores por campo, medida y territorio, en el orden de los cortes del SISLE. */
 export type DetalleListas = Record<string, { nombre: string; campos: { id: string; nombre: string }[]; v: Record<string, Record<string, Serie>> }>;
 type VersionLista = { fichero: string; rectificado: boolean; fecha_pdf: string | null; resumen?: string };
+type ReferenciaEspera = { dias: number; tasa: number };
+type TotalesEspera = { quirurgica: ReferenciaEspera; consultas: ReferenciaEspera | null };
 
 export type DatosApp = {
   anios: number[];
   prov: number[];
   corteListas: string;
-  cortes: { id: string; fecha: string; version: VersionLista | null; notas: string[] }[];
+  cortes: { id: string; fecha: string; version: VersionLista | null; notas: string[]; espana: TotalesEspera | null }[];
   ccaa: { id: string; nombre: string; abr: string }[];
   inds: IndApp[];
   /** Media anual del IPC (base 2021), por año */
@@ -437,9 +439,9 @@ export function construirDatos(valores: Valor[] = VALORES): DatosApp {
   const anios = [...new Set(valores.filter((v) => v.indicador === "gasto_hab").map((v) => v.anio))].sort((a, b) => a - b);
   const prov = [...new Set(valores.filter((v) => v.provisional).map((v) => v.anio))].sort((a, b) => a - b);
   const corte = LISTAS.cortes[LISTAS.cortes.length - 1];
-  const meta = LISTAS as typeof LISTAS & { versiones?: Record<string, VersionLista>; notas_pdf?: { corte: string; texto: string }[] };
+  const meta = LISTAS as typeof LISTAS & { versiones?: Record<string, VersionLista>; notas_pdf?: { corte: string; texto: string }[]; totales_sns?: Record<string, TotalesEspera> };
   const cortes = LISTAS.cortes.map((id) => ({
-    id, fecha: nombreCorte(id), version: meta.versiones?.[id] ?? null,
+    id, fecha: nombreCorte(id), version: meta.versiones?.[id] ?? null, espana: meta.totales_sns?.[id] ?? null,
     notas: (meta.notas_pdf ?? []).filter((n) => n.corte === id).map((n) => n.texto),
   }));
 

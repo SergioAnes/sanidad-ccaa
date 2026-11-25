@@ -1790,14 +1790,22 @@ export function iniciar(DATA: DatosApp): void {
 
   function renderCiudad(id) {
     const q = IND.q_dias, c = IND.c_dias, corte = S.corteC;
-    const card = (titulo, valor, unidad, detalle = "") => `<div class="ctx"><div class="ctx-t">${esc(titulo)}</div><div class="ctx-v">${fmt(valor, unidad)}</div>${detalle ? `<div class="ctx-d">${esc(detalle)}</div>` : ""}</div>`;
+    const card = (titulo, valor, unidad, detalle = "", referencia = "") => `<div class="ctx"><div class="ctx-t">${esc(titulo)}</div><div class="ctx-v">${fmt(valor, unidad)}</div>${detalle ? `<div class="ctx-d">${esc(detalle)}</div>` : ""}${referencia ? `<div class="ctx-ref">España · <strong>${esc(referencia)}</strong></div>` : ""}</div>`;
+    const nacional = (i) => {
+      const v = i.espana.at(-1);
+      return v == null ? "" : fmt(v, i.unidad);
+    };
+    const porMil = (v) => v == null ? "" : `${nf(2).format(v)} por 1.000 hab.`;
     const bloque = (titulo, subtitulo, tarjetas, notas = "") => `<section class="bloque"><h2>${titulo}</h2><p class="sub">${subtitulo}</p><div class="contexto">${tarjetas}</div>${notas}</section>`;
     const corteSel = `<label class="periodo" for="c-ciudad-corte">Corte <select id="c-ciudad-corte">${opcionesAnio(q, PERIODOS_ESPERA.slice().reverse(), corte)}</select></label>`;
     const espera = [q, c].map((i) => {
       const pacientes = pacientesDe(i, corte)?.[id];
       const consulta = i.tipo === "consultas";
-      return card(consulta ? "Espera media para la primera consulta" : "Espera media para operarse", dato(i, id, corte), i.unidad)
-        + card(consulta ? "Pacientes en espera de consulta" : "Pacientes en espera de operación", pacientes, "num");
+      const esp = CORTES[corte].espana?.[i.tipo];
+      const tasa = dato(consulta ? IND.c_tasa : IND.q_tasa, id, corte);
+      const espera = dato(i, id, corte);
+      return card(consulta ? "Espera media para la primera consulta" : "Espera media para operarse", espera, i.unidad, "", esp && espera != null ? fmt(esp.dias, i.unidad) : "")
+        + card(consulta ? "Pacientes en espera de consulta" : "Pacientes en espera de operación", pacientes, "num", porMil(tasa), esp && tasa != null ? porMil(esp.tasa) : "");
     }).join("");
     const { ratios, consultas, hospitales } = DATA.ingesa.ciudades[id];
     const iAP = DATA.ingesa.aniosPrimaria.indexOf(S.anioAP);
@@ -1808,20 +1816,20 @@ export function iniciar(DATA: DatosApp): void {
     $("#c-resumen").textContent = "Ciudad autónoma. El Instituto Nacional de Gestión Sanitaria (INGESA) gestiona la atención sanitaria pública.";
     $("#c-ciudad-datos").innerHTML =
       bloque("Listas de espera", corteSel, espera,
-        `<p class="extra">Fuente: SISLE-SNS. ${CORTES[corte].id === "2023-06" ? 'Las consultas de este corte llevan un aviso en <a href="#metodo-espera">la metodología</a>.' : ""}</p>`) +
+        `<p class="extra">Referencia nacional del mismo corte, publicada por el SISLE-SNS. ${CORTES[corte].id === "2023-06" ? 'El informe de junio de 2023 repite los recuentos y los tiempos de consulta de diciembre de 2022. <a href="#metodo-espera">Ver nota metodológica</a>.' : ""}</p>`) +
       bloque("Atención primaria", `${apSel} · Memoria del INGESA`, primaria) +
       bloque("Hospitales", `Inventario de recursos del INGESA en ${DATA.ingesa.anio}.`,
         card("Hospitales del INGESA", hospitales.hospitales, "num") + card("Camas en funcionamiento", hospitales.camas, "num") +
-        card("Quirófanos instalados", hospitales.quirofanos, "num") + card(reing.corto, dato(reing, id, ultimo(reing)), reing.unidad, `${ultimo(reing)} · RAE-CMBD`) +
-        card(pqi.corto, dato(pqi, id, ultimo(pqi)), pqi.unidad, `${ultimo(pqi)} · tasa ajustada por 10.000 habitantes`),
-        `<p class="extra"><a href="${DATA.ingesa.url}">Memoria del INGESA, pp. 18, 50 y 52</a> · <a href="${DATA.accesoReingresos.reingresos.perfil}">Reingresos, indicador 225</a> · <a href="${DATA.hospitalizacionesEvitables.ficha}">Hospitalizaciones potencialmente evitables, PQI 92</a>.</p>`) +
+        card("Quirófanos instalados", hospitales.quirofanos, "num") + card(reing.corto, dato(reing, id, ultimo(reing)), reing.unidad, `${ultimo(reing)} · RAE-CMBD`, nacional(reing)) +
+        card(pqi.corto, dato(pqi, id, ultimo(pqi)), pqi.unidad, `${ultimo(pqi)} · tasa ajustada por 10.000 habitantes`, nacional(pqi)),
+        `<p class="extra">Los reingresos también dependen del perfil de los pacientes. La tasa de hospitalizaciones evitables se calcula por ubicación del hospital. <a href="${DATA.ingesa.url}">Memoria del INGESA, pp. 18, 50 y 52</a> · <a href="${DATA.accesoReingresos.reingresos.perfil}">Reingresos, indicador 225</a> · <a href="${DATA.hospitalizacionesEvitables.ficha}">Hospitalizaciones potencialmente evitables, PQI 92</a>.</p>`) +
       bloque("Resultados en salud", "Datos de residentes del INE y del Ministerio de Sanidad.",
         [IND.res_esperanza, IND.res_esperanza65, IND.res_mort_infantil].map((i) => card(i.corto, dato(i, id, ultimo(i)), i.unidad,
-          i.id === "res_mort_infantil" ? `${ultimo(i) - 2}–${ultimo(i)} · muertes por 1.000 nacidos vivos` : String(ultimo(i)))).join("") +
-          card(vida.corto, DATA.vidaSaludable.ceutaMelilla.at(-1), vida.unidad, `${ultimo(vida)} · Ceuta y Melilla en conjunto`),
-        `<p class="extra"><a href="#metodo-resultados">Cómo se calculan estos indicadores</a>.</p>`) +
+          i.id === "res_mort_infantil" ? `${ultimo(i) - 2}–${ultimo(i)} · muertes por 1.000 nacidos vivos` : String(ultimo(i)), nacional(i))).join("") +
+          card(vida.corto, DATA.vidaSaludable.ceutaMelilla.at(-1), vida.unidad, `${ultimo(vida)} · Ceuta y Melilla en conjunto`, nacional(vida)),
+        `<p class="extra">En poblaciones pequeñas, unas pocas defunciones pueden mover la tasa de mortalidad infantil incluso al agrupar tres años. <a href="#metodo-resultados">Cómo se calculan estos indicadores</a>.</p>`) +
       bloque("Lo que opina la gente", "Estimación de la Encuesta de Condiciones de Vida del INE.",
-        card(acceso.corto, dato(acceso, id, ultimo(acceso)), acceso.unidad, periodo(acceso, ultimo(acceso))),
+        card(acceso.corto, dato(acceso, id, ultimo(acceso)), acceso.unidad, periodo(acceso, ultimo(acceso)), nacional(acceso)),
         `<p class="extra">La tabla publica estimaciones sin intervalos de confianza por territorio. <a href="${DATA.accesoReingresos.acceso.tabla}">Tabla del INE</a>.</p>`);
     $("#c-ciudad-corte").onchange = (e) => { S.corteC = +e.target.value; render(); };
     $("#c-ciudad-ap").onchange = (e) => { S.anioAP = +e.target.value; render(); };

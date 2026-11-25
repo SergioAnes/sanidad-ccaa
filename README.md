@@ -94,7 +94,7 @@ npm test
 
 Para los cortes de diciembre de 2021 a diciembre de 2024, guarda también los siete
 [PDF de indicadores resumen](https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEsperaInfAnt.htm)
-con su nombre original `LISTAS_PUBLICACION_*.pdf` en la misma carpeta. De ellos salen los totales quirúrgicos.
+con su nombre original `LISTAS_PUBLICACION_*.pdf` en la misma carpeta. De ellos salen los totales quirúrgicos y las referencias nacionales de espera. Las referencias de 2025 están transcritas en el script desde las tablas territoriales de los dos informes, incluida la versión rectificada de diciembre.
 
 El script regenera `src/data/listas-espera.json` por corte, lista, especialidad, medida y territorio.
 Comprueba los recuentos frente a las tasas y contrasta los totales con sus desgloses. La web abre el

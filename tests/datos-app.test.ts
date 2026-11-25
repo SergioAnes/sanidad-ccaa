@@ -84,6 +84,18 @@ describe("datos de la interfaz", () => {
     expect(d.detalle.quirurgica.v.dermatologia.dias.ML[0]).toBeNull();
   });
 
+  it("mantiene la referencia nacional de espera del corte y omite las consultas repetidas de junio de 2023", () => {
+    expect(d.cortes.find((c) => c.id === "2021-12")?.espana).toEqual({
+      quirurgica: { dias: 123, tasa: 15.39 }, consultas: { dias: 89, tasa: 77.23 },
+    });
+    expect(d.cortes.find((c) => c.id === "2023-06")?.espana).toEqual({
+      quirurgica: { dias: 112, tasa: 17.55 }, consultas: null,
+    });
+    expect(d.cortes.at(-1)?.espana).toEqual({
+      quirurgica: { dias: 122, tasa: 17.70 }, consultas: { dias: 102, tasa: 84.42 },
+    });
+  });
+
   it("el IPC cubre todos los años de gasto (para descontar la inflación)", () => {
     for (const a of d.anios) expect(d.ipc[String(a)]).toBeGreaterThan(0);
     expect(d.ipc["2021"]).toBeCloseTo(100, 1);
