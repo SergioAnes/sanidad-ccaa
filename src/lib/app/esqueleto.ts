@@ -3,7 +3,13 @@
 export const ESQUELETO = `<div class="wrap">
   <noscript><p class="aviso">Esta web necesita JavaScript para mostrar los mapas y gráficos.</p></noscript>
   <header class="top">
-    <div class="brand">Sanidad por comunidades<small>Gasto, listas de espera, opinión, recursos y resultados en salud de las 17 comunidades</small></div>
+    <div class="brand">
+      <div class="brand-linea">
+        <span>Sanidad por comunidades</span>
+        <a class="contacto-x" href="https://x.com/SergioA_Galan" target="_blank" rel="noopener noreferrer" aria-label="Contacto en X con @SergioA_Galan (abre en otra pestaña)">Contacto en X<span class="solo-escritorio"> · @SergioA_Galan</span></a>
+      </div>
+      <small>Gasto, listas de espera, opinión, recursos y resultados en salud de las 17 comunidades</small>
+    </div>
     <nav class="nav" aria-label="Secciones">
       <a href="#datos" data-vista="datos">Datos</a>
       <a href="#comunidad" data-vista="comunidad">Tu comunidad</a>
