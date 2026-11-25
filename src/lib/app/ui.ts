@@ -498,6 +498,20 @@ export function iniciar(DATA: DatosApp): void {
   const pctAnio = (ind, a) => ((a - primero(ind)) / (ultimo(ind) - primero(ind))) * 100;
   const marcasAnios = (ind) => `<div class="marcas" aria-hidden="true">${periodos(ind).filter((a, i) => a === primero(ind) || a === ultimo(ind) || (ind.grupo === "gasto" || esRecurso(ind)) && (a - primero(ind)) % 4 === 0 && ultimo(ind) - a >= 3)
     .map((a) => `<span style="left:calc(10px + (100% - 20px) * ${pctAnio(ind, a) / 100})">${periodo(ind, a, true)}</span>`).join("")}</div>`;
+  function espaciarFechas(etiquetas) {
+    if (etiquetas.length < 3) return;
+    const bordes = Array.from(etiquetas, (etiqueta) => etiqueta.getBoundingClientRect());
+    const margen = 8;
+    let libreDesde = bordes[0].right + margen;
+    const limite = bordes.at(-1).left - margen;
+    for (let i = 1; i < bordes.length - 1; i++) {
+      const { left, right } = bordes[i];
+      const cabe = left >= libreDesde && right <= limite;
+      // La marca conserva su tamaño para poder medirla de nuevo al cambiar el ancho.
+      etiquetas[i].style.visibility = cabe ? "" : "hidden";
+      if (cabe) libreDesde = right + margen;
+    }
+  }
   function barraAnios(cont, ind, anio, onChange) {
     if (!tieneSerie(ind)) {
       cont.dataset.tipo = "";
@@ -519,6 +533,7 @@ export function iniciar(DATA: DatosApp): void {
     inp.setAttribute("aria-valuetext", periodo(ind, anio));
     cont.querySelector(".anio").textContent = periodo(ind, anio);
     cont.querySelector(".prov").hidden = !esProv(anio);
+    espaciarFechas(cont.querySelectorAll(".marcas span"));
     play.textContent = timer ? "❚❚" : "▶";
     play.setAttribute("aria-label", timer ? "Pausar" : "Reproducir la serie");
     inp.oninput = () => { pararPlay(); onChange(+inp.value); };
@@ -559,6 +574,7 @@ export function iniciar(DATA: DatosApp): void {
       d.style.zIndex = S.desde > ultimo(ind) - 2 ? 3 : 2;
     };
     pintar();
+    espaciarFechas(cont.querySelectorAll(".marcas span"));
     // Los extremos nunca se cruzan: como mínimo, un año de diferencia.
     d.oninput = () => { const v = Math.min(+d.value, S.anioP - 1); d.value = v; if (v !== S.desde) { S.desde = v; onChange(); } };
     h.oninput = () => { const v = Math.max(+h.value, S.desde + 1); h.value = v; if (v !== S.anioP) { S.anioP = v; onChange(); } };
@@ -757,28 +773,24 @@ export function iniciar(DATA: DatosApp): void {
         ? `<strong>${fmt(vals[S.com], ind.unidad)}</strong> en ${periodo(ind, anio)} (${intervalo(ind, S.com, anio)}). ${textoClase(ind, claseOpinion(ind, S.com, anio))}. ${ficha}`
         : `<strong>${fmt(vals[S.com], ind.unidad)}</strong>${tieneSerie(ind) ? ` en ${periodo(ind, anio)}` : ""}. ${puestoTxt(ind, ord.indexOf(S.com) + 1, ord.length)}. ${ficha}`;
     }
-    out.unshift({ k: "Tu comunidad", t: tuya, elegir: true });
     if (enCambio && mo.length) {
-      // En «Cambio entre dos años» todos los cuadros hablan del cambio; el valor final queda como contexto.
-      const mc = media(mapa.vals), u2 = mapa.ind.unidad;
-      const enPuntos = u2 === "pp";
-      const valor = nf(enPuntos ? 1 : 0).format(Math.abs(mc));
-      const resumenCambio = Math.abs(mc) < (enPuntos ? 0.05 : 0.5)
-        ? "El valor apenas varió de media entre las comunidades"
-        : `El valor ${mc < 0 ? "bajó" : "subió"}${enPuntos ? "" : " un"} <strong>${valor}${enPuntos ? " puntos porcentuales" : " %"}</strong> de media entre las comunidades`;
+      // En «Comparar años», el promedio usa la misma unidad que los cambios del mapa.
+      const u2 = mapa.ind.unidad;
+      const cambioMedio = fmt(media(mapa.vals), u2).replace(" p.", " puntos porcentuales");
+      const unidad = u2 === "dif_tasa" ? " por 10.000 habitantes" : "";
       const orden = ordenados(vals);
-      out.splice(1, out.length - 1,
-        { k: `Media de las ${mo.length}, de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `${resumenCambio}${infl ? ` (${infl})` : ""}.` },
+      out.splice(0, out.length,
+        { k: `Cambio de ${periodo(ind, S.desde)} a ${periodo(ind, anio)}`, t: `<strong>${cambioMedio}${unidad}</strong> de media entre las ${mo.length} comunidades con datos en ambas fechas${infl ? ` (${infl})` : ""}.` },
         { k: `Para situarse: el valor en ${periodo(ind, anio)}`, t: `La cifra más alta es la de <strong>${empatadas(vals, orden[0], ind.unidad)}</strong> (${fmt(vals[orden[0]], ind.unidad)}) y la más baja, la de <strong>${empatadas(vals, orden.at(-1), ind.unidad)}</strong> (${fmt(vals[orden.at(-1)], ind.unidad)}). Para verlo en el mapa, elige «${volver}».` });
     }
-    if (enCambio && !mo.length) out.splice(1);
+    if (enCambio && !mo.length) out.length = 0;
     out.push(...titularesPacientes(ind, anio));
     // «Tu comunidad» lleva su propio desplegable (además de poder pulsarla en el mapa): sirve para las
     // comunidades pequeñas, en el móvil y con teclado o lector de pantalla.
     const opcionesCom = IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => `<option value="${k}" ${k === S.com ? "selected" : ""}>${esc(NOMBRE[k])}</option>`).join("");
-    $("#p-insights").innerHTML = out.map((x) => x.elegir
-      ? `<div class="insight tuya"><label class="k" for="p-com">${esc(x.k)}</label><select id="p-com">${opcionesCom}</select><p>${x.t}</p></div>`
-      : `<div class="insight"><div class="k">${esc(x.k)}</div><p>${x.t}</p></div>`).join("");
+    const comparaciones = out.map(({ k, t }) => `<div><dt class="k">${esc(k)}</dt><dd>${t}</dd></div>`).join("");
+    $("#p-insights").innerHTML = `<div class="insight tuya"><label class="k" for="p-com">Tu comunidad</label><select id="p-com">${opcionesCom}</select><p>${tuya}</p></div>` +
+      (comparaciones ? `<div class="insight insight-contexto">${plegable("comparaciones-dato", "Comparaciones y contexto", `<dl>${comparaciones}</dl>`)}</div>` : "");
     $("#p-com").onchange = (e) => { S.com = e.target.value; render(); };
 
     // Título y subtítulo: dicen exactamente qué muestra el mapa
@@ -1730,7 +1742,7 @@ export function iniciar(DATA: DatosApp): void {
     const paso = Math.max(1, Math.ceil(58 * (fin - inicio) / (W - L - R)));
     const etiquetasEje = ind.grupo === "gasto" || esRecurso(ind) ? aniosEje(W - L - R, 11, fechas) :
       fechas.filter((a) => a === fin || (a - inicio) % paso === 0 && fin - a >= paso);
-    etiquetasEje.forEach((a) => { s += `<text x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${periodo(ind, a, true)}</text>`; });
+    etiquetasEje.forEach((a) => { s += `<text data-fecha x="${x(a)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="${muted}">${periodo(ind, a, true)}</text>`; });
     IDS.filter((id) => !colorSel(id)).forEach((id) => { s += `<path d="${path(ind.serie[id])}" fill="none" stroke="${grey}" stroke-width="1.2"/>${aislados(ind.serie[id], grey, 2)}`; });
     s += `<path d="${path(medias)}" fill="none" stroke="${fg}" stroke-width="1.5" stroke-dasharray="4 3"/>${aislados(medias, fg, 2.5)}`;
     // etiquetas finales sin solapar
@@ -1801,6 +1813,7 @@ export function iniciar(DATA: DatosApp): void {
         : "") + `</div>`;
     cont.innerHTML = s;
     const svg = cont.querySelector("svg"), cruz = svg.querySelector("#cruz");
+    espaciarFechas(svg.querySelectorAll("[data-fecha]"));
     svg.querySelector("#zona").onmousemove = (e) => {
       const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * (W / r.width);
       const i = Math.max(0, Math.min(fechas.length - 1, Math.round(((px - L) / (W - L - R)) * (fin - inicio))));
