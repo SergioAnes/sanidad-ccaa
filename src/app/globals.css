@@ -291,7 +291,6 @@ svg [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset:
 .chip-s .fijo { font-weight: 600; padding: 0 8px 0 2px; }
 .chip-s.boton { cursor: pointer; padding-right: 12px; font-weight: 600; }
 .chip-s.cambiado { border-color: var(--note); background: var(--note-bg); }
-.rs-ajustes { flex: none; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); font-weight: 600; cursor: pointer; white-space: nowrap; }
 /* Panel «Ajustes» */
 dialog.ajustes { border: 0; border-radius: 18px; padding: 18px 20px; width: min(560px, calc(100% - 32px)); max-height: 88vh; overflow: auto; background: var(--surface); color: var(--fg); box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); }
 dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
@@ -310,7 +309,6 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .aj-pie { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
 .aj-pie .primary { margin-left: auto; }
 @media (max-width: 640px) {
-  .rs-ajustes { padding: 0 10px; }
   dialog.ajustes { margin: auto 0 0; width: 100%; max-width: none; border-radius: 18px 18px 0 0; max-height: 85vh; padding-bottom: max(18px, env(safe-area-inset-bottom)); }
   .aj-fila { grid-template-columns: 1fr; }
   .aj-t { padding-top: 0; }
@@ -322,24 +320,16 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .rs-texto { display: none; }
 @media (max-width: 640px) {
   .rs-chips { display: none; }
-  .rs-texto { display: flex; align-items: center; gap: 6px; flex: 1 1 auto; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font-weight: 600; font-size: 0.86rem; text-align: left; cursor: pointer; }
-  .rs-linea { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rs-texto { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); font-weight: 600; font-size: 0.86rem; text-align: left; cursor: pointer; }
+  .rs-linea { flex: 1 1 auto; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
   .rs-linea .cambiado { color: var(--note); }
   .rs-linea .sep { color: var(--muted); font-weight: 400; }
-  .rs-mas { flex: none; color: var(--muted); }
+  .rs-mas { flex: none; color: var(--accent); background: var(--accent-soft); border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
 }
 
-@media (max-width: 640px) {
-  .rs-texto { height: auto; min-height: 40px; padding: 6px 12px; }
-  .rs-linea { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.3; }
-  .rs-aj-txt { display: none; }
-  .rs-ajustes { width: 42px; height: 42px; padding: 0; font-size: 1.1rem; }
-}
-
-/* Ordenador: las etiquetas ya son los ajustes; solo «Restablecer» cuando algo ha cambiado. Móvil: resumen + ⚙ */
+/* Ordenador: «Restablecer» aparece cuando se cambian los filtros. */
 .rs-reset { flex: none; height: 36px; padding: 0 6px; border: 0; background: none; color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; white-space: nowrap; }
 .rs-reset[hidden] { display: none; }
-@media (min-width: 641px) { .rs-ajustes { display: none; } }
 @media (max-width: 640px) { .rs-reset { display: none; } }
 .rs-modo { flex: none; margin-left: 4px; height: 26px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--accent); font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .chip-s .flecha { color: var(--muted); }
@@ -392,9 +382,27 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
 .evo-hist h3 { font-size: 0.98rem; margin: 0 0 4px; }
 .evo-hist .sub { margin: 0 0 8px; }
 
-/* Temas en el móvil: dos filas de dos, cada botón en una sola línea */
+.solo-movil { display: none; }
+
 @media (max-width: 640px) {
-  .selector .seg[aria-label="Tema"] { display: grid; grid-template-columns: 1fr 1fr; justify-self: stretch; }
-  .selector .seg[aria-label="Tema"] button { white-space: nowrap; padding: 8px 6px; }
-  .selector .seg[aria-label="Tema"] button:last-child:nth-child(odd) { grid-column: span 2; }
+  .solo-escritorio { display: none; }
+  .solo-movil { display: revert; }
+  .top { padding-block: 12px 8px; gap: 8px 24px; }
+  .brand small { display: none; }
+  .intro { padding-top: 12px; gap: 12px; }
+  .intro h1 { font-size: clamp(1.45rem, 6.8vw, 1.7rem); }
+  .intro-nota { margin-top: 4px; color: var(--muted); }
+  .intro-nota summary { padding-block: 4px; min-height: 32px; color: var(--accent); cursor: pointer; }
+  .selector > .real { display: none; }
+  .selector .seg[aria-label="Tema"] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-self: stretch; }
+  .selector .seg[aria-label="Tema"] button { min-height: 40px; padding: 4px; line-height: 1.2; }
+  .selector .seg[aria-label="Tema"] button[data-g="resultados"] { grid-column: 1 / -1; }
+  #p-fuente { margin: 8px 0; padding-block: 5px; }
+  .tabla-deslizar { margin: 8px 0 0; color: var(--muted); font-size: 0.83rem; }
+  .tabla-ranking thead th, .tabla-encuesta thead th { white-space: normal; }
+  .tabla-total-nota { display: block; }
+  .tabla-ranking tr:not(.sep) > :nth-child(2),
+  .tabla-encuesta tr > :first-child { position: sticky; left: 0; z-index: 1; max-width: 125px; white-space: normal; background: var(--surface); box-shadow: 1px 0 var(--line), 6px 0 8px -7px var(--muted); }
+  .tabla-ranking tr.tuya > td:nth-child(2),
+  .tabla-encuesta tr.tuya > td:first-child { background: var(--accent-soft); }
 }

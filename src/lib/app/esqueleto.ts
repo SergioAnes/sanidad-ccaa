@@ -14,8 +14,12 @@ export const ESQUELETO = `<div class="wrap">
     <div class="intro">
       <div class="intro-cab">
         <div>
-          <h1>¿Cómo está la sanidad en tu comunidad?</h1>
-          <p id="p-intro">Datos oficiales del Ministerio de Sanidad.</p>
+          <h1><span class="solo-escritorio">¿Cómo está la sanidad en tu comunidad?</span><span class="solo-movil">Sanidad en tu comunidad</span></h1>
+          <p class="solo-escritorio" id="p-intro">Datos oficiales del Ministerio de Sanidad.</p>
+          <details class="intro-nota solo-movil">
+            <summary>Qué datos recoge la web</summary>
+            <p id="p-intro-movil">Datos oficiales del Ministerio de Sanidad.</p>
+          </details>
         </div>
       </div>
       <div class="selector" id="sel-datos"></div>
@@ -25,14 +29,13 @@ export const ESQUELETO = `<div class="wrap">
       <div class="rs-controles">
         <div class="rs-chips" id="rs-chips"></div>
         <button type="button" class="rs-texto" id="rs-texto" aria-haspopup="dialog"></button>
-        <button type="button" class="rs-ajustes" id="rs-ajustes" aria-haspopup="dialog" aria-label="Ajustes de la vista">⚙<span class="rs-aj-txt"> Ajustes</span></button>
       </div>
       <p class="rs-aviso" id="rs-aviso" hidden><span id="rs-motivo" role="status"></span> <a href="#e-nota" id="rs-notas">Ver notas del informe</a></p>
     </div>
     <div class="portada-grid">
       <div class="panel">
-        <h2 id="p-titulo"></h2>
-        <p class="sub" id="p-sub"></p>
+        <h2><span class="solo-escritorio" id="p-titulo"></span><span class="solo-movil" id="p-titulo-movil"></span></h2>
+        <p class="sub"><span class="solo-escritorio" id="p-sub"></span><span class="solo-movil" id="p-sub-movil"></span></p>
         <dl class="contexto-grafico" id="p-fuente"></dl>
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
