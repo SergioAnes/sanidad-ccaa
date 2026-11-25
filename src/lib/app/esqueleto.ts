@@ -33,6 +33,7 @@ export const ESQUELETO = `<div class="wrap">
       <div class="panel">
         <h2 id="p-titulo"></h2>
         <p class="sub" id="p-sub"></p>
+        <dl class="contexto-grafico" id="p-fuente"></dl>
         <div class="tilemap" id="p-mapa"></div>
         <div class="leyenda" id="p-leyenda"></div>
         <div class="tiempo">
@@ -53,6 +54,7 @@ export const ESQUELETO = `<div class="wrap">
       </div>
       <h2 id="e-titulo"></h2>
       <p class="sub" id="e-sub"></p>
+      <dl class="contexto-grafico" id="e-contexto"></dl>
       <div class="chart" id="e-chart"></div>
       <div class="descargas" id="e-desc"></div>
       <div class="nota" id="e-nota"></div>
@@ -60,6 +62,7 @@ export const ESQUELETO = `<div class="wrap">
     <div class="panel xy">
       <h2 id="x-titulo"></h2>
       <p class="sub" id="x-sub"></p>
+      <dl class="contexto-grafico" id="x-contexto"></dl>
       <div class="fila"><div class="seg sm" id="x-y" role="group" aria-label="Qué espera comparar"></div></div>
       <div class="chart" id="x-chart"></div>
       <div class="nota" id="x-nota"></div>
@@ -123,6 +126,12 @@ export const ESQUELETO = `<div class="wrap">
       <div class="filas" id="c-resultados"></div>
       <div class="notas-min" id="c-resultados-notas"></div>
     </div>
+    <div class="bloque">
+      <h2>Prevención</h2>
+      <p class="sub">Último dato de cada fuente. España se muestra para el mismo año.</p>
+      <div class="contexto" id="c-prevencion"></div>
+      <div class="notas-min" id="c-prevencion-notas"></div>
+    </div>
     </div>
   </section>
 
@@ -135,13 +144,15 @@ export const ESQUELETO = `<div class="wrap">
     <ul>
       <li>Gasto: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/sisInfSanSNS/finGastoSanit.htm">Estadística de Gasto Sanitario Público</a> (<span id="f-gasto">gasto real</span>).</li>
       <li>Listas de espera: Ministerio de Sanidad, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/listaEspera.htm">SISLE-SNS</a>, datos por comunidad autónoma (<span id="f-listas">último corte</span>).</li>
-      <li>Lo que opina la gente: Ministerio de Sanidad y CIS, <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (serie por comunidad y microdatos del CIS; enlaces a cada fichero en «Cómo leer los datos»).</li>
+      <li>Opinión y acceso declarado: <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/barometro/home.htm">Barómetro Sanitario</a> (Sanidad y CIS) y <a href="https://www.ine.es/jaxiT3/Tabla.htm?t=79194">Encuesta de Condiciones de Vida</a> (INE).</li>
       <li>Atención primaria y hospitales: Ministerio de Sanidad, <a href="https://pestadistico.inteligenciadegestion.sanidad.gob.es/publicoSNS/S/sistema-de-informacion-de-atencion-primaria-siap">Sistema de Información de Atención Primaria (SIAP)</a> (profesionales y población asignada, 2004-2025) y <a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/estHospiInternado/inforAnual/homeESCRI.htm">Estadística de Centros Sanitarios de Atención Especializada (SIAE)</a> (camas, ocupación, estancia media, cirugía mayor ambulatoria, quirófanos, ingresos, hospital de día, TAC y resonancia, 2010-2023; médicos y enfermería de la red pública, 2016-2023).</li>
-      <li>Resultados en salud: INE, <a href="https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177003&idp=1254735573002">Indicadores Demográficos Básicos</a> y Movimiento Natural de la Población (esperanza de vida 1975-2025; mortalidad infantil, media de tres años).</li>
+      <li>Reingresos y hospitalizaciones evitables: registro <a href="https://inclasns.sanidad.gob.es/report/indicator/?indicators=225">RAE-CMBD</a>, con datos de los informes anuales del SNS, INCLASNS e <a href="https://icmbd.sanidad.gob.es/">iCMBD</a>.</li>
+      <li>Resultados en salud: <a href="https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736177003&idp=1254735573002">Indicadores Demográficos Básicos</a> y Movimiento Natural de la Población (INE), y <a href="https://www.sanidad.gob.es/estadEstudios/sistInfSanit/estSalud/Mortalidad_EdV/home.htm">años de vida saludable</a> (Sanidad).</li>
+      <li>Prevención: <a href="https://www.sanidad.gob.es/areas/promocionPrevencion/vacunaciones/coberturas/home.htm">SIVAMIN</a> (Sanidad) y <a href="https://www.ine.es/jaxi/Tabla.htm?tpx=81219&amp;L=0">Encuesta de Salud de España</a> (INE y Sanidad).</li>
       <li>Inflación: INE, <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&amp;cid=1254736176802&amp;menu=ultiDatos&amp;idp=1254735976607">Índice de Precios de Consumo</a>, índice general nacional, media anual.</li>
       <li>Mapa: Instituto Geográfico Nacional, vía <a href="https://github.com/martgnz/es-atlas">es-atlas</a> (CC BY 4.0).</li>
     </ul>
-    <p>Las medias entre comunidades son simples (cada comunidad cuenta igual). Más detalles en <a href="#metodo">Cómo leer los datos</a>. Código y datos: <a href="https://github.com/SergioAnes/sanidad-ccaa">GitHub</a>.
+    <p>Junto a los gráficos se indican el periodo, la fuente y la referencia. Las definiciones están en <a href="#metodo">Cómo leer los datos</a>. Código y datos: <a href="https://github.com/SergioAnes/sanidad-ccaa">GitHub</a>.
     Contamos las visitas de forma anónima y sin cookies (Vercel Web Analytics).</p>
   </footer>
 </div>

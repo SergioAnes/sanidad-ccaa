@@ -159,6 +159,23 @@ describe("datos de la interfaz", () => {
     expect(cambiosEntidades(undefined, 3).some((e) => e.ccaa === "GA")).toBe(false);
   });
 
+  it("distingue la cobertura de triple vírica de la estimación de la encuesta de cribado", () => {
+    const vacuna = d.inds.find((i) => i.id === "prev_triple_virica");
+    const cribado = d.inds.find((i) => i.id === "prev_cribado_colorrectal");
+    if (vacuna?.grupo !== "prevencion" || cribado?.grupo !== "prevencion") throw new Error("faltan indicadores de prevención");
+    expect(vacuna.fuente).toBe("sivamin");
+    expect(vacuna.espana.at(-1)).toBe(93.66);
+    expect(vacuna.serie.MD.at(-1)).toBe(93.97);
+    expect(vacuna.serie.AR[vacuna.anios.indexOf(2020)]).toBeNull();
+    expect(vacuna.serie.CE.at(-1)).toBe(70.43);
+    expect(d.prevencion.vacunacion.objetivo).toBe(95);
+    expect(cribado.fuente).toBe("esde");
+    expect(cribado.anios).toEqual([2023, 2025]);
+    expect(cribado.espana).toEqual([38.7, 50.1]);
+    expect(d.prevencion.cribado.tablas[1].url).toContain("81219");
+    expect(Object.keys(cribado.serie)).toHaveLength(19);
+  });
+
   it("el gasto ajustado por edad es una variante de gasto_hab, sin tarjeta propia y desde 2013", () => {
     expect(d.inds.some((i) => i.id === "gasto_hab_edad")).toBe(false);
     expect(d.edad?.anios[0]).toBe(2013);

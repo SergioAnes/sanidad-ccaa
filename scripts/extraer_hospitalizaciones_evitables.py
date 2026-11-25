@@ -11,7 +11,7 @@ from extraer_resultados import ORDEN, RAIZ, territorio
 ORIGEN = RAIZ / "datos-originales" / "rae-cmbd" / "icmbd-pqi"
 SALIDA = RAIZ / "src" / "data" / "hospitalizaciones-evitables.json"
 URL = "https://icmbd.sanidad.gob.es/icmbd/inicioIndicador_13_13006.do"
-FICHA = "https://icmbd.sanidad.gob.es/recursos/docs/modeloIndicadoresCie10.pdf#page=81"
+FICHA = "https://icmbd.sanidad.gob.es/recursos/docs/fichas-indicadores.xlsx"
 IDS = [c for c, _ in ORDEN]
 CIUDADES = ["CE", "ML"]
 ANIOS = list(range(2017, 2024))
