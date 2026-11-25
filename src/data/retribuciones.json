@@ -1,26 +1,31 @@
 {
   "fecha": "2026-07-31",
   "territorios": {
-    "AN": {"fijoBruto": 54822.7, "residencia": 0.0, "fuentes": ["https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/resolucion_0019_dgp_modificacion_resolucion_retribuciones_2026.pdf"]},
-    "AR": {"fijoBruto": 56638.24, "residencia": 0.0, "fuentes": ["https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0"]},
-    "AS": {"fijoBruto": 57349.2, "residencia": 0.0, "fuentes": ["https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf"]},
-    "IB": {"fijoBruto": 56884.82, "residencia": 1765.08, "fuentes": ["https://www.ibsalut.es/docs/rrhh/normativa/instrucciones%20y%20circulares/ca/Taules%20retributives_2026_CAT.pdf"]},
-    "CN": {"fijoBruto": 56451.9, "residencia": 2444.4, "fuentes": ["https://www3.gobiernodecanarias.org/sanidad/scs/content/80498e32-f2b2-11f0-beee-ebafe1564515/2026-01-14-Instruccion_1_2026_Instruccion_retribuciones.pdf"]},
+    "AN": {"fijoBruto": 54822.7, "residencia": 0.0, "fuentes": ["https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/resolucion_0019_dgp_modificacion_resolucion_retribuciones_2026.pdf"], "antiguedad": 706.6},
+    "AR": {"fijoBruto": 56806.6, "residencia": 0.0, "fuentes": ["https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0", "https://www.aragon.es/documents/20127/128260043/Instruccion_nominas_personal_estatutario_SALUD_2026.pdf/fec53551-66e0-febb-fe7b-e7f3865a227d?download=true&t=1771839678345&version=1.0"], "antiguedad": 706.6, "diferenciaDedicacion": 2989.8},
+    "AS": {"fijoBruto": 57349.2, "residencia": 0.0, "fuentes": ["https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf"], "antiguedad": 706.6},
+    "IB": {"fijoBruto": 56884.82, "residencia": 1765.08, "fuentes": ["https://www.ibsalut.es/docs/rrhh/normativa/instrucciones%20y%20circulares/ca/Taules%20retributives_2026_CAT.pdf"], "antiguedad": 706.6},
+    "CN": {"fijoBruto": 56451.9, "residencia": 2444.4, "fuentes": ["https://www3.gobiernodecanarias.org/sanidad/scs/content/80498e32-f2b2-11f0-beee-ebafe1564515/2026-01-14-Instruccion_1_2026_Instruccion_retribuciones.pdf"], "antiguedad": 706.6},
     "CB": null,
-    "CM": {"fijoBruto": 56207.88, "residencia": 0.0, "fuentes": ["https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260210/anexos_y_tablas_2026_con_el_1.5.pdf"]},
-    "CL": {"fijoBruto": 56341.24, "residencia": 0.0, "fuentes": ["https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf"]},
-    "CT": {"fijoBruto": 56631.5, "residencia": 0.0, "fuentes": ["https://www.som-hi.eu/wp-content/uploads/2026/02/Llibre-de-retribucions-2026-ics.pdf#page=10", "https://ics.gencat.cat/web/.content/Documents/transparencia/Instruccions/02_23.pdf"]},
-    "VC": {"fijoBruto": 59417.5, "residencia": 0.0, "fuentes": ["https://www.ivass.gva.es/dam/jcr%3A8596fab2-07e4-4502-91fd-2781859dd9ef/taules%20retributives%20-%20tablas%20retributivas%202026.pdf"]},
-    "EX": {"fijoBruto": 55281.64, "residencia": 0.0, "fuentes": ["https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/5%20RESOLUCION%20RETRIBUCIONES%2C%20ANEXOS%20Y%20TABLAS%20SES%202026%20PORTAL.pdf"]},
-    "GA": {"fijoBruto": 56341.56, "residencia": 0.0, "fuentes": ["https://ficheiros-web.xunta.gal/transparencia/retribucions/2026/persoal-estatutario-saude.pdf"]},
-    "MD": {"fijoBruto": 53143.46, "residencia": 0.0, "fuentes": ["https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf"]},
-    "MC": {"fijoBruto": 64003.36, "residencia": 0.0, "fuentes": ["https://www.borm.es/services/anuncio/841766/pdf"]},
-    "NC": {"fijoBruto": 58504.74, "residencia": 0.0, "fuentes": ["https://administracionelectronica.navarra.es/AccesoFicheros/DownloadFile.aspx?CodigoCompleto=Portal@@@epub/BON/ANUCLEO/Plantilla-2026_C.pdf#page=416", "https://gobiernoabierto.navarra.es/sites/default/files/assets/files/pagina-interior/transparencia/Retribuciones2026.pdf"]},
-    "PV": {"fijoBruto": 60026.72, "residencia": 0.0, "fuentes": ["https://www.osakidetza.euskadi.eus/contenidos/informacion/osk_trbg_informacion_economica/es_def/adjuntos/Instruccion-2_2026.pdf"]},
-    "RI": {"fijoBruto": 56021.32, "residencia": 0.0, "fuentes": ["https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf"]},
-    "INGESA": {"fijoBruto": 68655.38, "residencia": 14030.88, "fuentes": ["https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf"]}
+    "CM": {"fijoBruto": 56207.88, "residencia": 0.0, "fuentes": ["https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260210/anexos_y_tablas_2026_con_el_1.5.pdf"], "antiguedad": 706.6},
+    "CL": {"fijoBruto": 56341.24, "residencia": 0.0, "fuentes": ["https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf"], "antiguedad": 706.6},
+    "CT": {"fijoBruto": 56631.5, "residencia": 0.0, "fuentes": ["https://www.som-hi.eu/wp-content/uploads/2026/02/Llibre-de-retribucions-2026-ics.pdf#page=10", "https://ics.gencat.cat/web/.content/Documents/transparencia/Instruccions/02_23.pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 5915.14},
+    "VC": {"fijoBruto": 59417.5, "residencia": 0.0, "fuentes": ["https://www.ivass.gva.es/dam/jcr%3A8596fab2-07e4-4502-91fd-2781859dd9ef/taules%20retributives%20-%20tablas%20retributivas%202026.pdf"], "antiguedad": 706.6},
+    "EX": {"fijoBruto": 55281.64, "residencia": 0.0, "fuentes": ["https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/5%20RESOLUCION%20RETRIBUCIONES%2C%20ANEXOS%20Y%20TABLAS%20SES%202026%20PORTAL.pdf"], "antiguedad": 706.6},
+    "GA": {"fijoBruto": 56341.56, "residencia": 0.0, "fuentes": ["https://ficheiros-web.xunta.gal/transparencia/retribucions/2026/persoal-estatutario-saude.pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 13657.84},
+    "MD": {"fijoBruto": 53143.46, "residencia": 0.0, "fuentes": ["https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf"], "antiguedad": 706.6},
+    "MC": {"fijoBruto": 64003.36, "residencia": 0.0, "fuentes": ["https://www.borm.es/services/anuncio/841766/pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 0},
+    "NC": {"fijoBruto": 58504.74, "residencia": 0.0, "fuentes": ["https://administracionelectronica.navarra.es/AccesoFicheros/DownloadFile.aspx?CodigoCompleto=Portal@@@epub/BON/ANUCLEO/Plantilla-2026_C.pdf#page=416", "https://gobiernoabierto.navarra.es/sites/default/files/assets/files/pagina-interior/transparencia/Retribuciones2026.pdf"], "antiguedad": 338.1},
+    "PV": {"fijoBruto": 60026.72, "residencia": 0.0, "fuentes": ["https://www.osakidetza.euskadi.eus/contenidos/informacion/osk_trbg_informacion_economica/es_def/adjuntos/Instruccion-2_2026.pdf"], "antiguedad": 832.32},
+    "RI": {"fijoBruto": 56021.32, "residencia": 0.0, "fuentes": ["https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf"], "antiguedad": 706.6},
+    "INGESA": {"fijoBruto": 68655.38, "residencia": 14030.88, "fuentes": ["https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf"], "antiguedad": 706.6}
   },
   "provisionales": {
-    "CB": {"fijoBruto": 58763.46, "residencia": 0.0, "fuentes": ["https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=38"]}
+    "CB": {"fijoBruto": 58763.46, "residencia": 0.0, "fuentes": ["https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=38"], "antiguedad": 706.6}
+  },
+  "carreraNivelII": {
+    "AR": {"importe": 8317.8, "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=15"},
+    "AS": {"importe": 6864.2, "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=63"},
+    "MD": {"importe": 9211.68, "fuente": "https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf#page=54"}
   }
 }

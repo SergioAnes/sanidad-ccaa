@@ -88,6 +88,7 @@ export function iniciar(DATA: DatosApp): void {
   let ordenGuardias = "laborable";
   const pendienteRetribucion = "Pendiente de verificación";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
+  let territorioDedicacion;
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
   const primero = (ind) => periodos(ind)[0];
@@ -1640,8 +1641,84 @@ export function iniciar(DATA: DatosApp): void {
     }).join(" · ");
   }
 
+  function componentesRetribucion(datos) {
+    const { fijoBruto, antiguedad, residencia, diferenciaDedicacion } = datos;
+    const puesto = Math.round((fijoBruto - antiguedad - residencia - (diferenciaDedicacion ?? 0)) * 100) / 100;
+    return { puesto, antiguedad, diferenciaDedicacion };
+  }
+
+  function detalleRetribuciones(ids) {
+    const { territorios, provisionales } = DATA.retribuciones;
+    const euros = (v) => fmt(v, "eur_anual");
+    const filas = ids.map((id) => {
+      const datos = territorios[id] ?? provisionales[id];
+      if (!datos) return "";
+      const { puesto, antiguedad, diferenciaDedicacion } = componentesRetribucion(datos);
+      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+        <td>${euros(puesto)}</td><td>${euros(antiguedad)}</td><td>${euros(diferenciaDedicacion)}</td>
+        <td>${euros(datos.residencia)}</td><td>${euros(datos.fijoBruto)}${territorios[id] ? "" : ' <span class="dato-provisional">Provisional</span>'}</td></tr>`;
+    }).join("");
+    return plegable("retribuciones-desglose", "Ver desglose del fijo", `<p class="sub">Importes brutos anuales. El fijo del puesto incluye las pagas extra.
+      El guion indica que la diferencia por dedicación está sin desglosar.</p>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Desglose de las retribuciones">
+        <table class="tabla tabla-retribuciones" aria-label="Componentes del fijo anual"><thead><tr>
+          <th scope="col">Territorio</th><th scope="col">Fijo del puesto</th><th scope="col">Antigüedad</th>
+          <th scope="col">Diferencia por dedicación</th><th scope="col">Residencia</th><th scope="col">Total anual</th>
+        </tr></thead><tbody>${filas}</tbody></table>
+      </div>`);
+  }
+
+  function simulacionCarrera() {
+    const { territorios, carreraNivelII } = DATA.retribuciones;
+    const euros = (v) => fmt(v, "eur_anual");
+    const filas = Object.entries(carreraNivelII).map(([id, { importe, fuente }]) => {
+      const { fijoBruto, antiguedad } = territorios[id];
+      const sinCarrera = fijoBruto + 3 * antiguedad;
+      return { id, importe, fuente, sinCarrera, conCarrera: sinCarrera + importe };
+    }).sort((a, b) => b.conCarrera - a.conCarrera)
+      .map(({ id, importe, fuente, sinCarrera, conCarrera }) => `<tr class="${id === S.com ? "tuya" : ""}">
+        <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
+        <td>${euros(sinCarrera)}</td><td>${euros(importe)}</td><td><b>${euros(conCarrera)}</b></td></tr>`).join("");
+    return plegable("retribuciones-carrera", "Simular la carrera profesional", `<p class="sub">Piloto con Aragón, Asturias y Madrid.
+      Especialista con 12 años de servicio (cuatro trienios), a jornada completa y sin guardias. El total con carrera supone que el servicio ya le ha reconocido el nivel II.</p>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de carrera profesional">
+        <table class="tabla tabla-retribuciones" aria-label="Fijo anual con y sin carrera profesional"><thead><tr>
+          <th scope="col">Territorio</th><th scope="col">Sin carrera</th><th scope="col">Complemento de carrera</th>
+          <th scope="col" aria-sort="descending">Total con nivel II</th>
+        </tr></thead><tbody>${filas}</tbody></table>
+      </div>`);
+  }
+
+  function simulacionDedicacion() {
+    const { territorios } = DATA.retribuciones;
+    const ids = IDS.filter((id) => territorios[id]?.diferenciaDedicacion != null)
+      .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"));
+    const seleccionado = territorioDedicacion ?? (ids.includes(S.com) ? S.com : ids[0]);
+    return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `<p class="sub">
+      Especialista con cinco años de servicio, sin carrera reconocida ni guardias. Elige un servicio con ambas modalidades verificadas.</p>
+      <div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-territorio">Territorio</label>
+        <select id="retribuciones-dedicacion-territorio">${ids.map((id) =>
+          opt(id, nombreRetribucion(id), id === seleccionado)).join("")}</select>
+      </div>
+      <div id="retribuciones-dedicacion-resultado" aria-live="polite">${importesDedicacion(seleccionado)}</div>`);
+  }
+
+  function importesDedicacion(id) {
+    const { fijoBruto, diferenciaDedicacion, fuentes } = DATA.retribuciones.territorios[id];
+    const euros = (v) => fmt(v, "eur_anual");
+    return `<table class="tabla tabla-retribuciones" aria-label="Fijo anual según dedicación"><thead>
+      <tr><th scope="col">Modalidad</th><th scope="col">Importe anual</th></tr></thead><tbody>
+      <tr><th scope="row">Con dedicación exclusiva</th><td>${euros(fijoBruto)}</td></tr>
+      <tr><th scope="row">Sin dedicación exclusiva</th><td>${euros(fijoBruto - diferenciaDedicacion)}</td></tr>
+      <tr><th scope="row">Diferencia en el fijo</th><td><b>${euros(diferenciaDedicacion)}</b></td></tr>
+      </tbody></table>
+      ${id === "MC" ? '<p class="sub">En Murcia, la productividad fija compensa en el cómputo anual la diferencia del complemento específico.</p>' : ""}
+      <p class="sub">${fuentesRetribucion(id, fuentes, false)}</p>`;
+  }
+
   function tablaRetribuciones(cont, ind, vals) {
     const orden = ordenados(vals);
+    const sinPuesto = IDS.filter((id) => vals[id] == null);
     const fila = (id, puesto = "—") => {
       const confirmado = DATA.retribuciones.territorios[id];
       const datos = confirmado ?? DATA.retribuciones.provisionales[id];
@@ -1650,12 +1727,21 @@ export function iniciar(DATA: DatosApp): void {
         <td>${datos?.residencia ? fmt(datos.residencia, ind.unidad) : "—"}</td>
         <td>${datos ? fuentesRetribucion(id, datos.fuentes, !confirmado) : pendienteRetribucion}</td></tr>`;
     };
-    const filas = orden.map((id, i) => fila(id, i + 1)).join("") + IDS.filter((id) => vals[id] == null).map((id) => fila(id)).join("");
-    cont.innerHTML = `<div class="tabla-wrap tabla-ranking"><table class="tabla"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th><th scope="col">Fijo bruto anual</th><th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
+    const filas = orden.map((id, i) => fila(id, i + 1)).join("") + sinPuesto.map((id) => fila(id)).join("");
+    cont.innerHTML = `<div class="nota retribuciones-detalles">
+        ${detalleRetribuciones([...orden, ...sinPuesto, "INGESA"])}
+        ${simulacionCarrera()}
+        ${simulacionDedicacion()}
+      </div>
+      <div class="tabla-wrap tabla-ranking"><table class="tabla"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th><th scope="col">Fijo bruto anual</th><th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
       <tbody>${filas}<tr class="sep"><td colspan="5">Servicio estatal fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody></table></div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv">Descargar CSV</button>
         <a href="#datos?dato=hosp_guardias&amp;com=${S.com.toLowerCase()}">Ver las tarifas de guardia</a></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
+    $("#retribuciones-dedicacion-territorio").onchange = (e) => {
+      territorioDedicacion = e.target.value;
+      $("#retribuciones-dedicacion-resultado").innerHTML = importesDedicacion(territorioDedicacion);
+    };
   }
 
   function tabla(cont, ind, anio, ordenMapa) {
@@ -1721,15 +1807,18 @@ export function iniciar(DATA: DatosApp): void {
       filas.push(fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Laborable", "€/h", ics.porHora.laborable, icsFuente),
         fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Domingo no festivo", "€/h", ics.porHora.domingo, icsFuente));
     } else if (esRetribucion(ind)) {
-      filas = [["territorio", "fecha_referencia", "fijo_bruto_anual_eur", "residencia_incluida_eur", "estado", "fuentes"]];
+      filas = [["territorio", "fecha_referencia", "fijo_bruto_anual_eur", "residencia_incluida_eur", "estado", "fuentes",
+        "fijo_puesto_eur", "antiguedad_eur", "diferencia_dedicacion_eur"]];
       const euros = (v) => v == null ? "" : v.toFixed(2).replace(".", ",");
       for (const id of [...IDS, "INGESA"]) {
         const verificado = DATA.retribuciones.territorios[id];
         const datos = verificado ?? DATA.retribuciones.provisionales[id];
         const estado = id === "INGESA" ? "Verificado, fuera del ranking autonómico"
           : verificado ? "Verificado" : datos ? "Provisional" : pendienteRetribucion;
+        const componentes = datos ? componentesRetribucion(datos) : {};
         filas.push([nombreRetribucion(id), DATA.retribuciones.fecha, euros(datos?.fijoBruto), euros(datos?.residencia),
-          estado, datos?.fuentes.join(" | ") ?? ""]);
+          estado, datos?.fuentes.join(" | ") ?? "",
+          euros(componentes.puesto), euros(componentes.antiguedad), euros(componentes.diferenciaDedicacion)]);
       }
     } else if (ind.grupo === "opinion") filas = filasCSVOpinion(ind);
     else if (esRecurso(ind)) {

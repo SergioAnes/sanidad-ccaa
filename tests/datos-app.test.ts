@@ -29,10 +29,14 @@ describe("datos de la interfaz", () => {
     expect(i.espana).toEqual([]);
     expect(i.serie.CB).toEqual([null]);
     expect(d.retribuciones.territorios.CB).toBeNull();
-    expect(d.retribuciones.provisionales.CB).toMatchObject({ fijoBruto: 58763.46, residencia: 0 });
+    expect(d.retribuciones.provisionales.CB).toMatchObject({ fijoBruto: 58763.46, residencia: 0, antiguedad: 706.6 });
     expect(d.ccaa.filter(({ id }) => Number.isFinite(i.serie[id][0]))).toHaveLength(16);
     expect(d.retribuciones.territorios.INGESA).toMatchObject({ fijoBruto: 68655.38, residencia: 14030.88 });
     expect(i.serie.INGESA).toEqual([68655.38]);
+    expect(i.serie.AR).toEqual([56806.60]);
+    expect(d.retribuciones.territorios.AR).toMatchObject({ diferenciaDedicacion: 2989.8, antiguedad: 706.6 });
+    expect(d.retribuciones.territorios.NC.antiguedad).toBe(338.1);
+    expect(d.retribuciones.territorios.MC.diferenciaDedicacion).toBe(0);
   });
 
   it("distingue las tarifas de guardia verificadas, las provisionales y los módulos del ICS", () => {

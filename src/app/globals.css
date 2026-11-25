@@ -140,6 +140,10 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla tr.tuya > :is(td, th) { background: var(--accent-soft); font-weight: 600; }
 .tabla .neg { color: var(--muted); }
 .tabla .dato-provisional { display: block; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+.retribuciones-detalles { margin: 10px 0 14px; }
+.retribuciones-dedicacion-filtro { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.tabla-retribuciones :is(th, td):first-child { width: auto; text-align: left; white-space: normal; }
+.tabla-retribuciones :is(th, td):nth-child(n + 2) { text-align: right; }
 #p-vista[hidden], #e-vista[hidden], .guardias[hidden] { display: none; }
 .guardias, .guardias-ics { scroll-margin-top: 85px; }
 .guardias .seg { margin-bottom: 14px; }
@@ -441,6 +445,10 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .insight.tuya { padding: 12px 16px; }
   .tabla-deslizar { margin: 8px 0 0; color: var(--muted); font-size: 0.83rem; }
   .tabla-ranking thead th, .tabla-encuesta thead th { white-space: normal; }
+  .tabla-retribuciones :is(th, td) { padding-inline: 6px; }
+  .tabla-retribuciones thead th { white-space: normal; }
+  .tabla-wrap .tabla-retribuciones :is(th, td):first-child { position: sticky; left: 0; background: var(--surface); box-shadow: 1px 0 var(--line); }
+  .tabla-wrap .tabla-retribuciones tr.tuya > th:first-child { background: var(--accent-soft); }
   .tabla-total-nota { display: block; }
   .tabla-guardias { table-layout: fixed; }
   .tabla-guardias th, .tabla-guardias td, .tabla-guardias th[scope="row"] { padding-inline: 5px; white-space: normal; }
