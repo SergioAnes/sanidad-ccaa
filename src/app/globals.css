@@ -148,17 +148,18 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 #medicina-familia .nota { margin-top: 12px; }
 #p-vista[hidden], #e-vista[hidden], #medicina-familia[hidden], .guardias[hidden] { display: none; }
 .guardias, .guardias-ics, #medicina-familia { scroll-margin-top: 85px; }
-.guardias .seg { margin-bottom: 14px; }
+.guardias .seg, #medicina-familia .seg { margin-bottom: 14px; }
 .guardias .guardias-contexto { margin-top: 10px; padding: 8px 10px; background: var(--accent-soft); border-radius: 8px; }
 .guardias-orden { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 0.85rem; }
-.guardias-ranking { list-style: none; padding: 0; margin: 10px 0; font-size: 0.9rem; }
-.guardias-ranking li { display: grid; grid-template-columns: 2.5ch minmax(10ch, 180px) minmax(14px, 1fr) 9ch; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-.guardias-ranking .puesto { color: var(--muted); font-variant-numeric: tabular-nums; }
-.guardias-ranking .importe { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.guardias-ranking .pista { display: block; height: 9px; background: var(--bg); border-radius: 4px; }
-.guardias-ranking .pista span { display: block; height: 100%; background: var(--grey-line); border-radius: inherit; }
-.guardias-ranking li.tuya { background: var(--accent-soft); font-weight: 600; }
-.guardias-ranking li.tuya .pista span { background: var(--accent); }
+.ranking-sueldos { list-style: none; padding: 0; margin: 10px 0; font-size: 0.9rem; }
+.ranking-sueldos li { display: grid; grid-template-columns: 2.5ch minmax(10ch, 180px) minmax(14px, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.ranking-sueldos .puesto { color: var(--muted); font-variant-numeric: tabular-nums; }
+.ranking-sueldos .importe { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ranking-sueldos .pista { display: block; height: 9px; background: var(--bg); border-radius: 4px; }
+.ranking-sueldos .pista span { display: block; height: 100%; background: var(--grey-line); border-radius: inherit; }
+.ranking-sueldos li.tuya { background: var(--accent-soft); font-weight: 600; }
+.ranking-sueldos li.tuya .pista span { background: var(--accent); }
+.tabla-medicina-familia :is(th, td):nth-child(2) { text-align: left; white-space: normal; }
 .tabla-guardias :is(th, td):first-child { width: auto; white-space: normal; }
 .tabla-guardias :is(th, td):nth-child(n + 2) { text-align: right; }
 .tabla-guardias-territorios :is(th, td):nth-child(2) { text-align: left; }
@@ -449,14 +450,15 @@ dialog.ajustes::backdrop { background: rgb(0 0 0 / 0.4); }
   .tabla-ranking thead th, .tabla-encuesta thead th { white-space: normal; }
   .tabla-retribuciones :is(th, td) { padding-inline: 6px; }
   .tabla-retribuciones thead th { white-space: normal; }
-  .tabla-wrap .tabla-retribuciones :is(th, td):first-child { position: sticky; left: 0; background: var(--surface); box-shadow: 1px 0 var(--line); }
-  .tabla-wrap .tabla-retribuciones tr.tuya > th:first-child { background: var(--accent-soft); }
+  .tabla-wrap .tabla-retribuciones:not(.tabla-medicina-familia) :is(th, td):first-child,
+  .tabla-wrap .tabla-medicina-familia :is(th, td):nth-child(2) { position: sticky; left: 0; background: var(--surface); box-shadow: 1px 0 var(--line); }
+  .tabla-wrap .tabla-retribuciones tr.tuya > th[scope="row"] { background: var(--accent-soft); }
   .tabla-total-nota { display: block; }
   .tabla-guardias { table-layout: fixed; }
   .tabla-guardias th, .tabla-guardias td, .tabla-guardias th[scope="row"] { padding-inline: 5px; white-space: normal; }
   .tabla-guardias-territorios thead th:nth-child(2) { width: 36%; }
   .tabla-guardias th[scope="row"] { overflow-wrap: anywhere; }
-  .guardias-ranking li { grid-template-columns: 2ch minmax(8ch, 1.5fr) minmax(14px, 1fr) auto; padding-inline: 3px; gap: 6px; }
+  .ranking-sueldos li { grid-template-columns: 2ch minmax(8ch, 1.5fr) minmax(14px, 1fr) auto; padding-inline: 3px; gap: 6px; }
   .tabla-ranking tr:not(.sep) > :nth-child(2),
   .tabla-encuesta tr > :first-child { position: sticky; left: 0; z-index: 1; max-width: 125px; white-space: normal; background: var(--surface); box-shadow: 1px 0 var(--line), 6px 0 8px -7px var(--muted); }
   .tabla-ranking tr.tuya > :nth-child(2),

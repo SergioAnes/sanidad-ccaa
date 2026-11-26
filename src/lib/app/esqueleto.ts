@@ -64,6 +64,7 @@ export const ESQUELETO = `<div class="wrap">
       <h2 id="e-titulo"></h2>
       <p class="sub" id="e-sub"></p>
       <dl class="contexto-grafico" id="e-contexto"></dl>
+      <div class="nota" id="e-perfiles" hidden></div>
       <div class="chart" id="e-chart"></div>
       <div class="descargas" id="e-desc"></div>
       <div class="nota" id="e-nota"></div>
