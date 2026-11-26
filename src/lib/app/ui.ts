@@ -1847,6 +1847,9 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   const romano = ["", "I", "II", "III", "IV", "V"];
+  // Murcia (BORM 11/03/2026, tabla VII): «las cantidades ... corresponden al año de reconocimiento del nivel» y los
+  // efectos económicos se implantan por porcentajes (BORM 21/11/2022), así que no hay un importe único que simular.
+  const carreraSinSimular = { MC: "su tabla de 2026 da importes que dependen del año en que se reconoció cada nivel y de un calendario de implantación por porcentajes, así que no hay un importe único para el perfil" };
 
   function resultadoPerfilHospital() {
     const { anios, carrera: conCarrera } = perfilesHospital[perfilHospital];
@@ -1861,7 +1864,7 @@ export function iniciar(DATA: DatosApp): void {
       if (!datos) return excluir(id, "no hay tabla oficial del sueldo localizada"), [];
       if (anios !== 5 && antiguedadSinSimular[id]) return excluir(id, antiguedadSinSimular[id]), [];
       const c = conCarrera ? carrera[id] : null;
-      if (conCarrera && !c) return excluir(id, "falta cargar su tabla de carrera profesional"), [];
+      if (conCarrera && !c) return excluir(id, carreraSinSimular[id] ?? "falta cargar su tabla de carrera profesional"), [];
       if (c?.sinAcceso) return excluir(id, c.sinAcceso), [];
       // Nivel más alto que permiten los años, con evaluación favorable en cuanto se cumple cada plazo.
       const nivel = c ? c.anios.filter((minimo) => minimo <= anios).length : 0;
