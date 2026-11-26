@@ -1584,7 +1584,7 @@ export function iniciar(DATA: DatosApp): void {
     return `<p>El fijo bruto anual incluye las pagas extraordinarias, la antigüedad y los complementos fijos del puesto. Se calcula con las cuantías vigentes en la fecha de corte.</p>
       ${contextoRetribuciones()}
       <p><b>Residencia.</b> Las cuantías de Illes Balears y Canarias corresponden a Mallorca y a Tenerife o Gran Canaria, respectivamente. El complemento depende de la isla. La tabla muestra el importe de residencia de esos dos servicios y de INGESA dentro del total. INGESA aplica la misma tabla a Ceuta y Melilla y figura fuera del ranking autonómico.</p>
-      <p><b>Navarra.</b> Se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
+      <p><b>Navarra.</b> Se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo. Su tabla de 2026 publica el sueldo, el destino y el quinquenio, pero no dos conceptos que calculamos con sus normas: el complemento específico (51,31 % del sueldo, el porcentaje que la plantilla asigna a la plaza) y la productividad fija del personal facultativo (400 € al mes en 14 pagas según la Ley Foral 11/2023, actualizados cada año con el incremento general: 426,55 € en 2026). <a href="https://www.lexnavarra.navarra.es/detalle.asp?r=55901">Ley Foral 11/2023</a> · <a href="https://administracionelectronica.navarra.es/AccesoFicheros/DownloadFile.aspx?CodigoCompleto=Portal@@@epub/BON/ANUCLEO/Plantilla-2026_C.pdf#page=416">Plantilla</a>.</p>
       <p><b>Solo fuentes oficiales.</b> Usamos boletines oficiales y tablas publicadas por los servicios de salud o los gobiernos autonómicos. Cataluña y Cantabria quedan sin importe hasta localizar su tabla oficial de 2026.</p>`;
   }
 
