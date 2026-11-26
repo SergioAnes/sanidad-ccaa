@@ -87,48 +87,5 @@
       "fuente": "https://www.ivass.gva.es/dam/jcr%3A8596fab2-07e4-4502-91fd-2781859dd9ef/taules%20retributives%20-%20tablas%20retributivas%202026.pdf#page=31"
     }
   },
-  "provisionales": {
-    "CB": {
-      "laborable": 31.2,
-      "domingo": 34.93,
-      "fuente": "https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=23"
-    },
-    "NC": {
-      "laborable": 32.31,
-      "domingo": 32.31,
-      "fuente": "https://sanidad.ccoo.es/b582d227584104728d9dcfead546e621000058.pdf"
-    },
-    "RI": {
-      "domingo": 29.94,
-      "fuente": "https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf#page=2"
-    }
-  },
-  "ics": {
-    "porHora": {
-      "laborable": 37.54,
-      "domingo": 40.95
-    },
-    "modulos": [
-      {
-        "dia": "Lunes a jueves",
-        "importe": 506.55
-      },
-      {
-        "dia": "Viernes",
-        "importe": 719.82
-      },
-      {
-        "dia": "Sábado",
-        "importe": 1119.72
-      },
-      {
-        "dia": "Domingo o festivo",
-        "importe": 906.45
-      }
-    ],
-    "fuentes": [
-      "https://www.som-hi.eu/wp-content/uploads/2026/02/Llibre-de-retribucions-2026-ics.pdf#page=37",
-      "https://administraciopublica.gencat.cat/web/.content/empleats-publics/acords-pactes-convenis/personal-estatutari/Estatutaris-ICS-Acord-2023.12.12.pdf"
-    ]
-  }
+  "provisionales": {}
 }

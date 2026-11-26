@@ -150,7 +150,7 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .orden-columna:hover { text-decoration: underline; }
 #medicina-familia .nota { margin-top: 12px; }
 #p-vista[hidden], #e-vista[hidden], #medicina-familia[hidden], .guardias[hidden] { display: none; }
-.guardias, .guardias-ics, #medicina-familia { scroll-margin-top: 85px; }
+.guardias, #medicina-familia { scroll-margin-top: 85px; }
 .guardias .seg, #medicina-familia .seg { margin-bottom: 14px; }
 .guardias .guardias-contexto { margin-top: 10px; padding: 8px 10px; background: var(--accent-soft); border-radius: 8px; }
 .guardias-orden { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 0.85rem; }
@@ -171,9 +171,6 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .tabla-guardias thead th { white-space: normal; }
 .tabla-guardias thead th[aria-sort="descending"] { background: var(--accent-soft); color: var(--fg); }
 .tabla-guardias .neg { font-size: 0.8rem; white-space: normal; }
-.guardias-ics { padding: 16px 0 0; margin-top: 20px; border-top: 1px solid var(--line); }
-.guardias-ics h3 { font-size: 1rem; }
-.guardias-ics.tuya h3 { background: var(--accent-soft); padding: 8px; border-radius: 8px; }
 .guardias-fuentes { columns: 3 140px; }
 .guardias-enlaces { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 /* Gasto frente a espera */
