@@ -110,6 +110,8 @@ export function iniciar(DATA: DatosApp): void {
     { laborables: 34, domingo: 24 },
   ];
   let perfilHospital = 3, guardiasPerfil = 0;
+  let guardiasComparadas = 3;
+  const ordenTablasSueldos = new Map();
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
   const primero = (ind) => periodos(ind)[0];
@@ -1590,9 +1592,54 @@ export function iniciar(DATA: DatosApp): void {
     return Math.round(12 * mensual * 100) / 100;
   }
 
+  function cabeceraOrdenable(texto, activa = false) {
+    return `<th scope="col"${activa ? ' aria-sort="descending"' : ""}>
+      <button type="button" class="orden-columna" data-orden-columna>${esc(texto)} <span aria-hidden="true">${activa ? "↓" : "↕"}</span></button>
+    </th>`;
+  }
+
+  function ordenarTablaSueldos(tabla, columna, ascendente) {
+    const cuerpo = tabla.tBodies[0];
+    const filas = Array.from(cuerpo.rows).filter((fila) => fila.cells[columna]?.hasAttribute("data-importe"));
+    if (!filas.length) return;
+    const separador = filas.at(-1).nextElementSibling;
+    const factor = ascendente ? 1 : -1;
+    filas.sort((a, b) => factor * (Number(a.cells[columna].dataset.importe) - Number(b.cells[columna].dataset.importe)));
+    filas.forEach((fila) => cuerpo.insertBefore(fila, separador));
+    tabla.querySelectorAll("[data-orden-columna]").forEach((boton) => {
+      const cabecera = boton.parentElement;
+      const activa = cabecera.cellIndex === columna;
+      if (activa) cabecera.setAttribute("aria-sort", ascendente ? "ascending" : "descending");
+      else cabecera.removeAttribute("aria-sort");
+      boton.querySelector("span").textContent = activa ? (ascendente ? "↑" : "↓") : "↕";
+    });
+  }
+
+  function recuperarOrdenSueldos(contenedor) {
+    contenedor.querySelectorAll("table[data-orden-sueldo]").forEach((tabla) => {
+      const orden = ordenTablasSueldos.get(tabla.dataset.ordenSueldo);
+      if (orden) ordenarTablaSueldos(tabla, orden.columna, orden.ascendente);
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const boton = e.target.closest("[data-orden-columna]");
+    if (!boton) return;
+    const tabla = boton.closest("table");
+    const cabecera = boton.parentElement;
+    const columna = cabecera.cellIndex;
+    const ascendente = cabecera.getAttribute("aria-sort") === "descending";
+    ordenTablasSueldos.set(tabla.dataset.ordenSueldo, { columna, ascendente });
+    ordenarTablaSueldos(tabla, columna, ascendente);
+  });
+
   function ejemploGuardias() {
-    const horas = horasGuardiaMensuales.at(-1);
-    const filas = ["AN", "MC", "MD", "PV"].map((id) => {
+    const horas = horasGuardiaMensuales[guardiasComparadas];
+    const ids = IDS.filter((id) => {
+      const tarifas = DATA.guardias.territorios[id];
+      return DATA.retribuciones.territorios[id] && tarifas?.laborable != null && tarifas.domingo != null;
+    });
+    const filas = ids.map((id) => {
       const tarifas = DATA.guardias.territorios[id];
       const fijo = DATA.retribuciones.territorios[id].fijoBruto;
       const guardias = importeGuardiasAnual(tarifas, horas);
@@ -1600,19 +1647,25 @@ export function iniciar(DATA: DatosApp): void {
     }).sort((a, b) => b.total - a.total).map(({ id, fuente, fijo, guardias, total }) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}" aria-label="Tarifas de ${esc(NOMBRE[id])}">${esc(NOMBRE[id])}</a></th>
-        <td>${fmt(fijo, "eur_anual")}</td><td>${fmt(guardias, "eur_anual")}</td><td><b>${fmt(total, "eur_anual")}</b></td>
+        <td data-importe="${fijo}">${fmt(fijo, "eur_anual")}</td><td data-importe="${guardias}">${fmt(guardias, "eur_anual")}</td><td data-importe="${total}"><b>${fmt(total, "eur_anual")}</b></td>
       </tr>`).join("");
     return plegable("guardias-ejemplo", "¿Cuánto suman las mismas guardias?", `
-      <p>Simulación para un especialista con cinco años de servicio y sin carrera reconocida. Aplicamos las tarifas de ${corteGuardias} a
-      ${horas.laborables} horas de guardia presencial en laborable y ${horas.domingo} en domingo no festivo cada mes durante 12 meses.</p>
+      <p><b>${ids.length} de ${IDS.length} comunidades.</b> Especialista con cinco años de servicio y sin carrera reconocida. Repetimos las horas elegidas cada mes durante 12 meses con las tarifas de ${corteGuardias}.</p>
+      <div class="guardias-orden"><label for="guardias-comparadas">Horas presenciales al mes</label>
+        <select id="guardias-comparadas">
+          ${opt(0, "Sin guardias", guardiasComparadas === 0)}
+          ${opt(1, "17 h laborables", guardiasComparadas === 1)}
+          ${opt(3, "58 h · 34 laborables y 24 en domingo no festivo", guardiasComparadas === 3)}
+        </select>
+      </div>
       <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de fijo más guardias">
-        <table class="tabla tabla-retribuciones"><thead><tr>
-          <th scope="col">Territorio</th><th scope="col">Fijo anual</th><th scope="col">Guardias simuladas</th>
-          <th scope="col" aria-sort="descending">Total simulado</th>
+        <table class="tabla tabla-retribuciones" data-orden-sueldo="guardias-simuladas"><thead><tr>
+          <th scope="col">Territorio</th>${cabeceraOrdenable("Fijo anual")}${cabeceraOrdenable("Guardias simuladas")}
+          ${cabeceraOrdenable("Total simulado", true)}
         </tr></thead><tbody>${filas}</tbody></table>
       </div>
-      <p>Importes brutos en euros. La simulación usa las mismas horas en las cuatro comunidades. Las horas de un especialista dependen del calendario, el centro y la especialidad.</p>`);
+      <p>Importes brutos en euros. Todos los escenarios mantienen los servicios con fijo y ambas tarifas verificadas. Las horas reales dependen del calendario, el centro y la especialidad.</p>`);
   }
 
   function datoGuardia(id, dia) {
@@ -1661,10 +1714,11 @@ export function iniciar(DATA: DatosApp): void {
     };
     const fila = (id) => {
       return `<tr class="${id === S.com ? "tuya" : ""}"><td class="puesto">${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td>${celdaTarifa(id, "laborable")}</td><td>${celdaTarifa(id, "domingo")}</td></tr>`;
+        <td${ordenGuardias === "laborable" && puestos.has(id) ? ` data-importe="${importes[id]}"` : ""}>${celdaTarifa(id, "laborable")}</td>
+        <td${ordenGuardias === "domingo" && puestos.has(id) ? ` data-importe="${importes[id]}"` : ""}>${celdaTarifa(id, "domingo")}</td></tr>`;
     };
-    const columna = (clave, texto) => `<th scope="col"${ordenGuardias === clave ? ' aria-sort="descending"' : ""}>${texto}${ordenGuardias === clave ? ' <span aria-hidden="true">↓</span>' : ""}</th>`;
-    const tabla = `<div class="tabla-wrap"><table class="tabla tabla-guardias tabla-guardias-territorios" aria-label="Tarifas de guardias presenciales por territorio">
+    const columna = (clave, texto) => ordenGuardias === clave ? cabeceraOrdenable(texto, true) : `<th scope="col">${texto}</th>`;
+    const tabla = `<div class="tabla-wrap"><table class="tabla tabla-guardias tabla-guardias-territorios" data-orden-sueldo="tarifas-${ordenGuardias}" aria-label="Tarifas de guardias presenciales por territorio">
         <thead><tr><th scope="col" class="puesto" aria-label="Puesto">#</th><th scope="col">Territorio</th>
           ${columna("laborable", "Laborable")}${columna("domingo", "Domingo no festivo")}</tr></thead>
         <tbody>${[...orden, ...pendientes].map(fila).join("")}<tr class="sep"><td colspan="4">Ceuta y Melilla · Fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody>
@@ -1689,7 +1743,7 @@ export function iniciar(DATA: DatosApp): void {
       <div class="nota">${ejemploGuardias()}</div>
       <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
-      <p class="sub guardias-criterio">De mayor a menor por la tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
+      <p class="sub guardias-criterio">Tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
       ${S.vistaE === "tabla" ? tabla : `${rankingSueldos(ind, orden, puestos, importes, "Ranking de comunidades por tarifa")}
         ${nombresProvisionales ? `<p class="sub">La tabla recoge las tarifas provisionales de ${nombresProvisionales}.</p>` : ""}
         ${nombresPendientes ? `<p class="sub">Tarifa por confirmar en ${nombresPendientes}.</p>` : ""}
@@ -1708,6 +1762,7 @@ export function iniciar(DATA: DatosApp): void {
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
+    $("#guardias-comparadas").onchange = (e) => aplicar(() => { guardiasComparadas = Number(e.target.value); });
     $("#guardias-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => { S.vistaE = b.dataset.v; render(); });
     $("#guardias-ir-ics").onclick = () => { $("#guardias-ics-titulo").focus({ preventScroll: true }); $(".guardias-ics").scrollIntoView(); };
     $("#csv-guardias").onclick = () => descargarCSV(ind);
@@ -1729,18 +1784,19 @@ export function iniciar(DATA: DatosApp): void {
     const euros = (v) => fmt(v, ind.unidad);
     const fila = (id) => {
       const { puesto, antiguedad, cupo: porPacientes, residencia } = territorios[id];
+      const total = dato(ind, id);
+      const importe = (valor) => id === "INGESA" ? "" : ` data-importe="${valor}"`;
       return `<tr class="${id === S.com ? "tuya" : ""}"><td>${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td><b>${euros(dato(ind, id))}</b></td><td>${euros(puesto + antiguedad)}</td>
-        <td>${euros(porPacientes)}</td><td>${residencia ? euros(residencia) : "—"}</td></tr>`;
+        <td${importe(total)}><b>${euros(total)}</b></td><td${importe(puesto + antiguedad)}>${euros(puesto + antiguedad)}</td>
+        <td${importe(porPacientes)}>${euros(porPacientes)}</td><td${importe(residencia)}>${residencia ? euros(residencia) : "—"}</td></tr>`;
     };
     const fuentes = [...orden, "INGESA"].map((id) => {
       const { fuente, nota } = territorios[id];
       return `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a>. ${esc(nota)}</li>`;
     }).join("");
-    const tablaFamilia = `<div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones tabla-medicina-familia" aria-label="Retribución bruta anual simulada de medicina de familia">
+    const tablaFamilia = `<div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones tabla-medicina-familia" data-orden-sueldo="familia" aria-label="Retribución bruta anual simulada de medicina de familia">
         <thead><tr><th scope="col"><span class="sr">Puesto</span><span aria-hidden="true">#</span></th><th scope="col">Territorio</th>
-        <th scope="col" aria-sort="descending">Total anual <span aria-hidden="true">↓</span></th>
-        <th scope="col">Fijo con antigüedad</th><th scope="col">Por pacientes</th><th scope="col">Residencia</th></tr></thead>
+        ${cabeceraOrdenable("Total anual", true)}${cabeceraOrdenable("Fijo con antigüedad")}${cabeceraOrdenable("Por pacientes")}${cabeceraOrdenable("Residencia")}</tr></thead>
         <tbody>${orden.map(fila).join("")}<tr class="sep"><td colspan="6">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}</tbody>
       </table></div>`;
     $("#medicina-familia").innerHTML = `<div class="seg" id="medicina-familia-vistas" role="group" aria-label="Tipo de gráfico">
@@ -1815,15 +1871,16 @@ export function iniciar(DATA: DatosApp): void {
     }).sort((a, b) => b.total - a.total);
     return `<p class="sub">${anios} años de servicio, ${trienios} ${trienios === 1 ? "trienio" : "trienios"}.
       ${guardiasPerfil ? `${horas.laborables} h en laborable y ${horas.domingo} h en domingo no festivo al mes durante 12 meses.` : "Sin guardias."}
-      ${filas.length} servicios con cálculo. ${nivel === 4 ? "Aragón queda fuera de este perfil porque sus instrucciones de 2026 suprimen el abono del nivel IV." : ""}</p>
+      <b>${filas.length} de ${IDS.length} comunidades.</b> ${nivel === 4 ? "Las instrucciones de nóminas de Aragón suprimen el abono del nivel IV en 2026." : ""}</p>
       <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Totales del perfil hospitalario seleccionado">
-        <table class="tabla tabla-retribuciones"><thead><tr>
-          <th scope="col">Territorio</th><th scope="col">Fijo con antigüedad</th><th scope="col">Carrera</th>
-          <th scope="col">Guardias</th><th scope="col" aria-sort="descending">Total bruto anual</th>
+        <table class="tabla tabla-retribuciones" data-orden-sueldo="perfiles"><thead><tr>
+          <th scope="col">Territorio</th>${cabeceraOrdenable("Fijo con antigüedad")}${cabeceraOrdenable("Carrera")}
+          ${cabeceraOrdenable("Guardias")}${cabeceraOrdenable("Total bruto anual", true)}
         </tr></thead><tbody>${filas.map(({ id, fuente, fijo, complemento, guardias, total }) =>
           `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row"><a href="${esc(fuente)}">${esc(NOMBRE[id])}</a></th>
-            <td>${euros(fijo)}</td><td>${euros(complemento)}</td><td>${euros(guardias)}</td><td><b>${euros(total)}</b></td></tr>`).join("")}
+            <td data-importe="${fijo}">${euros(fijo)}</td><td data-importe="${complemento}">${euros(complemento)}</td>
+            <td data-importe="${guardias}">${euros(guardias)}</td><td data-importe="${total}"><b>${euros(total)}</b></td></tr>`).join("")}
         </tbody></table>
       </div>`;
   }
@@ -1864,6 +1921,7 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Jornada inferior a la completa.</b> En Madrid, el fijo del perfil de cinco años sería de ${euros(territorios.MD.fijoBruto * 0.75)} brutos anuales al 75 % de jornada durante todo el año, aplicando la reducción proporcional del puesto y del trienio. <a href="${esc(territorios.MD.fuentes[0])}#page=18">Instrucciones de nómina del SERMAS</a>.</p>`);
     function actualizarResultado() {
       $("#resultado-perfil-hospital").innerHTML = resultadoPerfilHospital();
+      recuperarOrdenSueldos($("#resultado-perfil-hospital"));
     }
     $("#perfil-hospital").onchange = (e) => { perfilHospital = Number(e.target.value); actualizarResultado(); };
     $("#guardias-perfil").onchange = (e) => { guardiasPerfil = Number(e.target.value); actualizarResultado(); };
@@ -1876,13 +1934,12 @@ export function iniciar(DATA: DatosApp): void {
     }).sort((a, b) => b[ordenDedicacion] - a[ordenDedicacion])
       .map(({ id, exclusiva, compatible, diferenciaDedicacion }) =>
         `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
-          <td>${fmt(exclusiva, "eur_anual")}</td><td>${fmt(compatible, "eur_anual")}</td>
-          <td>${fmt(diferenciaDedicacion, "eur_anual")}</td></tr>`).join("");
-    const sort = (modalidad) => ordenDedicacion === modalidad ? ' aria-sort="descending"' : "";
-    return `<table class="tabla tabla-retribuciones"><thead><tr>
-      <th scope="col">Territorio</th><th scope="col"${sort("exclusiva")}>Con exclusiva</th>
-      <th scope="col"${sort("compatible")}>Con compatibilidad</th>
-      <th scope="col">Más con exclusiva</th></tr></thead><tbody>${filas}</tbody></table>`;
+          <td data-importe="${exclusiva}">${fmt(exclusiva, "eur_anual")}</td><td data-importe="${compatible}">${fmt(compatible, "eur_anual")}</td>
+          <td data-importe="${diferenciaDedicacion}">${fmt(diferenciaDedicacion, "eur_anual")}</td></tr>`).join("");
+    return `<table class="tabla tabla-retribuciones" data-orden-sueldo="dedicacion"><thead><tr>
+      <th scope="col">Territorio</th>${cabeceraOrdenable("Con exclusiva", ordenDedicacion === "exclusiva")}
+      ${cabeceraOrdenable("Con compatibilidad", ordenDedicacion === "compatible")}
+      ${cabeceraOrdenable("Más con exclusiva")}</tr></thead><tbody>${filas}</tbody></table>`;
   }
 
   function territoriosDedicacion() {
@@ -1900,7 +1957,7 @@ export function iniciar(DATA: DatosApp): void {
       </div>
       <div id="retribuciones-dedicacion-resultado" aria-live="polite">${importesDedicacion(seleccionado)}</div>`;
     return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `
-      <p>El sueldo público fijo puede cambiar si el mismo especialista obtiene autorización para ejercer también en la privada. Cambia el orden para ver qué ocurre en los ${ids.length} servicios donde se pueden comparar ambas modalidades.</p>
+      <p><b>${ids.length} de ${IDS.length} comunidades.</b> El sueldo público fijo puede cambiar si el mismo especialista obtiene autorización para ejercer también en la privada.</p>
       <div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-orden">Ordenar por</label>
         <select id="retribuciones-dedicacion-orden">
           ${opt("exclusiva", "Sueldo con exclusiva", ordenDedicacion === "exclusiva")}
@@ -1938,7 +1995,7 @@ export function iniciar(DATA: DatosApp): void {
       const confirmado = DATA.retribuciones.territorios[id];
       const datos = confirmado ?? DATA.retribuciones.provisionales[id];
       return `<tr class="${id === S.com ? "tuya" : ""}"><td>${puesto}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td>${datos ? fmt(datos.fijoBruto, ind.unidad) : "—"}${datos && !confirmado ? ' <span class="dato-provisional">Provisional</span>' : ""}</td>
+        <td${confirmado && id !== "INGESA" ? ` data-importe="${confirmado.fijoBruto}"` : ""}>${datos ? fmt(datos.fijoBruto, ind.unidad) : "—"}${datos && !confirmado ? ' <span class="dato-provisional">Provisional</span>' : ""}</td>
         <td>${datos?.residencia ? fmt(datos.residencia, ind.unidad) : "—"}</td>
         <td>${datos ? fuentesRetribucion(id, datos.fuentes, !confirmado) : pendienteRetribucion}</td></tr>`;
     };
@@ -1948,13 +2005,14 @@ export function iniciar(DATA: DatosApp): void {
         ${simulacionDedicacion()}
         ${plegable("retribuciones-contexto", "Qué más influye en la nómina", contextoRetribuciones())}
       </div>
-      <div class="tabla-wrap tabla-ranking"><table class="tabla"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th><th scope="col">Fijo bruto anual</th><th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
+      <div class="tabla-wrap tabla-ranking"><table class="tabla" data-orden-sueldo="fijo"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th>${cabeceraOrdenable("Fijo bruto anual", true)}<th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
       <tbody>${filas}<tr class="sep"><td colspan="5">Servicio estatal fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody></table></div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv">Descargar CSV</button>
         <a href="#datos?dato=hosp_guardias&amp;com=${S.com.toLowerCase()}">Ver las tarifas de guardia</a></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
     $("#retribuciones-dedicacion-orden").onchange = (e) => {
       ordenDedicacion = e.target.value;
+      ordenTablasSueldos.delete("dedicacion");
       $("#retribuciones-dedicacion-comparacion").innerHTML = tablaDedicacion(territoriosDedicacion());
     };
     $("#retribuciones-dedicacion-territorio").onchange = (e) => {
@@ -2741,6 +2799,7 @@ export function iniciar(DATA: DatosApp): void {
   function render() {
     const foco = selectorFoco();
     renderVista();
+    if (S.vista === "datos") recuperarOrdenSueldos($("#v-datos"));
     if (foco) { const e = document.querySelector(foco); if (e && e !== document.activeElement) e.focus({ preventScroll: true }); }
     // Aviso para lectores de pantalla: qué se está mostrando ahora
     const activo = periodoActual();
