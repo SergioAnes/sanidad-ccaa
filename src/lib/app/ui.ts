@@ -112,7 +112,10 @@ export function iniciar(DATA: DatosApp): void {
     { laborables: 34, domingo: 24 },
   ];
   let perfilHospital = 1, guardiasPerfil = 0;
-  const trienioEstandar = 706.6; // Trienio del subgrupo A1 en las tablas de 2026 que siguen la cuantía estatal.
+  // Antigüedad que no es un trienio de importe fijo: no se simula para otros años de servicio.
+  // Navarra (régimen funcionarial, Retribuciones 2026): quinquenios con porcentajes no lineales y el grado también cambia con los años.
+  // País Vasco sí es un trienio fijo: 706,60 € más 125,72 € de diferencia de antigüedad (Instrucción 2/2026 de Osakidetza, anexo II).
+  const antiguedadSinSimular = { NC: "su antigüedad va por quinquenios con porcentajes distintos y el grado también cambia con los años; solo se muestra en el perfil de cinco años" };
     const ordenTablasSueldos = new Map();
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
@@ -1851,7 +1854,7 @@ export function iniciar(DATA: DatosApp): void {
     const filas = IDS.flatMap((id) => {
       const datos = territorios[id];
       if (!datos) return excluir(id, "no hay tabla oficial del sueldo localizada"), [];
-      if (anios !== 5 && datos.antiguedad !== trienioEstandar) return excluir(id, "su antigüedad no sigue el trienio estándar y falta comprobar cómo se calcula para otros años de servicio"), [];
+      if (anios !== 5 && antiguedadSinSimular[id]) return excluir(id, antiguedadSinSimular[id]), [];
       if (nivel && !carrera[id]) return excluir(id, "falta cargar su tabla de carrera profesional"), [];
       const complemento = nivel ? carrera[id].niveles[nivel - 1] : 0;
       if (complemento == null) return excluir(id, "no abona ese nivel de carrera en 2026"), [];
