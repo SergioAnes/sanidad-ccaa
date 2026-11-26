@@ -49,7 +49,7 @@ describe("datos de la interfaz", () => {
     expect(Object.keys(territorios).sort()).toEqual([...d.ccaa.map(({ id }) => id).filter((id) => id !== "CT"), "INGESA"].sort());
     expect(territorios.CB).toMatchObject({ laborable: null, domingo: null });
     expect(territorios.NC).toMatchObject({ laborable: null, domingo: null });
-    expect(territorios.RI).toMatchObject({ laborable: 28.57, domingo: null });
+    expect(territorios.RI).toMatchObject({ laborable: 28.57, domingo: 29.94 });
     expect(provisionales).toEqual({});
     expect(d.guardias).not.toHaveProperty("ics");
     expect(i.serie.CB).toEqual([null]);
@@ -57,7 +57,7 @@ describe("datos de la interfaz", () => {
     expect(i.serie.RI).toEqual([28.57]);
     expect(territorios.VC).toMatchObject({ laborable: 30.26, domingo: 32.26 });
     expect(territorios.INGESA).toMatchObject({ laborable: 24.91, domingo: 25.52 });
-    expect(Object.values(territorios).filter((fila) => fila.domingo != null)).toHaveLength(14);
+    expect(Object.values(territorios).filter((fila) => fila.domingo != null)).toHaveLength(15);
     expect(i.serie.CT).toBeUndefined();
   });
 
