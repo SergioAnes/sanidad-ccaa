@@ -27,6 +27,8 @@
     "AR": {"niveles": [4277.76, 8317.8, 11882.52, null], "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=15"},
     "AS": {"niveles": [3432.24, 6864.2, 10229.24, 13593.72], "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=63"},
     "CL": {"niveles": [3759.84, 7518.84, 11278.12, 15036.98], "fuente": "https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf#page=66"},
+    "EX": {"niveles": [3146.16, 6292.68, 9438.72, 12585], "fuente": "https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/5%20RESOLUCION%20RETRIBUCIONES%2C%20ANEXOS%20Y%20TABLAS%20SES%202026%20PORTAL.pdf#page=75"},
+    "GA": {"niveles": [3602.28, 7204.56, 10806.84, 14409.12], "fuente": "https://ficheiros-web.xunta.gal/transparencia/retribucions/2026/persoal-estatutario-saude.pdf#page=5"},
     "MD": {"niveles": [4969.56, 9211.68, 12969, 16362.72], "fuente": "https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf#page=54"}
   }
 }
