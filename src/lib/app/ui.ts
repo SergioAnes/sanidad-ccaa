@@ -78,6 +78,7 @@ export function iniciar(DATA: DatosApp): void {
   const esRetribucion = (ind) => ind.fuente === "retribuciones";
   const esGuardia = (ind) => ind.fuente === "guardias";
   const esMedicinaFamilia = (ind) => ind.fuente === "medicinaFamilia";
+  const esComparacionSueldos = (ind) => esGuardia(ind) || esMedicinaFamilia(ind);
   const fechaTablas = (fecha, corta = false) => new Intl.DateTimeFormat("es-ES",
     corta ? { month: "short", year: "numeric", timeZone: "UTC" } : { dateStyle: "long", timeZone: "UTC" },
   ).format(new Date(fecha + "T00:00:00Z"));
@@ -94,6 +95,21 @@ export function iniciar(DATA: DatosApp): void {
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
   let territorioDedicacion;
   let ordenDedicacion = "exclusiva";
+  const perfilesHospital = [
+    { etiqueta: "Inicio · sin antigüedad", anios: 0, nivel: 0 },
+    { etiqueta: "5 años · sin carrera", anios: 5, nivel: 0 },
+    { etiqueta: "12 años · sin carrera", anios: 12, nivel: 0 },
+    { etiqueta: "12 años · nivel II", anios: 12, nivel: 2 },
+    { etiqueta: "18 años · nivel III", anios: 18, nivel: 3 },
+    { etiqueta: "25 años · nivel IV", anios: 25, nivel: 4 },
+  ];
+  const horasGuardiaMensuales = [
+    { laborables: 0, domingo: 0 },
+    { laborables: 17, domingo: 0 },
+    { laborables: 17, domingo: 24 },
+    { laborables: 34, domingo: 24 },
+  ];
+  let perfilHospital = 3, guardiasPerfil = 0;
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
   const primero = (ind) => periodos(ind)[0];
@@ -914,7 +930,7 @@ export function iniciar(DATA: DatosApp): void {
   }
   function filtrosModificados(base) {
     if (esGuardia(base)) return ordenGuardias !== "laborable" || S.vistaE !== "ranking";
-    if (esMedicinaFamilia(base)) return false;
+    if (esMedicinaFamilia(base)) return S.vistaE !== "ranking";
     return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
   }
   function restablecer() {
@@ -922,7 +938,8 @@ export function iniciar(DATA: DatosApp): void {
     if (esGuardia(actual)) {
       ordenGuardias = "laborable";
       S.vistaE = "ranking";
-    } else Object.assign(S, filtrosIniciales(actual));
+    } else if (esMedicinaFamilia(actual)) S.vistaE = "ranking";
+    else Object.assign(S, filtrosIniciales(actual));
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
@@ -933,8 +950,8 @@ export function iniciar(DATA: DatosApp): void {
   const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a, ind) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
   const nombreGrafComunidades = (ind) => esEstimacion(ind) ? "Comunidades" : "Ranking";
-  const vistasGuardias = [["ranking", "Ranking"], ["tabla", "Tabla"]];
-  const opcionesGraf = (base) => (esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución"], ["tabla", "Tabla"]])
+  const vistasComparacionSueldos = [["ranking", "Ranking"], ["tabla", "Tabla"]];
+  const opcionesGraf = (base) => (esComparacionSueldos(base) ? vistasComparacionSueldos : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución"], ["tabla", "Tabla"]])
     .map(([v, t]) => opt(v, t, S.vistaE === v, v === "evolucion" && !tieneSerie(base))).join("");
 
   // «31 de diciembre de 2025» -> «dic. 2025» (para que quepa en una etiqueta)
@@ -960,9 +977,9 @@ export function iniciar(DATA: DatosApp): void {
     } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (S.indP === "gasto_hab" && EDAD) h += `<button type="button" id="rs-edad" class="chip-s boton${S.edad ? " cambiado" : ""}" aria-pressed="${S.edad}" title="Pulsa para ${S.edad ? "ver el dato oficial, sin ajustar" : "ajustar por la edad de la población"}"><span class="et">Edad</span>${S.edad ? "Ajustado" : "Sin ajustar"}</button>`;
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
-    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esGuardia(base) || esMedicinaFamilia(base) ? "Se resalta en la comparación" : "Se resalta en el mapa y en los gráficos"));
-    if (!esMedicinaFamilia(base)) h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false,
-      ayuda(esGuardia(base) ? "Ver ranking o tabla de guardias" : "El gráfico que aparece debajo del mapa"));
+    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esComparacionSueldos(base) ? "Se resalta en la comparación" : "Se resalta en el mapa y en los gráficos"));
+    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false,
+      ayuda(esComparacionSueldos(base) ? "Ver el ranking o la tabla" : "El gráfico que aparece debajo del mapa"));
     // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
     const cambiado = filtrosModificados(base);
     if (cambiado) h += `<button type="button" class="rs-reset" id="rs-reset">Restablecer</button>`;
@@ -1028,9 +1045,9 @@ export function iniciar(DATA: DatosApp): void {
       : fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
     if (S.indP === "gasto_hab" && EDAD) h += fila("Edad", radios("edad", S.edad ? "1" : "0", [["0", "Por habitante", "(dato oficial)"], ["1", "Ajustado por edad"]]), `Ajustado: corrige que unas comunidades tienen más población mayor. Desde ${EDAD.anios[0]}. <a href="#metodo-edad">Cómo se calcula</a>.`);
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
-    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esGuardia(base) || esMedicinaFamilia(base) ? "Se resalta en la comparación." : "Se resalta en el mapa y en los gráficos.");
-    if (!esMedicinaFamilia(base)) h += fila("Gráfico", radios("graf", S.vistaE, esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]),
-      esGuardia(base) ? "" : "El gráfico que aparece debajo del mapa.");
+    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esComparacionSueldos(base) ? "Se resalta en la comparación." : "Se resalta en el mapa y en los gráficos.");
+    h += fila("Gráfico", radios("graf", S.vistaE, esComparacionSueldos(base) ? vistasComparacionSueldos : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]),
+      esComparacionSueldos(base) ? "" : "El gráfico que aparece debajo del mapa.");
     const cambiado = filtrosModificados(base);
     h += `<div class="aj-pie">${cambiado ? '<button type="button" class="btn" id="aj-reset">Restablecer</button>' : ""}<button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
     $("#aj-cuerpo").innerHTML = h;
@@ -1047,7 +1064,7 @@ export function iniciar(DATA: DatosApp): void {
     on('input[name="aj-graf"]', (v) => { S.vistaE = v; });
     const cerrar = () => $("#ajustes").close();
     $("#aj-cerrar").onclick = cerrar;
-    $("#aj-ver").onclick = () => { cerrar(); $(esGuardia(base) ? "#guardias" : "#p-vista").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    $("#aj-ver").onclick = () => { cerrar(); $(esGuardia(base) ? "#guardias" : esMedicinaFamilia(base) ? "#medicina-familia" : "#p-vista").scrollIntoView({ behavior: "smooth", block: "start" }); };
     if (cambiado) $("#aj-reset").onclick = () => {
       pararPlay();
       restablecer();
@@ -1161,9 +1178,9 @@ export function iniciar(DATA: DatosApp): void {
       if (graficoEncuesta(ind)) rankingOpinion(cont, ind, anio); else ranking(cont, mapa.vals, mapa.ind);
     }
     if (esRetribucion(ind)) {
-      const acceso = S.vistaE === "tabla" ? "Abre las simulaciones para ver cuánto cambia." : "En «Tabla» puedes simular el efecto de la carrera y la dedicación.";
-      $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos. ${acceso}`;
+      $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos.`;
     }
+    renderPerfilesHospital(esRetribucion(ind));
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
@@ -1212,7 +1229,7 @@ export function iniciar(DATA: DatosApp): void {
     if (S.anioP !== ultimo(ind) || S.modo === "cambio") q.set("anio", fecha(S.anioP));
     if (S.modo !== "valor") q.set("modo", S.modo);
     if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
-    if (S.vistaE !== "ranking" && !esMedicinaFamilia(ind)) q.set("grafico", S.vistaE);
+    if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
     if (esGuardia(ind) && ordenGuardias !== "laborable") q.set("orden", ordenGuardias);
     if (!S.real) q.set("inflacion", "no");
     if (conEdad()) q.set("edad", "si");
@@ -1568,13 +1585,18 @@ export function iniciar(DATA: DatosApp): void {
       <p><b>Tarifas provisionales.</b> Las de Cantabria proceden de un borrador del anexo de 2026 y las de Navarra, de la tabla de Osasunbidea difundida por CCOO. Para el domingo de La Rioja se usa provisionalmente el importe de «Sábados y festivos» de la tabla del SERIS, cuya cabecera omite el domingo. El ranking incluye las tarifas verificadas para el día seleccionado.</p>`;
   }
 
+  function importeGuardiasAnual(tarifas, { laborables, domingo }) {
+    const mensual = laborables * tarifas.laborable + domingo * tarifas.domingo;
+    return Math.round(12 * mensual * 100) / 100;
+  }
+
   function ejemploGuardias() {
-    const horasLaborables = 34, horasDomingo = 24;
+    const horas = horasGuardiaMensuales.at(-1);
     const filas = ["AN", "MC", "MD", "PV"].map((id) => {
-      const { laborable, domingo, fuente } = DATA.guardias.territorios[id];
+      const tarifas = DATA.guardias.territorios[id];
       const fijo = DATA.retribuciones.territorios[id].fijoBruto;
-      const guardias = 12 * (horasLaborables * laborable + horasDomingo * domingo);
-      return { id, fuente, fijo, guardias, total: fijo + guardias };
+      const guardias = importeGuardiasAnual(tarifas, horas);
+      return { id, fuente: tarifas.fuente, fijo, guardias, total: fijo + guardias };
     }).sort((a, b) => b.total - a.total).map(({ id, fuente, fijo, guardias, total }) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}" aria-label="Tarifas de ${esc(NOMBRE[id])}">${esc(NOMBRE[id])}</a></th>
@@ -1582,7 +1604,7 @@ export function iniciar(DATA: DatosApp): void {
       </tr>`).join("");
     return plegable("guardias-ejemplo", "¿Cuánto suman las mismas guardias?", `
       <p>Simulación para un especialista con cinco años de servicio y sin carrera reconocida. Aplicamos las tarifas de ${corteGuardias} a
-      ${horasLaborables} horas de guardia presencial en laborable y ${horasDomingo} en domingo no festivo cada mes durante 12 meses.</p>
+      ${horas.laborables} horas de guardia presencial en laborable y ${horas.domingo} en domingo no festivo cada mes durante 12 meses.</p>
       <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de fijo más guardias">
         <table class="tabla tabla-retribuciones"><thead><tr>
@@ -1601,9 +1623,18 @@ export function iniciar(DATA: DatosApp): void {
     return { importe: null, estado: pendienteGuardia, fuente: null };
   }
 
-  function rankingGuardias(ind, orden, puestos, importes) {
-    const max = Math.max(...Object.values(importes));
-    return `<ol class="guardias-ranking" aria-label="Ranking de comunidades por tarifa" role="list">${orden.map((id) => {
+  function puestosRanking(orden, importes) {
+    const puestos = new Map();
+    orden.forEach((id, i) => {
+      const anterior = orden[i - 1];
+      puestos.set(id, importes[id] === importes[anterior] ? puestos.get(anterior) : i + 1);
+    });
+    return puestos;
+  }
+
+  function rankingSueldos(ind, orden, puestos, importes, etiqueta) {
+    const max = importes[orden[0]];
+    return `<ol class="ranking-sueldos" aria-label="${esc(etiqueta)}" role="list">${orden.map((id) => {
       const importe = importes[id];
       return `<li class="${id === S.com ? "tuya" : ""}">
         <span class="puesto"><span class="sr">Puesto </span>${puestos.get(id)}</span>
@@ -1620,11 +1651,7 @@ export function iniciar(DATA: DatosApp): void {
     const importes = Object.fromEntries(ids.map((id) => [id, territorios[id][ordenGuardias]]));
     const orden = ordenados(importes);
     const pendientes = ids.filter((id) => importes[id] == null).sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es"));
-    const puestos = new Map();
-    orden.forEach((id, i) => {
-      const anterior = orden[i - 1];
-      puestos.set(id, importes[id] === importes[anterior] ? puestos.get(anterior) : i + 1);
-    });
+    const puestos = puestosRanking(orden, importes);
     const dia = ordenGuardias === "laborable" ? "laborable" : "domingo no festivo";
     const tarifa = (importe) => fmt(importe, ind.unidad);
     const celdaTarifa = (id, clave) => {
@@ -1653,7 +1680,7 @@ export function iniciar(DATA: DatosApp): void {
     const nombresPendientes = new Intl.ListFormat("es").format(pendientes
       .filter((id) => provisionales[id]?.[ordenGuardias] == null).map((id) => esc(NOMBRE[id])));
     $("#guardias").innerHTML = `<div class="seg" id="guardias-vistas" role="group" aria-label="Tipo de gráfico">
-        ${vistasGuardias.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
+        ${vistasComparacionSueldos.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
       </div>
       <h2 id="guardias-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Guardia presencial de un especialista. Tarifas vigentes a ${corteGuardias}.</p>
@@ -1663,7 +1690,7 @@ export function iniciar(DATA: DatosApp): void {
       <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
       <p class="sub guardias-criterio">De mayor a menor por la tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
-      ${S.vistaE === "tabla" ? tabla : `${rankingGuardias(ind, orden, puestos, importes)}
+      ${S.vistaE === "tabla" ? tabla : `${rankingSueldos(ind, orden, puestos, importes, "Ranking de comunidades por tarifa")}
         ${nombresProvisionales ? `<p class="sub">La tabla recoge las tarifas provisionales de ${nombresProvisionales}.</p>` : ""}
         ${nombresPendientes ? `<p class="sub">Tarifa por confirmar en ${nombresPendientes}.</p>` : ""}
         <p class="sub">Ceuta y Melilla (INGESA) figuran juntas, fuera del ranking autonómico. Tarifa en ${dia} de <b>${tarifa(territorios.INGESA[ordenGuardias])}</b>.</p>`}
@@ -1698,10 +1725,11 @@ export function iniciar(DATA: DatosApp): void {
   function renderMedicinaFamilia(ind) {
     const { territorios, cupo } = DATA.medicinaFamilia;
     const vals = valores(ind, ultimo(ind)), orden = ordenados(vals);
+    const puestos = puestosRanking(orden, vals);
     const euros = (v) => fmt(v, ind.unidad);
     const fila = (id) => {
       const { puesto, antiguedad, cupo: porPacientes, residencia } = territorios[id];
-      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+      return `<tr class="${id === S.com ? "tuya" : ""}"><td>${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
         <td><b>${euros(dato(ind, id))}</b></td><td>${euros(puesto + antiguedad)}</td>
         <td>${euros(porPacientes)}</td><td>${residencia ? euros(residencia) : "—"}</td></tr>`;
     };
@@ -1709,24 +1737,31 @@ export function iniciar(DATA: DatosApp): void {
       const { fuente, nota } = territorios[id];
       return `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a>. ${esc(nota)}</li>`;
     }).join("");
-    $("#medicina-familia").innerHTML = `<h2 id="medicina-familia-titulo">${esc(ind.nombre)}</h2>
+    const tablaFamilia = `<div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones tabla-medicina-familia" aria-label="Retribución bruta anual simulada de medicina de familia">
+        <thead><tr><th scope="col"><span class="sr">Puesto</span><span aria-hidden="true">#</span></th><th scope="col">Territorio</th>
+        <th scope="col" aria-sort="descending">Total anual <span aria-hidden="true">↓</span></th>
+        <th scope="col">Fijo con antigüedad</th><th scope="col">Por pacientes</th><th scope="col">Residencia</th></tr></thead>
+        <tbody>${orden.map(fila).join("")}<tr class="sep"><td colspan="6">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}</tbody>
+      </table></div>`;
+    $("#medicina-familia").innerHTML = `<div class="seg" id="medicina-familia-vistas" role="group" aria-label="Tipo de gráfico">
+        ${vistasComparacionSueldos.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
+      </div>
+      <h2 id="medicina-familia-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Simulación para un médico a jornada completa, con cinco años de servicio y ${nf(0).format(cupo.pacientes)} pacientes asignados. Sin guardias ni carrera reconocida. Tablas del ${corteFamilia}.</p>
       <p class="sub">${orden.length} de las ${IDS.length} comunidades con total calculado, más Ceuta y Melilla (INGESA).
         ${vals[S.com] == null ? `${esc(NOMBRE[S.com])} tiene el total pendiente de completar.` : ""}</p>
-      <div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones" aria-label="Retribución bruta anual simulada de medicina de familia">
-        <thead><tr><th scope="col">Territorio</th><th scope="col" aria-sort="descending">Total anual <span aria-hidden="true">↓</span></th>
-        <th scope="col">Fijo con antigüedad</th><th scope="col">Por pacientes</th><th scope="col">Residencia</th></tr></thead>
-        <tbody>${orden.map(fila).join("")}<tr class="sep"><td colspan="5">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}</tbody>
-      </table></div>
+      ${S.vistaE === "tabla" ? tablaFamilia : `${rankingSueldos(ind, orden, puestos, vals, "Ranking de comunidades por salario simulado")}
+        <p class="sub">Ceuta y Melilla (INGESA), fuera del ranking autonómico. Total simulado de <b>${euros(dato(ind, "INGESA"))}</b>.</p>`}
       <div class="nota">${plegable("familia-fuentes", "Cómo se calcula y fuentes", notasMedicinaFamilia() + `<ul>${fuentes}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-familia">Descargar CSV</button></div>`;
     const tabla = $("#medicina-familia-tabla");
-    if (tabla.scrollWidth > tabla.clientWidth) {
+    if (tabla && tabla.scrollWidth > tabla.clientWidth) {
       tabla.tabIndex = 0;
       tabla.setAttribute("role", "region");
       tabla.setAttribute("aria-labelledby", "medicina-familia-titulo");
       tabla.insertAdjacentHTML("beforebegin", '<p class="tabla-deslizar solo-movil">Desliza la tabla para ver más columnas <span aria-hidden="true">→</span></p>');
     }
+    $("#medicina-familia-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => aplicar(() => { S.vistaE = b.dataset.v; }));
     $("#csv-familia").onclick = () => descargarCSV(ind);
   }
 
@@ -1764,31 +1799,58 @@ export function iniciar(DATA: DatosApp): void {
       </div>`);
   }
 
-  function simulacionCarrera() {
+  function resultadoPerfilHospital() {
+    const { anios, nivel } = perfilesHospital[perfilHospital];
+    const horas = horasGuardiaMensuales[guardiasPerfil];
+    const trienios = Math.floor(anios / 3);
     const { territorios, carrera } = DATA.retribuciones;
     const euros = (v) => fmt(v, "eur_anual");
-    const filas = Object.entries(carrera).map(([id, { niveles, fuente }]) => {
+    const filas = Object.entries(carrera).flatMap(([id, { niveles, fuente }]) => {
+      const complemento = nivel ? niveles[nivel - 1] : 0;
+      if (complemento == null) return [];
       const { fijoBruto, antiguedad } = territorios[id];
-      const importe = niveles[1];
-      const sinCarrera = fijoBruto + 3 * antiguedad;
-      return { id, importe, fuente, sinCarrera, conCarrera: sinCarrera + importe };
-    }).sort((a, b) => b.conCarrera - a.conCarrera)
-      .map(({ id, importe, fuente, sinCarrera, conCarrera }) => `<tr class="${id === S.com ? "tuya" : ""}">
-        <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
-        <td>${euros(sinCarrera)}</td><td>${euros(importe)}</td><td><b>${euros(conCarrera)}</b></td></tr>`).join("");
+      const fijo = fijoBruto + (trienios - 1) * antiguedad;
+      const guardias = importeGuardiasAnual(DATA.guardias.territorios[id], horas);
+      return [{ id, fuente, fijo, complemento, guardias, total: fijo + complemento + guardias }];
+    }).sort((a, b) => b.total - a.total);
+    return `<p class="sub">${anios} años de servicio, ${trienios} ${trienios === 1 ? "trienio" : "trienios"}.
+      ${guardiasPerfil ? `${horas.laborables} h en laborable y ${horas.domingo} h en domingo no festivo al mes durante 12 meses.` : "Sin guardias."}
+      ${filas.length} servicios con cálculo. ${nivel === 4 ? "Aragón queda fuera de este perfil porque sus instrucciones de 2026 suprimen el abono del nivel IV." : ""}</p>
+      <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Totales del perfil hospitalario seleccionado">
+        <table class="tabla tabla-retribuciones"><thead><tr>
+          <th scope="col">Territorio</th><th scope="col">Fijo con antigüedad</th><th scope="col">Carrera</th>
+          <th scope="col">Guardias</th><th scope="col" aria-sort="descending">Total bruto anual</th>
+        </tr></thead><tbody>${filas.map(({ id, fuente, fijo, complemento, guardias, total }) =>
+          `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row"><a href="${esc(fuente)}">${esc(NOMBRE[id])}</a></th>
+            <td>${euros(fijo)}</td><td>${euros(complemento)}</td><td>${euros(guardias)}</td><td><b>${euros(total)}</b></td></tr>`).join("")}
+        </tbody></table>
+      </div>`;
+  }
+
+  function renderPerfilesHospital(visible) {
+    const panel = $("#e-perfiles");
+    panel.hidden = !visible;
+    if (!visible) return;
+    const { territorios, carrera } = DATA.retribuciones;
+    const euros = (v) => fmt(v, "eur_anual");
     const porNivel = Object.entries(carrera).map(([id, { niveles, fuente }]) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         ${niveles.map((importe) => `<td>${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
       </tr>`).join("");
-    return plegable("retribuciones-carrera", "Simular la carrera profesional", `<p class="sub">Simulación para Aragón, Asturias y Madrid.
-      Comparamos a un especialista con 12 años de servicio, con y sin el nivel II de carrera reconocido. Las filas se ordenan por el total con nivel II. El ranking general usa el perfil de cinco años.</p>
-      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de carrera profesional">
-        <table class="tabla tabla-retribuciones" aria-label="Fijo anual con y sin carrera profesional"><thead><tr>
-          <th scope="col">Territorio</th><th scope="col">Sin carrera</th><th scope="col">Complemento de carrera</th>
-          <th scope="col" aria-sort="descending">Total con nivel II</th>
-        </tr></thead><tbody>${filas}</tbody></table>
+    panel.innerHTML = plegable("retribuciones-carrera", "Comparar perfiles de sueldo hospitalario", `
+      <p>Elige la experiencia, el nivel de carrera reconocido y las horas mensuales de guardia presencial. Simulación para puestos ordinarios a jornada completa con las tablas de ${corteRetribucion}.</p>
+      <div class="retribuciones-dedicacion-filtro"><label for="perfil-hospital">Perfil</label>
+        <select id="perfil-hospital">${perfilesHospital.map(({ etiqueta }, i) => opt(i, etiqueta, i === perfilHospital)).join("")}</select>
       </div>
+      <div class="retribuciones-dedicacion-filtro"><label for="guardias-perfil">Horas de guardia al mes</label>
+        <select id="guardias-perfil">${horasGuardiaMensuales.map(({ laborables, domingo }, i) =>
+          opt(i, i === 0 ? "Sin guardias" : `${laborables} h laborables${domingo ? ` + ${domingo} h en domingo` : ""}`, i === guardiasPerfil)).join("")}</select>
+      </div>
+      <div id="resultado-perfil-hospital" aria-live="polite">${resultadoPerfilHospital()}</div>
+      <p class="sub">Los años del ejemplo se tratan como servicios reconocidos en la misma categoría. El nivel supone una evaluación favorable y depende de los requisitos de cada servicio.
+        <a href="#datos?dato=hosp_guardias">Ver tarifas de guardia</a>.</p>
       ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual del nivel reconocido. Se aplica la cuantía de ese nivel. El acceso requiere evaluación y depende de las reglas del servicio.</p>
         <p class="tabla-deslizar solo-movil">Desliza la tabla para ver todos los niveles <span aria-hidden="true">→</span></p>
         <div class="tabla-wrap" tabindex="0" role="region" aria-label="Complementos de carrera por nivel">
@@ -1798,7 +1860,13 @@ export function iniciar(DATA: DatosApp): void {
           </tr></thead><tbody>${porNivel}</tbody></table>
         </div>
         <p>La instrucción de nóminas de Aragón suprime el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>`)}
-      <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>`);
+      <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>
+      <p><b>Jornada inferior a la completa.</b> En Madrid, el fijo del perfil de cinco años sería de ${euros(territorios.MD.fijoBruto * 0.75)} brutos anuales al 75 % de jornada durante todo el año, aplicando la reducción proporcional del puesto y del trienio. <a href="${esc(territorios.MD.fuentes[0])}#page=18">Instrucciones de nómina del SERMAS</a>.</p>`);
+    function actualizarResultado() {
+      $("#resultado-perfil-hospital").innerHTML = resultadoPerfilHospital();
+    }
+    $("#perfil-hospital").onchange = (e) => { perfilHospital = Number(e.target.value); actualizarResultado(); };
+    $("#guardias-perfil").onchange = (e) => { guardiasPerfil = Number(e.target.value); actualizarResultado(); };
   }
 
   function tablaDedicacion(ids) {
@@ -1877,7 +1945,6 @@ export function iniciar(DATA: DatosApp): void {
     const filas = orden.map((id, i) => fila(id, i + 1)).join("") + sinPuesto.map((id) => fila(id)).join("");
     cont.innerHTML = `<div class="nota retribuciones-detalles">
         ${detalleRetribuciones([...orden, ...sinPuesto, "INGESA"])}
-        ${simulacionCarrera()}
         ${simulacionDedicacion()}
         ${plegable("retribuciones-contexto", "Qué más influye en la nómina", contextoRetribuciones())}
       </div>
