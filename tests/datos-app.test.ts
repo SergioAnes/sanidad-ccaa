@@ -75,7 +75,7 @@ describe("datos de la interfaz", () => {
     expect(cupo.pacientes).toBe(1500);
     expect(i.espana).toEqual([]);
     expect(Object.keys(i.serie)).toEqual(Object.keys(territorios));
-    expect(d.ccaa.filter(({ id }) => i.serie[id])).toHaveLength(13);
+    expect(d.ccaa.filter(({ id }) => i.serie[id])).toHaveLength(14);
     expect(i.serie.NC).toBeUndefined();
     expect(navarra.fijo).toBe(54463.50);
     expect(i.serie.CM).toEqual([53717.88]);
@@ -83,10 +83,12 @@ describe("datos de la interfaz", () => {
     expect(i.serie.IB).toEqual([56736.50]);
     expect(i.serie.AS).toEqual([56356.48]);
     expect(i.serie.PV).toEqual([60026.72]);
+    expect(i.serie.VC).toEqual([54941.28]);
     expect(i.serie.INGESA).toEqual([70398.04]);
     expect(escenarios.mayores.personasPorTramo.reduce((total, personas) => total + personas, 0)).toBe(cupo.pacientes);
     expect(Object.keys(escenarios.mayores.importes).sort()).toEqual(Object.keys(territorios).sort());
     expect(escenarios.mayores.importes.PV).toBeCloseTo((2200 - 1969) * 2.54 * 12, 2);
+    expect(escenarios.mayores.importes.VC).toBeCloseTo((1000 * 0.202 + 300 * 0.460 + 200 * 0.911) * 14, 2);
     expect(Object.keys(escenarios.dispersion.importes)).toHaveLength(9);
     expect(escenarios.dispersion.importes.EX).toBeCloseTo(12 * 1105.96, 2);
   });
