@@ -88,11 +88,11 @@ export function iniciar(DATA: DatosApp): void {
   const corteGuardiasCorto = fechaTablas(DATA.guardias.fecha, true);
   const corteFamilia = fechaTablas(DATA.medicinaFamilia.fecha);
   const corteFamiliaCorto = fechaTablas(DATA.medicinaFamilia.fecha, true);
-  const pendienteGuardia = "Por confirmar";
+  const pendienteGuardia = "Sin fuente oficial";
   let ordenGuardias = "laborable";
   const escenariosFamilia = DATA.medicinaFamilia.escenarios;
   let escenarioFamilia = "base";
-  const pendienteRetribucion = "Pendiente de verificación";
+  const pendienteRetribucion = "Sin fuente oficial";
   const perfilRetribucion = "Especialista a jornada completa, con cinco años de servicio, sin guardias ni carrera profesional reconocida.";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
   let territorioDedicacion;
@@ -419,7 +419,7 @@ export function iniciar(DATA: DatosApp): void {
       else if (esVacuna(i)) pie = `España · ${anio} · objetivo: ${DATA.prevencion.vacunacion.objetivo} %`;
       else if (esPQI(i)) pie = `España en ${periodo(i, anio)} · por 10.000 hab.`;
       else if (esRetribucion(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? pendienteRetribucion : corteRetribucionCorto}`;
-      else if (esGuardia(i)) pie = S.com === "CT" ? "ICS · por módulo" : `${esc(NOMBRE[S.com])} · ${m == null ? pendienteGuardia : "laborable"}`;
+      else if (esGuardia(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? pendienteGuardia : "laborable"}`;
       else if (esMedicinaFamilia(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? "Sin simulación" : escenariosFamilia[escenarioFamilia]?.nombre ?? "Simulación con 1.500 pacientes"}`;
       else if (i.fuente === "rae") pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${fmt(m - i.espana[0], "pp")} desde ${periodo(i, primero(i))}</span>`;
       else if (esRecurso(i)) pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${i.unidad === "anios_vida" ? fmt(m - i.espana[0], "dif_anios") : fmt((m / i.espana[0] - 1) * 100, "var")} desde ${periodo(i, primero(i))}</span>`;
@@ -1191,7 +1191,7 @@ export function iniciar(DATA: DatosApp): void {
     if (esRetribucion(ind)) {
       $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos.`;
     }
-    renderPerfilesHospital(esRetribucion(ind));
+    renderPerfilesHospital(false); // Oculto hasta corregir su cobertura (solo recorría las comunidades con tabla de carrera).
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
@@ -1581,8 +1581,8 @@ export function iniciar(DATA: DatosApp): void {
     return `<p>El fijo bruto anual incluye las pagas extraordinarias, la antigüedad y los complementos fijos del puesto. Se calcula con las cuantías vigentes en la fecha de corte.</p>
       ${contextoRetribuciones()}
       <p><b>Residencia.</b> Las cuantías de Illes Balears y Canarias corresponden a Mallorca y a Tenerife o Gran Canaria, respectivamente. El complemento depende de la isla. La tabla muestra el importe de residencia de esos dos servicios y de INGESA dentro del total. INGESA aplica la misma tabla a Ceuta y Melilla y figura fuera del ranking autonómico.</p>
-      <p><b>Cataluña y Navarra.</b> En Cataluña se usa el puesto C039 del Institut Català de la Salut (ICS). En Navarra se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
-      <p><b>Cantabria.</b> El importe provisional usa la fila «Adjunto / FEA» (modalidad B) del anexo de 2026 difundido como borrador, más el primer trienio. El ranking incluye las comunidades con importe verificado.</p>`;
+      <p><b>Navarra.</b> Se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
+      <p><b>Solo fuentes oficiales.</b> Usamos boletines oficiales y tablas publicadas por los servicios de salud o los gobiernos autonómicos. Cataluña y Cantabria quedan sin importe hasta localizar su tabla oficial de 2026.</p>`;
   }
 
   function contextoRetribuciones() {
@@ -1595,8 +1595,8 @@ export function iniciar(DATA: DatosApp): void {
   function notasGuardias() {
     return `<p>Se compara la tarifa bruta por una hora presencial fuera de la jornada ordinaria, en la tarde de un laborable de lunes a viernes o de un domingo no festivo. Cuando la tarifa sube a partir de cierto número de guardias, se toma el primer tramo. El importe de un turno completo depende de sus horas y de las reglas de cada servicio.</p>
       <p><b>Presencial y localizada.</b> En una guardia localizada el profesional está disponible para acudir si se le requiere. En Asturias, una hora laborable del primer tramo se paga a 30,93 € de forma presencial o a 14,61 € en localización. Cada servicio publica sus propias tarifas y reglas. <a href="https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=64">Tabla de Asturias</a>.</p>
-      <p><b>Ámbito.</b> Canarias corresponde a Tenerife y Gran Canaria. Para Ceuta y Melilla se muestra la tarifa conjunta de INGESA, en su régimen tradicional. El ICS es uno de los proveedores de la red pública catalana. Sus módulos presuponen las condiciones de descanso del acuerdo e incluyen jornada ordinaria y complementaria en días laborables.</p>
-      <p><b>Tarifas provisionales.</b> Las de Cantabria proceden de un borrador del anexo de 2026 y las de Navarra, de la tabla de Osasunbidea difundida por CCOO. Para el domingo de La Rioja se usa provisionalmente el importe de «Sábados y festivos» de la tabla del SERIS, cuya cabecera omite el domingo. El ranking incluye las tarifas verificadas para el día seleccionado.</p>`;
+      <p><b>Ámbito.</b> Canarias corresponde a Tenerife y Gran Canaria. Para Ceuta y Melilla se muestra la tarifa conjunta de INGESA, en su régimen tradicional.</p>
+      <p><b>Solo fuentes oficiales.</b> Quedan sin tarifa Cantabria y Navarra, porque no hemos localizado su tabla oficial de 2026; el domingo de La Rioja, porque la tabla del SERIS no lo menciona, y Cataluña, cuyo Institut Català de la Salut paga parte de las guardias por turnos de 24 horas y no tiene aún tabla oficial localizada.</p>`;
   }
 
   function importeGuardiasAnual(tarifas, { laborables, domingo }) {
@@ -1715,7 +1715,7 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function renderGuardias(ind) {
-    const { territorios, provisionales, ics } = DATA.guardias;
+    const { territorios, provisionales } = DATA.guardias;
     const ids = IDS.filter((id) => territorios[id]);
     const importes = Object.fromEntries(ids.map((id) => [id, territorios[id][ordenGuardias]]));
     const orden = ordenados(importes);
@@ -1739,7 +1739,6 @@ export function iniciar(DATA: DatosApp): void {
           ${columna("laborable", "Laborable")}${columna("domingo", "Domingo no festivo")}</tr></thead>
         <tbody>${[...orden, ...pendientes].map(fila).join("")}<tr class="sep"><td colspan="4">Ceuta y Melilla · Fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody>
       </table></div>`;
-    const enlacesICS = ics.fuentes.map((url, i) => `<a href="${esc(url)}">${i ? "Acuerdo del ICS" : "Tabla retributiva del ICS"}</a>`).join(" · ");
     const fuentes = [...ids, "INGESA"].filter((id) => territorios[id].fuente)
       .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"))
       .map((id) => `<li><a href="${esc(territorios[id].fuente)}">${esc(nombreRetribucion(id))}</a></li>`).join("");
@@ -1747,40 +1746,28 @@ export function iniciar(DATA: DatosApp): void {
       .map(([id, { fuente }]) => `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))} (provisional)</a></li>`).join("");
     const nombresProvisionales = new Intl.ListFormat("es").format(pendientes
       .filter((id) => provisionales[id]?.[ordenGuardias] != null).map((id) => esc(NOMBRE[id])));
-    const nombresPendientes = new Intl.ListFormat("es").format(pendientes
-      .filter((id) => provisionales[id]?.[ordenGuardias] == null).map((id) => esc(NOMBRE[id])));
+    const nombresPendientes = new Intl.ListFormat("es").format([...pendientes
+      .filter((id) => provisionales[id]?.[ordenGuardias] == null), ...IDS.filter((id) => !territorios[id])]
+      .sort((x, y) => NOMBRE[x].localeCompare(NOMBRE[y], "es")).map((id) => esc(NOMBRE[id])));
     $("#guardias").innerHTML = `<div class="seg" id="guardias-vistas" role="group" aria-label="Tipo de gráfico">
         ${vistasComparacionSueldos.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
       </div>
       <h2 id="guardias-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Guardia presencial de un especialista. Tarifas vigentes a ${corteGuardias}.</p>
-      <p class="sub guardias-contexto">El Institut Català de la Salut (ICS) paga parte de sus guardias por turnos completos de 24 horas. El ranking compara lo que se paga por una hora de guardia.
-        <button type="button" class="btn-link" id="guardias-ir-ics">Ver el caso de Cataluña</button></p>
       <div class="nota">${ejemploGuardias()}</div>
       <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
       <p class="sub guardias-criterio">Tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
       ${S.vistaE === "tabla" ? tabla : `${rankingSueldos(ind, orden, puestos, importes, "Ranking de comunidades por tarifa")}
         ${nombresProvisionales ? `<p class="sub">La tabla recoge las tarifas provisionales de ${nombresProvisionales}.</p>` : ""}
-        ${nombresPendientes ? `<p class="sub">Tarifa por confirmar en ${nombresPendientes}.</p>` : ""}
+        ${nombresPendientes ? `<p class="sub">Sin tarifa oficial localizada en ${nombresPendientes}.</p>` : ""}
         <p class="sub">Ceuta y Melilla (INGESA) figuran juntas, fuera del ranking autonómico. Tarifa en ${dia} de <b>${tarifa(territorios.INGESA[ordenGuardias])}</b>.</p>`}
-      <section class="guardias-ics${S.com === "CT" ? " tuya" : ""}" aria-labelledby="guardias-ics-titulo">
-        <h3 id="guardias-ics-titulo" tabindex="-1">Cataluña · Institut Català de la Salut (ICS)</h3>
-        <p class="sub">En laborables, el módulo de 24 horas incluye horas de jornada habitual y horas de guardia. Dividir lo que se cobra por el módulo entre 24 daría un promedio de ambas. Los importes corresponden a un especialista sin carrera reconocida del ICS, uno de los proveedores públicos de Cataluña.</p>
-        <div class="tabla-wrap"><table class="tabla tabla-guardias" aria-labelledby="guardias-ics-titulo">
-          <thead><tr><th scope="col">Día del módulo</th><th scope="col">Importe por módulo</th></tr></thead>
-          <tbody>${ics.modulos.map(({ dia, importe }) => `<tr><th scope="row">${esc(dia)}</th><td>${fmt(importe, "eur_anual")}</td></tr>`).join("")}</tbody>
-        </table></div>
-        <p class="sub">Para las guardias que el ICS programa fuera de los módulos, paga ${tarifa(ics.porHora.laborable)} en laborable y ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
-        <p class="sub">${enlacesICS}</p>
-      </section>
       <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
     $("#guardias-comparadas").onchange = (e) => aplicar(() => { guardiasComparadas = Number(e.target.value); });
     $("#guardias-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => { S.vistaE = b.dataset.v; render(); });
-    $("#guardias-ir-ics").onclick = () => { $("#guardias-ics-titulo").focus({ preventScroll: true }); $(".guardias-ics").scrollIntoView(); };
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
 
@@ -2105,7 +2092,7 @@ export function iniciar(DATA: DatosApp): void {
     const n = (v) => v == null ? "" : String(+v.toFixed(3)).replace(".", ",");
     let filas;
     if (esGuardia(ind)) {
-      const { fecha, territorios, ics } = DATA.guardias;
+      const { fecha, territorios } = DATA.guardias;
       filas = [["territorio", "fecha_referencia", "modalidad", "dia", "unidad", "importe_bruto", "estado", "fuente"]];
       const fila = (id, modalidad, dia, unidad, importe, fuente, estado = "Verificado") => [id, fecha, modalidad, dia, unidad,
         importe == null ? "" : importe.toFixed(2).replace(".", ","), estado, fuente ?? ""];
@@ -2115,10 +2102,6 @@ export function iniciar(DATA: DatosApp): void {
           filas.push(fila(nombreRetribucion(id), "Presencia física", dia, "€/h", importe, fuente, estado));
         }
       }
-      const icsFuente = ics.fuentes.join(" | ");
-      for (const { dia, importe } of ics.modulos) filas.push(fila("Cataluña (ICS)", "Módulo de 24 h", dia, "€/módulo", importe, icsFuente));
-      filas.push(fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Laborable", "€/h", ics.porHora.laborable, icsFuente),
-        fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Domingo no festivo", "€/h", ics.porHora.domingo, icsFuente));
     } else if (esMedicinaFamilia(ind)) {
       const { fecha, cupo, territorios } = DATA.medicinaFamilia;
       const escenario = escenariosFamilia[escenarioFamilia];

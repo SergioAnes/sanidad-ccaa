@@ -9,7 +9,7 @@
     "CB": null,
     "CM": {"fijoBruto": 56207.88, "residencia": 0.0, "fuentes": ["https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260210/anexos_y_tablas_2026_con_el_1.5.pdf", "https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260324/instrucciones_retribuciones_sescam_2026.pdf#page=11"], "antiguedad": 706.6, "diferenciaDedicacion": 8340.08, "notaDedicacion": "El específico pasa de 1.011,77 a 416,05 € en 14 pagas. El ejemplo corresponde a un profesional sin participación en los programas voluntarios que pueden dar derecho a 7.240,80 € al año de productividad adicional."},
     "CL": {"fijoBruto": 56341.24, "residencia": 0.0, "fuentes": ["https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf"], "antiguedad": 706.6},
-    "CT": {"fijoBruto": 56631.5, "residencia": 0.0, "fuentes": ["https://www.som-hi.eu/wp-content/uploads/2026/02/Llibre-de-retribucions-2026-ics.pdf#page=10", "https://ics.gencat.cat/web/.content/Documents/transparencia/Instruccions/02_23.pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 5915.14},
+    "CT": null,
     "VC": {"fijoBruto": 59417.5, "residencia": 0.0, "fuentes": ["https://www.ivass.gva.es/dam/jcr%3A8596fab2-07e4-4502-91fd-2781859dd9ef/taules%20retributives%20-%20tablas%20retributivas%202026.pdf"], "antiguedad": 706.6},
     "EX": {"fijoBruto": 55281.64, "residencia": 0.0, "fuentes": ["https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/5%20RESOLUCION%20RETRIBUCIONES%2C%20ANEXOS%20Y%20TABLAS%20SES%202026%20PORTAL.pdf", "https://doe.juntaex.es/pdfs/doe/2018/320o/18060269.pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 3870.38, "notaDedicacion": "Con la renuncia al específico de 1.382,28 € en 14 pagas y la compatibilidad reconocida, el SES abona 15.481,54 € anuales de productividad fija en modalidad B."},
     "GA": {"fijoBruto": 56341.56, "residencia": 0.0, "fuentes": ["https://ficheiros-web.xunta.gal/transparencia/retribucions/2026/persoal-estatutario-saude.pdf"], "antiguedad": 706.6, "diferenciaDedicacion": 13657.84},
@@ -20,9 +20,7 @@
     "RI": {"fijoBruto": 56021.32, "residencia": 0.0, "fuentes": ["https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf"], "antiguedad": 706.6},
     "INGESA": {"fijoBruto": 68655.38, "residencia": 14030.88, "fuentes": ["https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf"], "antiguedad": 706.6}
   },
-  "provisionales": {
-    "CB": {"fijoBruto": 58763.46, "residencia": 0.0, "fuentes": ["https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=38"], "antiguedad": 706.6}
-  },
+  "provisionales": {},
   "carrera": {
     "AR": {"niveles": [4277.76, 8317.8, 11882.52, null], "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=15"},
     "AS": {"niveles": [3432.24, 6864.2, 10229.24, 13593.72], "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=63"},
