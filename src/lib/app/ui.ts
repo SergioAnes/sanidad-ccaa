@@ -1161,7 +1161,7 @@ export function iniciar(DATA: DatosApp): void {
     }
     if (esRetribucion(ind)) {
       const acceso = S.vistaE === "tabla" ? "Abre las simulaciones para ver cuánto cambia." : "En «Tabla» puedes simular el efecto de la carrera y la dedicación.";
-      $("#e-sub").textContent = `${perfilRetribucion} El orden puede cambiar con otros complementos. ${acceso}`;
+      $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos. ${acceso}`;
     }
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
@@ -1546,7 +1546,9 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function notasRetribuciones() {
-    return `<p>El fijo incluye las pagas extraordinarias y la antigüedad. Se excluyen guardias, complementos variables y pagos ligados a funciones adicionales. Es el importe anualizado de un perfil de referencia, basado en el puesto y la antigüedad indicados.</p>
+    return `<p>El fijo bruto anual incluye las pagas extraordinarias, la antigüedad y los complementos fijos del puesto. Se calcula con las cuantías vigentes en la fecha de corte.</p>
+      <p><b>Qué puede cambiar la nómina.</b> Además de la dedicación y la carrera reconocida, influyen las horas y el tipo de guardia, los objetivos, las sesiones adicionales para reducir listas de espera y los incentivos del centro o de plazas de difícil cobertura. Importe y requisitos dependen del puesto y del servicio. <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2003-23101#a43">Estatuto Marco, artículo 43</a>.</p>
+      <p><b>Del bruto al poder adquisitivo.</b> El neto depende de las cotizaciones, del IRPF y de las circunstancias personales. Para comparar poder adquisitivo también harían falta precios locales, especialmente de vivienda. Aquí se compara el fijo bruto de las tablas públicas.</p>
       <p><b>Residencia.</b> Las cuantías de Illes Balears y Canarias corresponden a Mallorca y a Tenerife o Gran Canaria, respectivamente. El complemento depende de la isla. La tabla muestra el importe de residencia de esos dos servicios y de INGESA dentro del total. INGESA aplica la misma tabla a Ceuta y Melilla y figura fuera del ranking autonómico.</p>
       <p><b>Cataluña y Navarra.</b> En Cataluña se usa el puesto C039 del Institut Català de la Salut (ICS). En Navarra se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
       <p><b>Cantabria.</b> El importe provisional usa la fila «Adjunto / FEA» (modalidad B) del anexo de 2026 difundido como borrador, más el primer trienio. El ranking incluye las comunidades con importe verificado.</p>`;
@@ -1556,6 +1558,20 @@ export function iniciar(DATA: DatosApp): void {
     return `<p>Se compara la tarifa bruta por una hora presencial fuera de la jornada ordinaria, en la tarde de un laborable de lunes a viernes o de un domingo no festivo. Cuando la tarifa sube a partir de cierto número de guardias, se toma el primer tramo. El importe de un turno completo depende de sus horas y de las reglas de cada servicio.</p>
       <p><b>Ámbito.</b> Canarias corresponde a Tenerife y Gran Canaria. Para Ceuta y Melilla se muestra la tarifa conjunta de INGESA, en su régimen tradicional. El ICS es uno de los proveedores de la red pública catalana. Sus módulos presuponen las condiciones de descanso del acuerdo e incluyen jornada ordinaria y complementaria en días laborables.</p>
       <p><b>Tarifas provisionales.</b> Las de Cantabria proceden de un borrador del anexo de 2026 y las de Navarra, de la tabla de Osasunbidea difundida por CCOO. Para el domingo de La Rioja se usa provisionalmente el importe de «Sábados y festivos» de la tabla del SERIS, cuya cabecera omite el domingo. El ranking incluye las tarifas verificadas para el día seleccionado.</p>`;
+  }
+
+  function ejemploGuardias() {
+    const { laborable, domingo, fuente } = DATA.guardias.territorios.MD;
+    const fijo = DATA.retribuciones.territorios.MD.fijoBruto;
+    const horasLaborables = 34, horasDomingo = 24;
+    const adicional = 12 * (horasLaborables * laborable + horasDomingo * domingo);
+    return plegable("guardias-ejemplo", "Cómo se suman las guardias al sueldo", `<p>Ejemplo con las tarifas de Madrid. Si cada mes se pagaran
+      ${horasLaborables} horas de guardia presencial en laborable a ${fmt(laborable, "eur_hora")} y
+      ${horasDomingo} horas en domingo no festivo a ${fmt(domingo, "eur_hora")}, en 12 meses se sumarían
+      <b>${fmt(adicional, "eur_anual")}</b> al fijo de ${fmt(fijo, "eur_anual")}. El resultado sería de
+      <b>${fmt(fijo + adicional, "eur_anual")} brutos al año</b>.</p>
+      <p>Las horas del ejemplo son un supuesto. El total real depende del calendario, el centro y la especialidad.
+      <a href="${esc(fuente)}">Tarifas oficiales de Madrid</a>.</p>`);
   }
 
   function datoGuardia(id, dia) {
@@ -1641,7 +1657,7 @@ export function iniciar(DATA: DatosApp): void {
         <p class="sub">Para las guardias que el ICS programa fuera de los módulos, paga ${tarifa(ics.porHora.laborable)} en laborable y ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
         <p class="sub">${enlacesICS}</p>
       </section>
-      <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
+      <div class="nota">${ejemploGuardias()}${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
@@ -1753,17 +1769,33 @@ export function iniciar(DATA: DatosApp): void {
     const ids = IDS.filter((id) => territorios[id]?.diferenciaDedicacion != null)
       .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"));
     const seleccionado = territorioDedicacion ?? (ids.includes(S.com) ? S.com : ids[0]);
-    return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `<p class="sub">
-      Elige un servicio para ver cuánto cambia el fijo si el mismo especialista trabaja con o sin dedicación exclusiva. El ranking general usa la modalidad exclusiva donde las tablas la distinguen.</p>
-      <div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-territorio">Territorio</label>
+    const filas = ids.map((id) => {
+      const { fijoBruto, diferenciaDedicacion } = territorios[id];
+      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+        <td>${fmt(fijoBruto, "eur_anual")}</td><td>${fmt(fijoBruto - diferenciaDedicacion, "eur_anual")}</td>
+        <td>${fmt(diferenciaDedicacion, "eur_anual")}</td></tr>`;
+    }).join("");
+    const desglose = `<div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-territorio">Territorio</label>
         <select id="retribuciones-dedicacion-territorio">${ids.map((id) =>
           opt(id, nombreRetribucion(id), id === seleccionado)).join("")}</select>
       </div>
-      <div id="retribuciones-dedicacion-resultado" aria-live="polite">${importesDedicacion(seleccionado)}</div>`);
+      <div id="retribuciones-dedicacion-resultado" aria-live="polite">${importesDedicacion(seleccionado)}</div>`;
+    return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `
+      <p>El mismo especialista puede cobrar un fijo distinto si obtiene autorización para ejercer también en la privada. Comparamos el sueldo público anual de los ${ids.length} servicios donde hemos podido calcular ambas modalidades.</p>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Comparación de la dedicación exclusiva">
+        <table class="tabla tabla-retribuciones"><thead><tr>
+          <th scope="col">Territorio</th><th scope="col">Con exclusiva</th><th scope="col">Con compatibilidad</th>
+          <th scope="col">Más con exclusiva</th></tr></thead><tbody>${filas}</tbody></table>
+      </div>
+      ${plegable("retribuciones-dedicacion-fuentes", "Ver cálculo y fuentes por territorio", desglose)}
+      <p><b>Madrid.</b> Los ${fmt(territorios.MD.fijoBruto, "eur_anual")} del ranking corresponden al puesto ordinario.
+        La Comunidad permite solicitar una reducción del complemento específico para pedir la compatibilidad. La tabla de 2026 recoge un único importe para ese puesto.
+        <a href="${esc(territorios.MD.fuentes[0])}#page=39">Tabla de Madrid</a> ·
+        <a href="https://www.bocm.es/boletin/CM_Orden_BOCM/2023/02/23/BOCM-20230223-5.PDF">Procedimiento de compatibilidad</a>.</p>`);
   }
 
   function importesDedicacion(id) {
-    const { fijoBruto, diferenciaDedicacion, fuentes } = DATA.retribuciones.territorios[id];
+    const { fijoBruto, diferenciaDedicacion, fuentes, notaDedicacion } = DATA.retribuciones.territorios[id];
     const euros = (v) => fmt(v, "eur_anual");
     return `<table class="tabla tabla-retribuciones" aria-label="Fijo anual según dedicación"><thead>
       <tr><th scope="col">Modalidad</th><th scope="col">Importe anual</th></tr></thead><tbody>
@@ -1771,7 +1803,7 @@ export function iniciar(DATA: DatosApp): void {
       <tr><th scope="row">Sin dedicación exclusiva</th><td>${euros(fijoBruto - diferenciaDedicacion)}</td></tr>
       <tr><th scope="row">Diferencia en el fijo</th><td><b>${euros(diferenciaDedicacion)}</b></td></tr>
       </tbody></table>
-      ${id === "MC" ? '<p class="sub">En Murcia, la productividad fija compensa en el cómputo anual la diferencia del complemento específico.</p>' : ""}
+      ${notaDedicacion ? `<p class="sub">${esc(notaDedicacion)}</p>` : ""}
       <p class="sub">${fuentesRetribucion(id, fuentes, false)}</p>`;
   }
 
