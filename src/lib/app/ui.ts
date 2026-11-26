@@ -77,6 +77,7 @@ export function iniciar(DATA: DatosApp): void {
   const esPQI = (ind) => ind.fuente === "icmbd";
   const esRetribucion = (ind) => ind.fuente === "retribuciones";
   const esGuardia = (ind) => ind.fuente === "guardias";
+  const esMedicinaFamilia = (ind) => ind.fuente === "medicinaFamilia";
   const fechaTablas = (fecha, corta = false) => new Intl.DateTimeFormat("es-ES",
     corta ? { month: "short", year: "numeric", timeZone: "UTC" } : { dateStyle: "long", timeZone: "UTC" },
   ).format(new Date(fecha + "T00:00:00Z"));
@@ -84,6 +85,8 @@ export function iniciar(DATA: DatosApp): void {
   const corteRetribucionCorto = fechaTablas(DATA.retribuciones.fecha, true);
   const corteGuardias = fechaTablas(DATA.guardias.fecha);
   const corteGuardiasCorto = fechaTablas(DATA.guardias.fecha, true);
+  const corteFamilia = fechaTablas(DATA.medicinaFamilia.fecha);
+  const corteFamiliaCorto = fechaTablas(DATA.medicinaFamilia.fecha, true);
   const pendienteGuardia = "Por confirmar";
   let ordenGuardias = "laborable";
   const pendienteRetribucion = "Pendiente de verificación";
@@ -99,6 +102,7 @@ export function iniciar(DATA: DatosApp): void {
   const periodo = (ind, a, corto = false) => {
     if (esRetribucion(ind)) return corto ? corteRetribucionCorto : corteRetribucion;
     if (esGuardia(ind)) return corto ? corteGuardiasCorto : corteGuardias;
+    if (esMedicinaFamilia(ind)) return corto ? corteFamiliaCorto : corteFamilia;
     if (ind.grupo === "gasto" || esRecurso(ind)) return String(a);
     if (ind.grupo === "opinion") return String(ind.fechas[a]);
     const [anio, mes] = CORTES[a].id.split("-");
@@ -368,7 +372,7 @@ export function iniciar(DATA: DatosApp): void {
     const tarjetas = DATA.inds.filter((i) => i.grupo === grupo).map((i) => {
       const anio = ultimo(i);
       const vals = valores(i, i.grupo === "espera" ? S.anioP : anio);
-      const m = esRetribucion(i) || esGuardia(i) ? vals[S.com] : i.grupo === "opinion" ? i.espana[anio] : esRecurso(i) ? i.espana[indice(i, anio)] : media(vals);
+      const m = i.grupo === "sueldos" ? vals[S.com] : i.grupo === "opinion" ? i.espana[anio] : esRecurso(i) ? i.espana[indice(i, anio)] : media(vals);
       let mini;
       if (tieneSerie(i)) {
         const medias = i.espana ? i.espana.slice() : periodos(i).map((a) => media(valores(i, a)));
@@ -390,6 +394,7 @@ export function iniciar(DATA: DatosApp): void {
       else if (esPQI(i)) pie = `España en ${periodo(i, anio)} · por 10.000 hab.`;
       else if (esRetribucion(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? pendienteRetribucion : corteRetribucionCorto}`;
       else if (esGuardia(i)) pie = S.com === "CT" ? "ICS · por módulo" : `${esc(NOMBRE[S.com])} · ${m == null ? pendienteGuardia : "laborable"}`;
+      else if (esMedicinaFamilia(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? "Sin simulación" : "Simulación con 1.500 pacientes"}`;
       else if (i.fuente === "rae") pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${fmt(m - i.espana[0], "pp")} desde ${periodo(i, primero(i))}</span>`;
       else if (esRecurso(i)) pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${i.unidad === "anios_vida" ? fmt(m - i.espana[0], "dif_anios") : fmt((m / i.espana[0] - 1) * 100, "var")} desde ${periodo(i, primero(i))}</span>`;
       else if (tieneSerie(i)) {
@@ -409,6 +414,7 @@ export function iniciar(DATA: DatosApp): void {
         <button type="button" data-g="opinion" aria-pressed="${grupo === "opinion"}"><span class="solo-escritorio">Lo que opina la gente</span><span class="solo-movil">Opinión</span></button>
         <button type="button" data-g="primaria" aria-pressed="${grupo === "primaria"}"><span class="solo-escritorio">Atención primaria</span><span class="solo-movil">Primaria</span></button>
         <button type="button" data-g="hospitales" aria-pressed="${grupo === "hospitales"}">Hospitales</button>
+        <button type="button" data-g="sueldos" aria-pressed="${grupo === "sueldos"}">Sueldos y guardias</button>
         <button type="button" data-g="prevencion" aria-pressed="${grupo === "prevencion"}">Prevención</button>
         <button type="button" data-g="resultados" aria-pressed="${grupo === "resultados"}">Resultados en salud</button>
       </div><div class="kpis" data-grupo="${grupo}">${tarjetas}</div>` + (enEuros(IND[actualId]) ? `<div class="real">
@@ -771,14 +777,16 @@ export function iniciar(DATA: DatosApp): void {
       : "";
     if ($("#d-campo-total")) $("#d-campo-total").onclick = () => sinMover(() => { S.campoE = "total"; render(); });
 
-    const guardias = esGuardia(ind);
-    $("#p-vista").hidden = guardias;
-    $("#e-vista").hidden = guardias;
+    const guardias = esGuardia(ind), familia = esMedicinaFamilia(ind);
+    $("#p-vista").hidden = guardias || familia;
+    $("#e-vista").hidden = guardias || familia;
     $("#guardias").hidden = !guardias;
-    if (guardias) {
+    $("#medicina-familia").hidden = !familia;
+    if (guardias || familia) {
       $("#v-datos .xy").style.display = "none";
       renderResumen(baseInd, ind);
-      renderGuardias(ind);
+      if (guardias) renderGuardias(ind);
+      else renderMedicinaFamilia(ind);
       guardarEnlace();
       return;
     }
@@ -905,6 +913,7 @@ export function iniciar(DATA: DatosApp): void {
   }
   function filtrosModificados(base) {
     if (esGuardia(base)) return ordenGuardias !== "laborable" || S.vistaE !== "ranking";
+    if (esMedicinaFamilia(base)) return false;
     return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
   }
   function restablecer() {
@@ -916,7 +925,9 @@ export function iniciar(DATA: DatosApp): void {
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
-  const opcionesDato = () => ["gasto", "espera", "opinion", "primaria", "hospitales", "prevencion", "resultados"].map((g) => `<optgroup label="${{ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Lo que opina la gente", primaria: "Atención primaria", hospitales: "Hospitales", prevencion: "Prevención", resultados: "Resultados en salud" }[g]}">${DATA.inds.filter((i) => i.grupo === g).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
+  const opcionesDato = () => Object.entries({ gasto: "Gasto sanitario", espera: "Listas de espera", opinion: "Lo que opina la gente",
+    primaria: "Atención primaria", hospitales: "Hospitales", sueldos: "Sueldos y guardias", prevencion: "Prevención", resultados: "Resultados en salud" })
+    .map(([grupo, nombre]) => `<optgroup label="${nombre}">${DATA.inds.filter((i) => i.grupo === grupo).map((i) => opt(i.id, i.corto, i.id === S.indP)).join("")}</optgroup>`).join("");
   const opcionesCampo = (base) => opt("total", "Todas (total)", S.campoE === "total") + familias(base).map((tipo) => `<optgroup label="${tipo === "procesos" ? "Procesos" : "Especialidades"}">${DATA.detalle[tipo].campos.filter((c) => c.id !== "total").map((c) => opt(`${tipo}:${c.id}`, c.nombre, S.campoE === `${tipo}:${c.id}`)).join("")}</optgroup>`).join("");
   const opcionesAnio = (ind, lista, sel) => lista.map((a) => opt(a, `${periodo(ind, a)}${esProv(a, ind) ? " (prov.)" : ""}`, a === sel)).join("");
   const opcionesCom = () => IDS.slice().sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es")).map((k) => opt(k, NOMBRE[k], k === S.com)).join("");
@@ -943,13 +954,13 @@ export function iniciar(DATA: DatosApp): void {
       h += S.modo === "cambio"
         ? chip("", `<select id="rs-desde" aria-label="${fecha} inicial">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select><span class="flecha" aria-hidden="true">→</span><select id="rs-hasta" aria-label="${fecha} final">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select>${btnModo}`, true, ayuda("Cuánto ha cambiado entre las fechas elegidas"))
         : chip("", `<select id="rs-anio" aria-label="${fecha}">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>${btnModo}`, S.anioP !== ultimo(base), ayuda(permiteCambio(base) ? "Fecha del mapa y del gráfico. «Comparar años» permite elegir dos fechas" : "Fecha del mapa y del gráfico"));
-    } else if (esGuardia(base) || esRetribucion(base) || base.grupo === "opinion") {
+    } else if (base.grupo === "sueldos" || base.grupo === "opinion") {
       h += chip("", `<span class="fijo" title="${periodo(base, ultimo(base))}">${periodo(base, ultimo(base), true)}</span>`);
     } else h += chip("", `<span class="fijo" title="${DATA.corteListas}">${corteCorto()}</span>`);
     if (S.indP === "gasto_hab" && EDAD) h += `<button type="button" id="rs-edad" class="chip-s boton${S.edad ? " cambiado" : ""}" aria-pressed="${S.edad}" title="Pulsa para ${S.edad ? "ver el dato oficial, sin ajustar" : "ajustar por la edad de la población"}"><span class="et">Edad</span>${S.edad ? "Ajustado" : "Sin ajustar"}</button>`;
     if (enEuros(base)) h += `<button type="button" id="rs-infl" class="chip-s boton${S.real ? "" : " cambiado"}" aria-pressed="${!S.real}" title="Pulsa para ${S.real ? "ver los euros de cada año" : "descontar la inflación"}"><span class="et">Inflación</span>${S.real ? "Descontada" : "Sin descontar"}</button>`;
-    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esGuardia(base) ? "Se resalta en la comparación" : "Se resalta en el mapa y en los gráficos"));
-    h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false,
+    h += chip("Tu comunidad", `<select id="rs-com" aria-label="Tu comunidad">${opcionesCom()}</select>`, false, ayuda(esGuardia(base) || esMedicinaFamilia(base) ? "Se resalta en la comparación" : "Se resalta en el mapa y en los gráficos"));
+    if (!esMedicinaFamilia(base)) h += chip("Gráfico", `<select id="rs-graf" aria-label="Gráfico de abajo">${opcionesGraf(base)}</select>`, false,
       ayuda(esGuardia(base) ? "Ver ranking o tabla de guardias" : "El gráfico que aparece debajo del mapa"));
     // «Restablecer» (en el ordenador), al final de las etiquetas, solo cuando algo no está como al principio
     const cambiado = filtrosModificados(base);
@@ -1011,13 +1022,13 @@ export function iniciar(DATA: DatosApp): void {
       h += S.modo === "cambio"
         ? fila(base.grupo === "espera" ? "Cortes" : "Años", `<span class="aj-anios">Desde <select id="aj-desde">${opcionesAnio(base, periodos(base).filter((a) => a < S.anioP), S.desde)}</select> hasta <select id="aj-hasta">${opcionesAnio(base, periodos(base).filter((a) => a > S.desde), S.anioP)}</select></span>`, aviso && `<span role="status">${esc(aviso)}</span>`)
         : fila(base.grupo === "espera" ? "Corte" : "Año", `<select id="aj-anio">${opcionesAnio(base, periodos(base).slice().reverse(), S.anioP)}</select>`);
-    } else if (esGuardia(base) || esRetribucion(base)) h += fila("Fecha de referencia", `<span>${periodo(base, ultimo(base))}</span>`);
+    } else if (base.grupo === "sueldos") h += fila("Fecha de referencia", `<span>${periodo(base, ultimo(base))}</span>`);
     else h += base.grupo === "opinion" ? fila("Año", `<span>${periodo(base, ultimo(base))}</span>`, "Es el único año que se puede comprobar por comunidad con las cifras del Ministerio.")
       : fila("Fecha", `<span>${DATA.corteListas}</span>`, "Hay un solo informe de listas de espera; la evolución llegará con los siguientes.");
     if (S.indP === "gasto_hab" && EDAD) h += fila("Edad", radios("edad", S.edad ? "1" : "0", [["0", "Por habitante", "(dato oficial)"], ["1", "Ajustado por edad"]]), `Ajustado: corrige que unas comunidades tienen más población mayor. Desde ${EDAD.anios[0]}. <a href="#metodo-edad">Cómo se calcula</a>.`);
     if (enEuros(base)) h += fila("Inflación", radios("infl", S.real ? "1" : "0", [["1", "Descontada", "(recomendado)"], ["0", "Sin descontar"]]), `Descontada: cada año en euros de ${ULT}, para ver cuánto ha crecido el gasto de verdad.`);
-    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esGuardia(base) ? "Se resalta en la comparación." : "Se resalta en el mapa y en los gráficos.");
-    h += fila("Gráfico", radios("graf", S.vistaE, esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]),
+    h += fila("Tu comunidad", `<select id="aj-com">${opcionesCom()}</select>`, esGuardia(base) || esMedicinaFamilia(base) ? "Se resalta en la comparación." : "Se resalta en el mapa y en los gráficos.");
+    if (!esMedicinaFamilia(base)) h += fila("Gráfico", radios("graf", S.vistaE, esGuardia(base) ? vistasGuardias : [["ranking", nombreGrafComunidades(base)], ["evolucion", "Evolución", "", !serie], ["tabla", "Tabla"]]),
       esGuardia(base) ? "" : "El gráfico que aparece debajo del mapa.");
     const cambiado = filtrosModificados(base);
     h += `<div class="aj-pie">${cambiado ? '<button type="button" class="btn" id="aj-reset">Restablecer</button>' : ""}<button type="button" class="btn primary" id="aj-ver">Ver resultado</button></div>`;
@@ -1200,7 +1211,7 @@ export function iniciar(DATA: DatosApp): void {
     if (S.anioP !== ultimo(ind) || S.modo === "cambio") q.set("anio", fecha(S.anioP));
     if (S.modo !== "valor") q.set("modo", S.modo);
     if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
-    if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
+    if (S.vistaE !== "ranking" && !esMedicinaFamilia(ind)) q.set("grafico", S.vistaE);
     if (esGuardia(ind) && ordenGuardias !== "laborable") q.set("orden", ordenGuardias);
     if (!S.real) q.set("inflacion", "no");
     if (conEdad()) q.set("edad", "si");
@@ -1639,6 +1650,49 @@ export function iniciar(DATA: DatosApp): void {
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
 
+  function notasMedicinaFamilia() {
+    const { cupo, navarra } = DATA.medicinaFamilia;
+    const edades = cupo.edades.map(({ tramo, personas }) => `${nf(0).format(personas)} de ${esc(tramo)}`);
+    return `<p>Usamos las tablas de cada servicio para estimar el sueldo del mismo perfil. El fijo incluye la antigüedad y las pagas extra. El cálculo excluye guardias, atención continuada, carrera profesional, jefaturas y objetivos.</p>
+      <p><b>Pacientes asignados.</b> El grupo simulado incluye ${new Intl.ListFormat("es").format(edades)}. Se cuentan ${nf(0).format(cupo.pensionistas)} pensionistas entre los mayores de 65 para los servicios que usan ese criterio. Usamos el grado de dispersión más bajo donde hay tramos y la modalidad exclusiva donde hay un régimen diferenciado.</p>
+      <p><b>Navarra.</b> El fijo del perfil de referencia del II Ensanche de Pamplona es de ${fmt(navarra.fijo, "eur_anual")} al año antes de sumar el cupo y la dispersión. El total queda pendiente de conocer los coeficientes de ajuste aplicables. <a href="${esc(navarra.fuente)}">Plantilla</a> · <a href="${esc(navarra.norma)}">Reglas del cupo</a>.</p>`;
+  }
+
+  function renderMedicinaFamilia(ind) {
+    const { territorios, cupo } = DATA.medicinaFamilia;
+    const vals = valores(ind, ultimo(ind)), orden = ordenados(vals);
+    const euros = (v) => fmt(v, ind.unidad);
+    const fila = (id) => {
+      const { puesto, antiguedad, cupo: porPacientes, residencia } = territorios[id];
+      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+        <td><b>${euros(dato(ind, id))}</b></td><td>${euros(puesto + antiguedad)}</td>
+        <td>${euros(porPacientes)}</td><td>${residencia ? euros(residencia) : "—"}</td></tr>`;
+    };
+    const fuentes = [...orden, "INGESA"].map((id) => {
+      const { fuente, nota } = territorios[id];
+      return `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a>. ${esc(nota)}</li>`;
+    }).join("");
+    $("#medicina-familia").innerHTML = `<h2 id="medicina-familia-titulo">${esc(ind.nombre)}</h2>
+      <p class="sub">Simulación para un médico a jornada completa, con cinco años de servicio y ${nf(0).format(cupo.pacientes)} pacientes asignados. Sin guardias ni carrera reconocida. Tablas del ${corteFamilia}.</p>
+      <p class="sub">${orden.length} de las ${IDS.length} comunidades con total calculado, más Ceuta y Melilla (INGESA).
+        ${vals[S.com] == null ? `${esc(NOMBRE[S.com])} tiene el total pendiente de completar.` : ""}</p>
+      <div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones" aria-label="Retribución bruta anual simulada de medicina de familia">
+        <thead><tr><th scope="col">Territorio</th><th scope="col" aria-sort="descending">Total anual <span aria-hidden="true">↓</span></th>
+        <th scope="col">Fijo con antigüedad</th><th scope="col">Por pacientes</th><th scope="col">Residencia</th></tr></thead>
+        <tbody>${orden.map(fila).join("")}<tr class="sep"><td colspan="5">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}</tbody>
+      </table></div>
+      <div class="nota">${plegable("familia-fuentes", "Cómo se calcula y fuentes", notasMedicinaFamilia() + `<ul>${fuentes}</ul>`)}</div>
+      <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-familia">Descargar CSV</button></div>`;
+    const tabla = $("#medicina-familia-tabla");
+    if (tabla.scrollWidth > tabla.clientWidth) {
+      tabla.tabIndex = 0;
+      tabla.setAttribute("role", "region");
+      tabla.setAttribute("aria-labelledby", "medicina-familia-titulo");
+      tabla.insertAdjacentHTML("beforebegin", '<p class="tabla-deslizar solo-movil">Desliza la tabla para ver más columnas <span aria-hidden="true">→</span></p>');
+    }
+    $("#csv-familia").onclick = () => descargarCSV(ind);
+  }
+
   function fuentesRetribucion(id, fuentes, provisional) {
     return fuentes.map((url, i) => {
       const titulo = i ? "Documento complementario" : provisional ? "Anexo en borrador" : "Tabla retributiva";
@@ -1811,6 +1865,15 @@ export function iniciar(DATA: DatosApp): void {
       for (const { dia, importe } of ics.modulos) filas.push(fila("Cataluña (ICS)", "Módulo de 24 h", dia, "€/módulo", importe, icsFuente));
       filas.push(fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Laborable", "€/h", ics.porHora.laborable, icsFuente),
         fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Domingo no festivo", "€/h", ics.porHora.domingo, icsFuente));
+    } else if (esMedicinaFamilia(ind)) {
+      const { fecha, cupo, territorios } = DATA.medicinaFamilia;
+      const euros = (v) => v.toFixed(2).replace(".", ",");
+      filas = [["territorio", "fecha_referencia", "pacientes_simulados", "fijo_puesto_eur", "antiguedad_eur",
+        "complemento_pacientes_eur", "residencia_eur", "total_bruto_anual_simulado_eur", "fuente"]];
+      for (const [id, fila] of Object.entries(territorios)) {
+        filas.push([nombreRetribucion(id), fecha, cupo.pacientes, euros(fila.puesto), euros(fila.antiguedad),
+          euros(fila.cupo), euros(fila.residencia), euros(dato(ind, id)), fila.fuente]);
+      }
     } else if (esRetribucion(ind)) {
       filas = [["territorio", "fecha_referencia", "fijo_bruto_anual_eur", "residencia_incluida_eur", "estado", "fuentes",
         "fijo_puesto_eur", "antiguedad_eur", "diferencia_dedicacion_eur"]];
@@ -2374,7 +2437,7 @@ export function iniciar(DATA: DatosApp): void {
     $("#m-cuerpo").innerHTML = `
       <h1>Cómo leer los datos</h1>
       <p>Todo lo que ves sale de estadísticas oficiales. Aquí explicamos qué mide cada dato, de dónde sale y qué hay que tener en cuenta para no sacar conclusiones equivocadas.</p>
-      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Lo que opina la gente</a><a href="#metodo-recursos">Atención primaria y hospitales</a><a href="#metodo-prevencion">Prevención</a><a href="#metodo-resultados">Resultados en salud</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
+      <nav class="indice" aria-label="Apartados"><a href="#metodo-gasto">Gasto</a><a href="#metodo-espera">Listas de espera</a><a href="#metodo-opinion">Lo que opina la gente</a><a href="#metodo-recursos">Atención primaria y hospitales</a><a href="#metodo-sueldos">Sueldos y guardias</a><a href="#metodo-prevencion">Prevención</a><a href="#metodo-resultados">Resultados en salud</a><a href="#metodo-inflacion">Inflación</a>${EDAD ? '<a href="#metodo-edad">Ajuste por edad</a>' : ""}<a href="#metodo-comparar">Comparar comunidades</a><a href="#metodo-entidades">Conciertos y entidades</a><a href="#metodo-notas">Notas del Ministerio</a><a href="#metodo-calidad">Avisos de calidad</a><a href="#metodo-limites">Lo que no dicen estos datos</a></nav>
 
       <h2 id="metodo-gasto">Gasto sanitario público</h2>
       <p>Fuente: Ministerio de Sanidad, Estadística de Gasto Sanitario Público (EGSP), de ${ANIOS[0]} a ${ULT}. Es <b>gasto real liquidado</b>, es decir, lo que de verdad se gastó, no lo que se presupuestó. Por eso puede no coincidir con noticias que usan los presupuestos iniciales.</p>
@@ -2451,13 +2514,18 @@ export function iniciar(DATA: DatosApp): void {
       ${notasRecursos("siae")}
       ${notasRecursos("rae")}
       ${notasRecursos("icmbd")}
+      <h2 id="metodo-sueldos">Sueldos y guardias</h2>
       <h3 id="metodo-retribuciones">Retribución fija de especialistas hospitalarios</h3>
-      <dl>${lista("hospitales", esRetribucion)}</dl>
+      <dl>${lista("sueldos", esRetribucion)}</dl>
       ${notasRetribuciones()}
       <p><a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla">Ver las cifras y la documentación de cada territorio</a>.</p>
       <h3 id="metodo-guardias">Guardias hospitalarias</h3>
       ${notasGuardias()}
       <p><a href="#datos?dato=hosp_guardias">Ver las tarifas y la documentación de cada territorio</a>.</p>
+      <h3 id="metodo-medicina-familia">Retribución de medicina de familia</h3>
+      <dl>${lista("sueldos", esMedicinaFamilia)}</dl>
+      ${notasMedicinaFamilia()}
+      <p><a href="#datos?dato=ap_retribuciones">Ver la simulación y las fuentes de cada territorio</a>.</p>
 
       <h2 id="metodo-prevencion">Prevención</h2>
       <dl>${lista("prevencion")}</dl>
@@ -2515,7 +2583,9 @@ export function iniciar(DATA: DatosApp): void {
     renderVista();
     if (foco) { const e = document.querySelector(foco); if (e && e !== document.activeElement) e.focus({ preventScroll: true }); }
     // Aviso para lectores de pantalla: qué se está mostrando ahora
-    const t = S.vista === "datos" ? (esGuardia(periodoActual()) ? $("#guardias-titulo") : $("#p-titulo")).textContent
+    const activo = periodoActual();
+    const tituloDatos = esGuardia(activo) ? "#guardias-titulo" : esMedicinaFamilia(activo) ? "#medicina-familia-titulo" : "#p-titulo";
+    const t = S.vista === "datos" ? $(tituloDatos).textContent
       : S.vista === "comunidad" ? `Ficha de ${$("#c-nombre").textContent}` : "Cómo leer los datos";
     if (t !== anunciado) { anunciado = t; $("#anuncio").textContent = t; }
   }

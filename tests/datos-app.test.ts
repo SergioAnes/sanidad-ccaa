@@ -23,7 +23,7 @@ describe("datos de la interfaz", () => {
 
   it("mantiene las retribuciones provisionales fuera de la serie de importes verificados", () => {
     const i = d.inds.find((ind) => ind.id === "hosp_retribuciones");
-    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de retribuciones");
+    if (!i || i.grupo !== "sueldos") throw new Error("falta el indicador de retribuciones");
     expect(d.retribuciones.fecha).toBe("2026-07-31");
     expect(i.anios).toEqual([2026]);
     expect(i.espana).toEqual([]);
@@ -41,7 +41,7 @@ describe("datos de la interfaz", () => {
 
   it("distingue las tarifas de guardia verificadas, las provisionales y los módulos del ICS", () => {
     const i = d.inds.find((ind) => ind.id === "hosp_guardias");
-    if (!i || i.grupo !== "hospitales") throw new Error("falta el indicador de guardias");
+    if (!i || i.grupo !== "sueldos") throw new Error("falta el indicador de guardias");
     const { fecha, territorios, provisionales, ics } = d.guardias;
     expect(fecha).toBe("2026-07-31");
     expect(Object.keys(territorios).sort()).toEqual([...d.ccaa.map(({ id }) => id).filter((id) => id !== "CT"), "INGESA"].sort());
@@ -64,6 +64,24 @@ describe("datos de la interfaz", () => {
       { dia: "Sábado", importe: 1119.72 },
       { dia: "Domingo o festivo", importe: 906.45 },
     ]);
+  });
+
+  it("calcula la simulación de medicina de familia únicamente donde están completos los importes", () => {
+    const i = d.inds.find((ind) => ind.id === "ap_retribuciones");
+    if (!i || i.grupo !== "sueldos") throw new Error("falta la simulación de medicina de familia");
+    const { cupo, fecha, navarra, territorios } = d.medicinaFamilia;
+    expect(fecha).toBe("2026-07-31");
+    expect(cupo.edades.reduce((total, tramo) => total + tramo.personas, 0)).toBe(cupo.pacientes);
+    expect(cupo.pacientes).toBe(1500);
+    expect(i.espana).toEqual([]);
+    expect(Object.keys(i.serie)).toEqual(Object.keys(territorios));
+    expect(d.ccaa.filter(({ id }) => i.serie[id])).toHaveLength(11);
+    expect(i.serie.NC).toBeUndefined();
+    expect(navarra.fijo).toBe(54463.50);
+    expect(i.serie.CM).toEqual([53717.88]);
+    expect(i.serie.RI).toEqual([58537.80]);
+    expect(i.serie.IB).toEqual([56736.50]);
+    expect(i.serie.INGESA).toEqual([70398.04]);
   });
 
   it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {

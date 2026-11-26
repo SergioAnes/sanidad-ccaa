@@ -69,6 +69,7 @@ export const ESQUELETO = `<div class="wrap">
       <div class="nota" id="e-nota"></div>
     </div>
     <section class="panel guardias" id="guardias" aria-labelledby="guardias-titulo" hidden></section>
+    <section class="panel" id="medicina-familia" aria-labelledby="medicina-familia-titulo" hidden></section>
     <div class="panel xy">
       <h2 id="x-titulo"></h2>
       <p class="sub" id="x-sub"></p>
