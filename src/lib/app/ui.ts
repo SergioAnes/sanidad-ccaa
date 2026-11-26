@@ -100,7 +100,7 @@ export function iniciar(DATA: DatosApp): void {
     { etiqueta: "5 años · sin carrera", anios: 5, nivel: 0 },
     { etiqueta: "12 años · sin carrera", anios: 12, nivel: 0 },
     { etiqueta: "12 años · nivel II", anios: 12, nivel: 2 },
-    { etiqueta: "18 años · nivel III", anios: 18, nivel: 3 },
+    { etiqueta: "20 años · nivel III", anios: 20, nivel: 3 },
     { etiqueta: "25 años · nivel IV", anios: 25, nivel: 4 },
   ];
   const horasGuardiaMensuales = [
@@ -1604,7 +1604,11 @@ export function iniciar(DATA: DatosApp): void {
     if (!filas.length) return;
     const separador = filas.at(-1).nextElementSibling;
     const factor = ascendente ? 1 : -1;
-    filas.sort((a, b) => factor * (Number(a.cells[columna].dataset.importe) - Number(b.cells[columna].dataset.importe)));
+    filas.sort((a, b) => {
+      const x = a.cells[columna].dataset.importe, y = b.cells[columna].dataset.importe;
+      if (!x || !y) return Number(!x) - Number(!y);
+      return factor * (Number(x) - Number(y));
+    });
     filas.forEach((fila) => cuerpo.insertBefore(fila, separador));
     tabla.querySelectorAll("[data-orden-columna]").forEach((boton) => {
       const cabecera = boton.parentElement;
@@ -1894,7 +1898,7 @@ export function iniciar(DATA: DatosApp): void {
     const porNivel = Object.entries(carrera).map(([id, { niveles, fuente }]) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
-        ${niveles.map((importe) => `<td>${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
+        ${niveles.map((importe) => `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
       </tr>`).join("");
     panel.innerHTML = plegable("retribuciones-carrera", "Comparar perfiles de sueldo hospitalario", `
       <p>Elige la experiencia, el nivel de carrera reconocido y las horas mensuales de guardia presencial. Simulación para puestos ordinarios a jornada completa con las tablas de ${corteRetribucion}.</p>
@@ -1908,15 +1912,17 @@ export function iniciar(DATA: DatosApp): void {
       <div id="resultado-perfil-hospital" aria-live="polite">${resultadoPerfilHospital()}</div>
       <p class="sub">Los años del ejemplo se tratan como servicios reconocidos en la misma categoría. El nivel supone una evaluación favorable y depende de los requisitos de cada servicio.
         <a href="#datos?dato=hosp_guardias">Ver tarifas de guardia</a>.</p>
-      ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual del nivel reconocido. Se aplica la cuantía de ese nivel. El acceso requiere evaluación y depende de las reglas del servicio.</p>
+      ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual según el nivel reconocido. El acceso requiere evaluación y depende de las reglas del servicio.</p>
         <p class="tabla-deslizar solo-movil">Desliza la tabla para ver todos los niveles <span aria-hidden="true">→</span></p>
         <div class="tabla-wrap" tabindex="0" role="region" aria-label="Complementos de carrera por nivel">
-          <table class="tabla tabla-retribuciones"><thead><tr>
-            <th scope="col">Territorio</th><th scope="col">Nivel I</th><th scope="col">Nivel II</th>
-            <th scope="col">Nivel III</th><th scope="col">Nivel IV</th>
+          <table class="tabla tabla-retribuciones" data-orden-sueldo="niveles-carrera"><thead><tr>
+            <th scope="col">Territorio</th>${["Nivel I", "Nivel II", "Nivel III", "Nivel IV"].map((nivel) => cabeceraOrdenable(nivel)).join("")}
           </tr></thead><tbody>${porNivel}</tbody></table>
         </div>
-        <p>La instrucción de nóminas de Aragón suprime el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>`)}
+        <p><b>Extremadura.</b> El perfil de nivel III usa 20 años, el mínimo de ejercicio del especialista según su acuerdo. <a href="https://doe.juntaex.es/pdfs/doe/2006/190o/190o.pdf">Acuerdo del SES</a>.</p>
+        <p><b>Galicia.</b> Sumamos 3.602,28 € anuales por cada grado reconocido según el acuerdo de 2018. Los grados reconocidos con el régimen anterior tienen otras cuantías. <a href="https://www.xunta.gal/dog/Publicados/2018/20180730/AnuncioC3K1-200718-0001_es.pdf">Acuerdo del SERGAS</a>.</p>
+        <p><b>Aragón.</b> Las instrucciones de nóminas suprimen el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>
+        <p><b>Castilla-La Mancha.</b> Las dos convocatorias extraordinarias prevén efectos económicos desde enero de 2027 y enero de 2028, respectivamente. <a href="https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/pdf/20260518/pacto-docm.pdf">Pacto del SESCAM</a>.</p>`)}
       <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>
       <p><b>Jornada inferior a la completa.</b> En Madrid, el fijo del perfil de cinco años sería de ${euros(territorios.MD.fijoBruto * 0.75)} brutos anuales al 75 % de jornada durante todo el año, aplicando la reducción proporcional del puesto y del trienio. <a href="${esc(territorios.MD.fuentes[0])}#page=18">Instrucciones de nómina del SERMAS</a>.</p>`);
     function actualizarResultado() {
