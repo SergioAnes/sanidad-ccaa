@@ -144,8 +144,10 @@ table.tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .retribuciones-dedicacion-filtro { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .tabla-retribuciones :is(th, td):first-child { width: auto; text-align: left; white-space: normal; }
 .tabla-retribuciones :is(th, td):nth-child(n + 2) { text-align: right; }
-#p-vista[hidden], #e-vista[hidden], .guardias[hidden] { display: none; }
-.guardias, .guardias-ics { scroll-margin-top: 85px; }
+.tabla-retribuciones th[aria-sort="descending"] { background: var(--accent-soft); color: var(--fg); }
+#medicina-familia .nota { margin-top: 12px; }
+#p-vista[hidden], #e-vista[hidden], #medicina-familia[hidden], .guardias[hidden] { display: none; }
+.guardias, .guardias-ics, #medicina-familia { scroll-margin-top: 85px; }
 .guardias .seg { margin-bottom: 14px; }
 .guardias .guardias-contexto { margin-top: 10px; padding: 8px 10px; background: var(--accent-soft); border-radius: 8px; }
 .guardias-orden { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; font-size: 0.85rem; }
