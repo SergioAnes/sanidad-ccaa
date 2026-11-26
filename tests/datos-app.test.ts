@@ -61,6 +61,20 @@ describe("datos de la interfaz", () => {
     expect(i.serie.CT).toBeUndefined();
   });
 
+  it("guarda cuatro niveles de carrera crecientes por servicio", () => {
+    const { carrera, territorios } = d.retribuciones;
+    for (const [id, { niveles, fuente }] of Object.entries(carrera)) {
+      expect((territorios as Record<string, unknown>)[id], id).toBeTruthy();
+      expect(niveles, id).toHaveLength(4);
+      expect(fuente, id).toMatch(/^https:\/\//);
+      const importes = niveles.filter((v): v is number => v != null);
+      expect(importes, id).toEqual([...importes].sort((x, y) => Number(x) - Number(y)));
+    }
+    expect(carrera.CM.niveles).toEqual([3738.84, 7476.96, 11214.84, 14953.08]);
+    expect(carrera.PV.niveles).toEqual([3898.68, 7797.36, 10396.47, 14295.15]);
+    expect(carrera.RI.niveles).toEqual([3272.67, 6545.31, 9817.96, 13090.61]);
+  });
+
   it("no usa fuentes de sindicatos, blogs ni borradores en sueldos y guardias", () => {
     const texto = JSON.stringify([d.retribuciones, d.guardias, d.medicinaFamilia]);
     const urls = texto.match(/https?:\/\/[^"\s#]+/g) ?? [];

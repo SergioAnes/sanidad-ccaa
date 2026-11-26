@@ -1899,7 +1899,7 @@ export function iniciar(DATA: DatosApp): void {
     if (!visible) return;
     const { territorios, carrera } = DATA.retribuciones;
     const euros = (v) => fmt(v, "eur_anual");
-    const porNivel = Object.entries(carrera).map(([id, { niveles, fuente }]) =>
+    const porNivel = Object.entries(carrera).sort(([a], [b]) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es")).map(([id, { niveles, fuente }]) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         ${niveles.map((importe) => `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
