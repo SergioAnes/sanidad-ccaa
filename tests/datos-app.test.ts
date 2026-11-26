@@ -69,19 +69,26 @@ describe("datos de la interfaz", () => {
   it("calcula la simulación de medicina de familia únicamente donde están completos los importes", () => {
     const i = d.inds.find((ind) => ind.id === "ap_retribuciones");
     if (!i || i.grupo !== "sueldos") throw new Error("falta la simulación de medicina de familia");
-    const { cupo, fecha, navarra, territorios } = d.medicinaFamilia;
+    const { cupo, fecha, navarra, territorios, escenarios } = d.medicinaFamilia;
     expect(fecha).toBe("2026-07-31");
     expect(cupo.edades.reduce((total, tramo) => total + tramo.personas, 0)).toBe(cupo.pacientes);
     expect(cupo.pacientes).toBe(1500);
     expect(i.espana).toEqual([]);
     expect(Object.keys(i.serie)).toEqual(Object.keys(territorios));
-    expect(d.ccaa.filter(({ id }) => i.serie[id])).toHaveLength(11);
+    expect(d.ccaa.filter(({ id }) => i.serie[id])).toHaveLength(13);
     expect(i.serie.NC).toBeUndefined();
     expect(navarra.fijo).toBe(54463.50);
     expect(i.serie.CM).toEqual([53717.88]);
     expect(i.serie.RI).toEqual([58537.80]);
     expect(i.serie.IB).toEqual([56736.50]);
+    expect(i.serie.AS).toEqual([56356.48]);
+    expect(i.serie.PV).toEqual([60026.72]);
     expect(i.serie.INGESA).toEqual([70398.04]);
+    expect(escenarios.mayores.personasPorTramo.reduce((total, personas) => total + personas, 0)).toBe(cupo.pacientes);
+    expect(Object.keys(escenarios.mayores.importes).sort()).toEqual(Object.keys(territorios).sort());
+    expect(escenarios.mayores.importes.PV).toBeCloseTo((2200 - 1969) * 2.54 * 12, 2);
+    expect(Object.keys(escenarios.dispersion.importes)).toHaveLength(9);
+    expect(escenarios.dispersion.importes.EX).toBeCloseTo(12 * 1105.96, 2);
   });
 
   it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {

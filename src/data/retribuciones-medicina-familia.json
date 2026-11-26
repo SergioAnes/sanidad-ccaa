@@ -11,9 +11,40 @@
     ],
     "pensionistas": 300
   },
+  "escenarios": {
+    "mayores": {
+      "nombre": "Más pacientes mayores",
+      "descripcion": "El mismo cupo, con 500 pacientes mayores de 65 años en vez de 300. Se mantienen la dispersión baja y los 300 titulares pensionistas.",
+      "personasPorTramo": [700, 300, 300, 100, 100],
+      "importes": {
+        "AN": 7642.68, "AR": 9229.08, "AS": 7483.32, "CL": 7443.36, "CM": 7645.20, "CN": 8446.10,
+        "EX": 8537.88, "GA": 10828.44, "IB": 7511.76, "MC": 9626.76, "MD": 8168.52,
+        "PV": 7040.88, "RI": 10862.56, "INGESA": 9530.76
+      }
+    },
+    "dispersion": {
+      "nombre": "Dispersión alta (G4)",
+      "descripcion": "El mismo cupo y las mismas edades del perfil base, aplicando la tarifa G4 por paciente. Cada servicio define sus propios criterios para asignar este grado.",
+      "importes": {
+        "AS": 11895.96, "CL": 11832.48, "CM": 12153.36, "CN": 13374.38, "EX": 13271.52,
+        "IB": 11941.20, "MC": 15303.36, "MD": 12387.72, "RI": 15002.60
+      }
+    }
+  },
+  "fuentesCupo": {
+    "AN": "https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/Resolucion_0002_2026_DGP_Retribuciones_2026.pdf#page=14",
+    "AS": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=68",
+    "CL": "https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf#page=54",
+    "CM": "https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260210/anexos_y_tablas_2026_con_el_1.5.pdf#page=12",
+    "CN": "https://www3.gobiernodecanarias.org/sanidad/scs/content/80498e32-f2b2-11f0-beee-ebafe1564515/2026-01-14-Instruccion_1_2026_Instruccion_retribuciones.pdf#page=32",
+    "EX": "https://saludextremadura.ses.es/filescms/web/uploaded_files/CustomContentResources/5%20RESOLUCION%20RETRIBUCIONES%2C%20ANEXOS%20Y%20TABLAS%20SES%202026%20PORTAL.pdf#page=63",
+    "IB": "https://www.ibsalut.es/docs/rrhh/normativa/instrucciones%20y%20circulars/ca/Taules%20retributives_2026_CAT.pdf#page=10",
+    "MC": "https://www.borm.es/services/anuncio/841766/pdf#page=36"
+  },
   "territorios": {
     "AN": {"puesto": 44445.18, "antiguedad": 706.60, "cupo": 6496.20, "residencia": 0, "fuente": "https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/resolucion_0019_dgp_modificacion_resolucion_retribuciones_2026.pdf#page=4", "nota": "SAS, médico de familia de equipo básico. Se añade el complemento por tarjeta de la Resolución 0002/2026 (anexo X)."},
     "AR": {"puesto": 47945.04, "antiguedad": 706.60, "cupo": 8125.20, "residencia": 0, "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=19", "nota": "SALUD, puesto APA1064 y cupo G1. Incluye exclusividad y fondos adicionales. Se descuenta la atención continuada fija."},
+    "AS": {"puesto": 49035.36, "antiguedad": 706.60, "cupo": 6614.52, "residencia": 0, "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=58", "nota": "SESPA, médico de EAP, nivel 24. Doce mensualidades por las tarjetas asignadas según edad y dispersión."},
     "CL": {"puesto": 47957.52, "antiguedad": 706.60, "cupo": 6579.36, "residencia": 0, "fuente": "https://www.saludcastillayleon.es/profesionales/es/recursos-humanos/retribuciones-accion-social-compensaciones/retribuciones.ficheros/3237947-2026OrdenInstruccionesN%C3%B3minaSACYL.pdf#page=137", "nota": "SACYL, cuadro de equipos de primaria. Incluye el complemento de acuerdo marco y las tarjetas del grupo G1."},
     "CM": {"puesto": 46253.60, "antiguedad": 706.60, "cupo": 6757.68, "residencia": 0, "fuente": "https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/legislacion/20260210/anexos_y_tablas_2026_con_el_1.5.pdf#page=23", "nota": "SESCAM, médico de familia de EAP. Incluye el complemento JCCM y doce mensualidades por tarjetas G1."},
     "CN": {"puesto": 45930.64, "antiguedad": 706.60, "cupo": 7470.92, "residencia": 2444.40, "fuente": "https://www3.gobiernodecanarias.org/sanidad/scs/content/80498e32-f2b2-11f0-beee-ebafe1564515/2026-01-14-Instruccion_1_2026_Instruccion_retribuciones.pdf", "nota": "SCS, cupo G1. La parte por pacientes incorpora las pagas adicionales que le corresponden. Residencia en Tenerife o Gran Canaria."},
@@ -22,6 +53,7 @@
     "IB": {"puesto": 47625.10, "antiguedad": 706.60, "cupo": 6639.72, "residencia": 1765.08, "fuente": "https://www.ibsalut.es/docs/rrhh/normativa/instrucciones%20y%20circulars/ca/Taules%20retributives_2026_CAT.pdf", "nota": "IB-Salut, tablas I, V y VII. Medicina de familia G1 e indemnización de residencia en Mallorca."},
     "MC": {"puesto": 53605.92, "antiguedad": 706.60, "cupo": 8509.20, "residencia": 0, "fuente": "https://www.borm.es/services/anuncio/841766/pdf#page=67", "nota": "SMS, modalidad no compatible y tarifa ordinaria G1. La tarifa superior por tarjeta requiere un reconocimiento específico."},
     "MD": {"puesto": 51559.42, "antiguedad": 706.60, "cupo": 7069.44, "residencia": 0, "fuente": "https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf#page=48", "nota": "SERMAS, actividad asistencial permanente. El fijo incluye el complemento por categoría deficitaria compatible con las tarjetas asignadas."},
+    "PV": {"puesto": 59194.40, "antiguedad": 832.32, "cupo": 0, "residencia": 0, "fuente": "https://www.osakidetza.euskadi.eus/contenidos/informacion/osk_trbg_informacion_economica/es_def/adjuntos/Instruccion-2_2026.pdf#page=45", "nota": "Osakidetza, puesto A10114. El fijo ya garantiza la retribución ordinaria del cupo. Solo se paga un extra por encima de los umbrales por número de tarjetas o por edad. La compensación por desplazamientos se abona según actividad y queda fuera del cálculo."},
     "RI": {"puesto": 48131.04, "antiguedad": 706.60, "cupo": 9700.16, "residencia": 0, "fuente": "https://www.riojasalud.es/files/content/rrhh/tablas-retributivas/2026/TABLAS%20SALARIALES%20ESTATUTARIOS%20Y%20FUNCIONARIOS%201-1-2026.pdf#page=3", "nota": "SERIS, EAP G1. Se descuenta la atención continuada fija. Se aplican las tarifas por tarjeta al cupo de esta comparación."},
     "INGESA": {"puesto": 47129.40, "antiguedad": 706.60, "cupo": 8531.16, "residencia": 14030.88, "fuente": "https://ingesa.sanidad.gob.es/dam/jcr%3Aed0c64ae-7c62-480a-ab95-790e35bb4411/CUADERNO%20RETRIBUCIONES%202026.pdf", "nota": "INGESA aplica la misma tabla a Ceuta y Melilla. El cupo incluye el complemento adicional por mayores de 65 años y la residencia incorpora su incremento por trienio."}
   },

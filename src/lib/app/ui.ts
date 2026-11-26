@@ -90,6 +90,8 @@ export function iniciar(DATA: DatosApp): void {
   const corteFamiliaCorto = fechaTablas(DATA.medicinaFamilia.fecha, true);
   const pendienteGuardia = "Por confirmar";
   let ordenGuardias = "laborable";
+  const escenariosFamilia = DATA.medicinaFamilia.escenarios;
+  let escenarioFamilia = "base";
   const pendienteRetribucion = "Pendiente de verificación";
   const perfilRetribucion = "Especialista a jornada completa, con cinco años de servicio, sin guardias ni carrera profesional reconocida.";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
@@ -132,7 +134,12 @@ export function iniciar(DATA: DatosApp): void {
   const conEdad = () => S.edad && S.indP === "gasto_hab" && !!EDAD;
   const periodoActual = () => conEdad() ? EDAD : IND[S.indP];
   const indice = (ind, a) => periodos(ind).indexOf(a ?? ultimo(ind));
-  const dato = (ind, id, a) => ind.serie[id]?.[indice(ind, a)] ?? null;
+  function dato(ind, id, a) {
+    const valor = ind.serie[id]?.[indice(ind, a)] ?? null;
+    if (valor == null || !esMedicinaFamilia(ind) || escenarioFamilia === "base") return valor;
+    const importe = escenariosFamilia[escenarioFamilia].importes[id];
+    return importe == null ? null : Math.round((valor - DATA.medicinaFamilia.territorios[id].cupo + importe) * 100) / 100;
+  }
   function motivoComparacion(ind, desde, hasta, medida = ind.medida) {
     if (ind.tipo !== "consultas") return "";
     const a = CORTES[desde].id, b = CORTES[hasta].id;
@@ -413,7 +420,7 @@ export function iniciar(DATA: DatosApp): void {
       else if (esPQI(i)) pie = `España en ${periodo(i, anio)} · por 10.000 hab.`;
       else if (esRetribucion(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? pendienteRetribucion : corteRetribucionCorto}`;
       else if (esGuardia(i)) pie = S.com === "CT" ? "ICS · por módulo" : `${esc(NOMBRE[S.com])} · ${m == null ? pendienteGuardia : "laborable"}`;
-      else if (esMedicinaFamilia(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? "Sin simulación" : "Simulación con 1.500 pacientes"}`;
+      else if (esMedicinaFamilia(i)) pie = `${esc(NOMBRE[S.com])} · ${m == null ? "Sin simulación" : escenariosFamilia[escenarioFamilia]?.nombre ?? "Simulación con 1.500 pacientes"}`;
       else if (i.fuente === "rae") pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${fmt(m - i.espana[0], "pp")} desde ${periodo(i, primero(i))}</span>`;
       else if (esRecurso(i)) pie = `España en ${periodo(i, anio)}<br><span class="kpi-c">${i.unidad === "anios_vida" ? fmt(m - i.espana[0], "dif_anios") : fmt((m / i.espana[0] - 1) * 100, "var")} desde ${periodo(i, primero(i))}</span>`;
       else if (tieneSerie(i)) {
@@ -932,7 +939,7 @@ export function iniciar(DATA: DatosApp): void {
   }
   function filtrosModificados(base) {
     if (esGuardia(base)) return ordenGuardias !== "laborable" || S.vistaE !== "ranking";
-    if (esMedicinaFamilia(base)) return S.vistaE !== "ranking";
+    if (esMedicinaFamilia(base)) return S.vistaE !== "ranking" || escenarioFamilia !== "base";
     return Object.entries(filtrosIniciales(base)).some(([k, valor]) => k !== "desde" && S[k] !== valor);
   }
   function restablecer() {
@@ -940,8 +947,10 @@ export function iniciar(DATA: DatosApp): void {
     if (esGuardia(actual)) {
       ordenGuardias = "laborable";
       S.vistaE = "ranking";
-    } else if (esMedicinaFamilia(actual)) S.vistaE = "ranking";
-    else Object.assign(S, filtrosIniciales(actual));
+    } else if (esMedicinaFamilia(actual)) {
+      escenarioFamilia = "base";
+      S.vistaE = "ranking";
+    } else Object.assign(S, filtrosIniciales(actual));
   }
   const aplicar = (fn) => sinMover(() => { pararPlay(); fn(); render(); });
   const opt = (v, txt, sel, dis = false) => `<option value="${v}" ${sel ? "selected" : ""} ${dis ? "disabled" : ""}>${esc(txt)}</option>`;
@@ -1233,6 +1242,7 @@ export function iniciar(DATA: DatosApp): void {
     if (S.modo === "cambio" && S.desde !== primero(ind)) q.set("desde", fecha(S.desde));
     if (S.vistaE !== "ranking") q.set("grafico", S.vistaE);
     if (esGuardia(ind) && ordenGuardias !== "laborable") q.set("orden", ordenGuardias);
+    if (esMedicinaFamilia(ind) && escenarioFamilia !== "base") q.set("perfil", escenarioFamilia);
     if (!S.real) q.set("inflacion", "no");
     if (conEdad()) q.set("edad", "si");
     if (S.com !== "AN") q.set("com", S.com.toLowerCase());
@@ -1256,6 +1266,8 @@ export function iniciar(DATA: DatosApp): void {
     const desde = leerPeriodo("desde"); S.desde = periodos(ind).includes(desde) && desde < ultimo(ind) ? desde : primero(ind);
     const g = q.get("grafico"); if (["ranking", "evolucion", "tabla"].includes(g)) S.vistaE = g;
     if (esGuardia(ind)) ordenGuardias = q.get("orden") === "domingo" ? "domingo" : "laborable";
+    const perfil = q.get("perfil");
+    if (esMedicinaFamilia(ind)) escenarioFamilia = Object.hasOwn(escenariosFamilia, perfil) ? perfil : "base";
     if (q.get("inflacion") === "no") S.real = false;
     const com = (q.get("com") || "").toUpperCase(); if (IDS.includes(com)) S.com = com;
   }
@@ -1772,47 +1784,61 @@ export function iniciar(DATA: DatosApp): void {
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
 
-  function notasMedicinaFamilia() {
+  function notasMedicinaFamilia(escenario) {
     const { cupo, navarra } = DATA.medicinaFamilia;
-    const edades = cupo.edades.map(({ tramo, personas }) => `${nf(0).format(personas)} de ${esc(tramo)}`);
+    const edades = cupo.edades.map(({ tramo, personas }, i) => `${nf(0).format(escenario?.personasPorTramo?.[i] ?? personas)} de ${esc(tramo)}`);
     return `<p>Usamos las tablas de cada servicio para estimar el sueldo del mismo perfil. El fijo incluye la antigüedad y las pagas extra. El cálculo excluye guardias, atención continuada, carrera profesional, jefaturas y objetivos.</p>
-      <p><b>Pacientes asignados.</b> El grupo simulado incluye ${new Intl.ListFormat("es").format(edades)}. Se cuentan ${nf(0).format(cupo.pensionistas)} pensionistas entre los mayores de 65 para los servicios que usan ese criterio. Usamos el grado de dispersión más bajo donde hay tramos y la modalidad exclusiva donde hay un régimen diferenciado.</p>
+      <p><b>Pacientes asignados.</b> El grupo simulado incluye ${new Intl.ListFormat("es").format(edades)}. Se cuentan ${nf(0).format(cupo.pensionistas)} titulares pensionistas entre los mayores de 65 para los servicios que usan ese criterio. Usamos la modalidad exclusiva cuando hay un régimen diferenciado.</p>
+      <p><b>Dispersión.</b> El perfil base usa el grado más bajo donde hay tramos. El escenario G4 cambia la tarifa por paciente para los servicios con ese grado y deja fuera la compensación por desplazamientos, los incentivos de difícil cobertura y el trabajo en otros centros.</p>
       <p><b>Turno y centro de salud.</b> En Madrid, el turno fijo de tarde tiene un complemento de 533,19 € al mes. La rotación de al menos tres tardes por semana tiene uno de 319,92 € al mes. La simulación usa el puesto ordinario sin esos complementos. <a href="https://www.comunidad.madrid/hospital/atencionprimaria/profesionales/medidas-economicas-materia-recursos-humanos-contempladas-plan-integral-mejora">Reglas de Madrid</a>.</p>
       <p><b>Navarra.</b> El fijo del perfil de referencia del II Ensanche de Pamplona es de ${fmt(navarra.fijo, "eur_anual")} al año antes de sumar el cupo y la dispersión. El total queda pendiente de conocer los coeficientes de ajuste aplicables. <a href="${esc(navarra.fuente)}">Plantilla</a> · <a href="${esc(navarra.norma)}">Reglas del cupo</a>.</p>`;
   }
 
   function renderMedicinaFamilia(ind) {
     const { territorios, cupo } = DATA.medicinaFamilia;
+    const escenario = escenariosFamilia[escenarioFamilia];
     const vals = valores(ind, ultimo(ind)), orden = ordenados(vals);
     const puestos = puestosRanking(orden, vals);
     const euros = (v) => fmt(v, ind.unidad);
+    const totalIng = dato(ind, "INGESA");
+    const pendientes = new Intl.ListFormat("es").format(IDS.filter((id) => vals[id] == null).map((id) => NOMBRE[id]));
     const fila = (id) => {
-      const { puesto, antiguedad, cupo: porPacientes, residencia } = territorios[id];
+      const { puesto, antiguedad, cupo: base, residencia } = territorios[id];
+      const porPacientes = escenario?.importes[id] ?? base;
       const total = dato(ind, id);
       const importe = (valor) => id === "INGESA" ? "" : ` data-importe="${valor}"`;
+      const cambio = Math.round((porPacientes - base) * 100) / 100;
       return `<tr class="${id === S.com ? "tuya" : ""}"><td>${puestos.get(id) ?? "—"}</td><th scope="row">${esc(nombreRetribucion(id))}</th>
         <td${importe(total)}><b>${euros(total)}</b></td><td${importe(puesto + antiguedad)}>${euros(puesto + antiguedad)}</td>
-        <td${importe(porPacientes)}>${euros(porPacientes)}</td><td${importe(residencia)}>${residencia ? euros(residencia) : "—"}</td></tr>`;
+        <td${importe(porPacientes)}>${euros(porPacientes)}</td><td${importe(residencia)}>${residencia ? euros(residencia) : "—"}</td>
+        ${escenario ? `<td${importe(cambio)}>${cambio > 0 ? "+" : ""}${euros(cambio)}</td>` : ""}</tr>`;
     };
-    const fuentes = [...orden, "INGESA"].map((id) => {
+    const fuentes = [...orden, ...(totalIng == null ? [] : ["INGESA"])].map((id) => {
       const { fuente, nota } = territorios[id];
-      return `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a>. ${esc(nota)}</li>`;
+      const cupoFuente = DATA.medicinaFamilia.fuentesCupo[id];
+      return `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a>. ${esc(nota)}${cupoFuente ? ` <a href="${esc(cupoFuente)}">Tabla por paciente</a>.` : ""}</li>`;
     }).join("");
-    const tablaFamilia = `<div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones tabla-medicina-familia" data-orden-sueldo="familia" aria-label="Retribución bruta anual simulada de medicina de familia">
+    const tablaFamilia = `<div class="tabla-wrap" id="medicina-familia-tabla"><table class="tabla tabla-retribuciones tabla-medicina-familia" data-orden-sueldo="familia-${escenarioFamilia}" aria-label="Retribución bruta anual simulada de medicina de familia">
         <thead><tr><th scope="col"><span class="sr">Puesto</span><span aria-hidden="true">#</span></th><th scope="col">Territorio</th>
-        ${cabeceraOrdenable("Total anual", true)}${cabeceraOrdenable("Fijo con antigüedad")}${cabeceraOrdenable("Por pacientes")}${cabeceraOrdenable("Residencia")}</tr></thead>
-        <tbody>${orden.map(fila).join("")}<tr class="sep"><td colspan="6">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}</tbody>
+        ${cabeceraOrdenable("Total anual", true)}${cabeceraOrdenable("Fijo con antigüedad")}${cabeceraOrdenable("Por pacientes")}${cabeceraOrdenable("Residencia")}
+        ${escenario ? cabeceraOrdenable("Cambio frente al perfil base") : ""}</tr></thead>
+        <tbody>${orden.map(fila).join("")}${totalIng == null ? "" : `<tr class="sep"><td colspan="${escenario ? 7 : 6}">Ceuta y Melilla · INGESA</td></tr>${fila("INGESA")}`}</tbody>
       </table></div>`;
     $("#medicina-familia").innerHTML = `<div class="seg" id="medicina-familia-vistas" role="group" aria-label="Tipo de gráfico">
         ${vistasComparacionSueldos.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
       </div>
       <h2 id="medicina-familia-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Simulación para un médico a jornada completa, con cinco años de servicio y ${nf(0).format(cupo.pacientes)} pacientes asignados. Sin guardias ni carrera reconocida. Tablas del ${corteFamilia}.</p>
-      <p class="sub">${orden.length} de las ${IDS.length} comunidades con total calculado, más Ceuta y Melilla (INGESA).
-        ${vals[S.com] == null ? `${esc(NOMBRE[S.com])} tiene el total pendiente de completar.` : ""}</p>
+      <div class="guardias-filtros"><label for="escenario-familia">Perfil de pacientes</label>
+        <select id="escenario-familia">${opt("base", "Base · dispersión baja", !escenario)}
+          ${Object.entries(escenariosFamilia).map(([id, perfil]) => opt(id, perfil.nombre, escenarioFamilia === id)).join("")}</select></div>
+      ${escenario ? `<p class="sub">${esc(escenario.descripcion)}</p>` : ""}
+      <p class="sub">${orden.length} de las ${IDS.length} comunidades con total calculado${totalIng == null ? "." : ", más Ceuta y Melilla (INGESA)."}
+        ${vals[S.com] == null ? (escenarioFamilia === "dispersion" ? `Este escenario no tiene cálculo para ${esc(NOMBRE[S.com])}.` : `${esc(NOMBRE[S.com])} tiene el total pendiente de completar.`) : ""}</p>
       ${S.vistaE === "tabla" ? tablaFamilia : `${rankingSueldos(ind, orden, puestos, vals, "Ranking de comunidades por salario simulado")}
-        <p class="sub">Ceuta y Melilla (INGESA), fuera del ranking autonómico. Total simulado de <b>${euros(dato(ind, "INGESA"))}</b>.</p>`}
-      <div class="nota">${plegable("familia-fuentes", "Cómo se calcula y fuentes", notasMedicinaFamilia() + `<ul>${fuentes}</ul>`)}</div>
+        ${totalIng == null ? "" : `<p class="sub">Ceuta y Melilla (INGESA), fuera del ranking autonómico. Total simulado de <b>${euros(totalIng)}</b>.</p>`}`}
+      <div class="nota">${plegable("familia-fuentes", "Cómo se calcula y fuentes", notasMedicinaFamilia(escenario)
+        + `<p><b>Comunidades sin total para este perfil.</b> ${esc(pendientes)}.</p><ul>${fuentes}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-familia">Descargar CSV</button></div>`;
     const tabla = $("#medicina-familia-tabla");
     if (tabla && tabla.scrollWidth > tabla.clientWidth) {
@@ -1822,6 +1848,10 @@ export function iniciar(DATA: DatosApp): void {
       tabla.insertAdjacentHTML("beforebegin", '<p class="tabla-deslizar solo-movil">Desliza la tabla para ver más columnas <span aria-hidden="true">→</span></p>');
     }
     $("#medicina-familia-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => aplicar(() => { S.vistaE = b.dataset.v; }));
+    $("#escenario-familia").onchange = (e) => {
+      aplicar(() => { escenarioFamilia = e.target.value; });
+      $("#escenario-familia").focus({ preventScroll: true });
+    };
     $("#csv-familia").onclick = () => descargarCSV(ind);
   }
 
@@ -2091,12 +2121,19 @@ export function iniciar(DATA: DatosApp): void {
         fila("Cataluña (ICS)", "Presencia física fuera de módulos", "Domingo no festivo", "€/h", ics.porHora.domingo, icsFuente));
     } else if (esMedicinaFamilia(ind)) {
       const { fecha, cupo, territorios } = DATA.medicinaFamilia;
+      const escenario = escenariosFamilia[escenarioFamilia];
       const euros = (v) => v.toFixed(2).replace(".", ",");
       filas = [["territorio", "fecha_referencia", "pacientes_simulados", "fijo_puesto_eur", "antiguedad_eur",
         "complemento_pacientes_eur", "residencia_eur", "total_bruto_anual_simulado_eur", "fuente"]];
+      if (escenario) filas[0].push("perfil", "cambio_frente_al_perfil_base_eur");
       for (const [id, fila] of Object.entries(territorios)) {
-        filas.push([nombreRetribucion(id), fecha, cupo.pacientes, euros(fila.puesto), euros(fila.antiguedad),
-          euros(fila.cupo), euros(fila.residencia), euros(dato(ind, id)), fila.fuente]);
+        const total = dato(ind, id);
+        if (total == null) continue;
+        const porPacientes = escenario?.importes[id] ?? fila.cupo;
+        const celdas = [nombreRetribucion(id), fecha, cupo.pacientes, euros(fila.puesto), euros(fila.antiguedad),
+          euros(porPacientes), euros(fila.residencia), euros(total), fila.fuente];
+        if (escenario) celdas.push(escenario.nombre, euros(porPacientes - fila.cupo));
+        filas.push(celdas);
       }
     } else if (esRetribucion(ind)) {
       filas = [["territorio", "fecha_referencia", "fijo_bruto_anual_eur", "residencia_incluida_eur", "estado", "fuentes",
@@ -2155,7 +2192,8 @@ export function iniciar(DATA: DatosApp): void {
     const csv = "\ufeff" + filas.map((f) => f.map((c) => /[;"\n]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(";")).join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `${ind.id.replace(/[^a-z0-9_-]+/gi, "_")}.csv`; document.body.appendChild(a); a.click(); a.remove();
+    const sufijo = esMedicinaFamilia(ind) && escenarioFamilia !== "base" ? `-${escenarioFamilia}` : "";
+    a.download = `${ind.id.replace(/[^a-z0-9_-]+/gi, "_")}${sufijo}.csv`; document.body.appendChild(a); a.click(); a.remove();
   }
 
   // Imagen PNG de un gráfico: título, el propio SVG, la leyenda (si la hay) y la fuente.
