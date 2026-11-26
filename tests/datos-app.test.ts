@@ -77,6 +77,7 @@ describe("datos de la interfaz", () => {
     }
     expect(carrera.EX.anios).toEqual([5, 12, 20, 25]);
     expect(carrera.CN.anios).toEqual([5, 10, 16, 23, 28]);
+    expect(carrera.VC).toMatchObject({ niveles: [3866.8, 7732.76, 11598.72, 15465.66], anios: [5, 10, 16, 22] });
     expect(carrera.AN.niveles).toEqual([1448.64, 3748.8, 7498.68, 11248.2, 14997.24]);
     expect(carrera.IB.niveles).toEqual([3199.2, 6398.28, 9597.48, 12796.68]);
     expect(carrera.GA.anios).toEqual([5, 12, 18, 23]);
