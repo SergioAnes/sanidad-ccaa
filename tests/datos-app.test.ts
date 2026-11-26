@@ -108,7 +108,7 @@ describe("datos de la interfaz", () => {
     expect(i.serie.NC).toBeUndefined();
     expect(navarra.fijo).toBe(54463.50);
     expect(i.serie.CM).toEqual([53717.88]);
-    expect(i.serie.RI).toEqual([58537.80]);
+    expect(i.serie.RI).toEqual([58537.84]);
     expect(i.serie.IB).toEqual([56736.50]);
     expect(i.serie.AS).toEqual([56356.48]);
     expect(i.serie.PV).toEqual([60026.72]);
@@ -118,8 +118,16 @@ describe("datos de la interfaz", () => {
     expect(Object.keys(escenarios.mayores.importes).sort()).toEqual(Object.keys(territorios).sort());
     expect(escenarios.mayores.importes.PV).toBeCloseTo((2200 - 1969) * 2.54 * 12, 2);
     expect(escenarios.mayores.importes.VC).toBeCloseTo((1000 * 0.202 + 300 * 0.460 + 200 * 0.911) * 14, 2);
-    expect(Object.keys(escenarios.dispersion.importes)).toHaveLength(9);
+    expect(Object.keys(escenarios.dispersion.importes)).toHaveLength(10);
     expect(escenarios.dispersion.importes.EX).toBeCloseTo(12 * 1105.96, 2);
+    // Las tarjetas se pagan con el importe mensual redondeado a céntimos (art. 11 de la Ley 46/1998).
+    const mensual = (x: number) => Math.round(x * 100) / 100;
+    expect(territorios.RI.cupo).toBeCloseTo(12 * mensual(1200 * 0.442031 + 300 * 0.926364), 2);
+    expect(escenarios.dispersion.importes.AR).toBeCloseTo(12 * mensual(1200 * 0.681121 + 240 * 1.119892 + 60 * 1.224928), 2);
+    for (const [id, t] of Object.entries(territorios)) {
+      if (id === "CN" || id === "VC") continue; // Canarias suma pagas adicionales y la Comunitat Valenciana paga 14 veces
+      expect(Math.abs(t.cupo / 12 * 100 - Math.round(t.cupo / 12 * 100))).toBeLessThan(1e-6);
+    }
   });
 
   it("muestra la serie ECV desde el cambio de cuestionario y conserva los porcentajes del INE", () => {
