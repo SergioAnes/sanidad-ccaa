@@ -93,6 +93,7 @@ export function iniciar(DATA: DatosApp): void {
   const perfilRetribucion = "Especialista a jornada completa, con cinco años de servicio, sin guardias ni carrera profesional reconocida.";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
   let territorioDedicacion;
+  let ordenDedicacion = "exclusiva";
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
   const primero = (ind) => periodos(ind)[0];
@@ -1547,31 +1548,49 @@ export function iniciar(DATA: DatosApp): void {
 
   function notasRetribuciones() {
     return `<p>El fijo bruto anual incluye las pagas extraordinarias, la antigüedad y los complementos fijos del puesto. Se calcula con las cuantías vigentes en la fecha de corte.</p>
-      <p><b>Qué puede cambiar la nómina.</b> Además de la dedicación y la carrera reconocida, influyen las horas y el tipo de guardia, los objetivos, las sesiones adicionales para reducir listas de espera y los incentivos del centro o de plazas de difícil cobertura. Importe y requisitos dependen del puesto y del servicio. <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2003-23101#a43">Estatuto Marco, artículo 43</a>.</p>
-      <p><b>Del bruto al poder adquisitivo.</b> El neto depende de las cotizaciones, del IRPF y de las circunstancias personales. Para comparar poder adquisitivo también harían falta precios locales, especialmente de vivienda. Aquí se compara el fijo bruto de las tablas públicas.</p>
+      ${contextoRetribuciones()}
       <p><b>Residencia.</b> Las cuantías de Illes Balears y Canarias corresponden a Mallorca y a Tenerife o Gran Canaria, respectivamente. El complemento depende de la isla. La tabla muestra el importe de residencia de esos dos servicios y de INGESA dentro del total. INGESA aplica la misma tabla a Ceuta y Melilla y figura fuera del ranking autonómico.</p>
       <p><b>Cataluña y Navarra.</b> En Cataluña se usa el puesto C039 del Institut Català de la Salut (ICS). En Navarra se usa el régimen funcionarial, con el primer quinquenio y sin complemento de especial riesgo.</p>
       <p><b>Cantabria.</b> El importe provisional usa la fila «Adjunto / FEA» (modalidad B) del anexo de 2026 difundido como borrador, más el primer trienio. El ranking incluye las comunidades con importe verificado.</p>`;
   }
 
+  function contextoRetribuciones() {
+    return `<p><b>Productividad y actividad adicional.</b> Los pagos por objetivos dependen de la evaluación. Los programas para reducir demoras pagan por actividad autorizada. En Asturias, un especialista cobra 355,09 € por un módulo de cuatro horas de consultas externas y 473,45 € por uno de demora quirúrgica. Para estimar el ingreso anual habría que conocer los módulos realizados. <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2003-23101#a43">Estatuto Marco</a> · <a href="https://www.asturias.es/bopa/2026/07/10/2026-05964.pdf#page=15">Programas de Asturias</a>.</p>
+      <p><b>Difícil cobertura.</b> Depende de la plaza y puede estar ligada al turno o a la ubicación. Andalucía tiene un programa para hospitales remotos. En Madrid, el complemento por turno fijo de tarde en determinadas plazas de medicina de familia y pediatría es de 533,19 € al mes. <a href="https://www.sspa.juntadeandalucia.es/servicioandaluzdesalud/sites/default/files/sincfiles/wsas-media-sas_normativa_mediafile/2026/resolucion_0021_2026_programas_de_accesibilidad_hospitales_remotosf.pdf">Programa de Andalucía</a> · <a href="https://www.comunidad.madrid/hospital/atencionprimaria/profesionales/medidas-economicas-materia-recursos-humanos-contempladas-plan-integral-mejora">Complementos de Madrid</a>.</p>
+      <p><b>Del bruto al neto.</b> Para estimar el neto hacen falta las cotizaciones y el IRPF. Con las reglas de 2025, para una persona de 40 años sin familiares a cargo ni discapacidad, con 60.000 € de base liquidable general, la parte autonómica antes de deducciones sería de 7.694,10 € en Madrid y 8.359,95 € en Andalucía. La base liquidable se obtiene tras aplicar las reducciones que correspondan a la base imponible. <a href="https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-practicos/irpf-2025/c15-calculo-impuesto-determinacion-cuotas-integras/gravamen-base-liquidable-general/gravamen-autonomico.html">Escalas autonómicas del IRPF 2025</a> · <a href="https://sede.agenciatributaria.gob.es/Sede/ayuda/manuales-videos-folletos/manuales-ayuda-presentacion/irpf-2025/8-cumplimentacion-irpf/8_3-adecuacion-impuesto-circunstancias-personales-familiares/8_3_2-minimo-contribuyente.html">Mínimos del contribuyente</a>.</p>
+      <p><b>Poder adquisitivo.</b> Para valorar el coste de vida conviene comparar precios del municipio donde se viviría, en especial la vivienda, junto con el resto de gastos. El Ministerio publica datos de alquiler por municipio. <a href="https://publicaciones.transportes.gob.es/serpavi-2026-sistema-estatal-de-referencia-del-precio-del-alquiler-de-vivienda">Estadística oficial de alquiler</a>.</p>`;
+  }
+
   function notasGuardias() {
     return `<p>Se compara la tarifa bruta por una hora presencial fuera de la jornada ordinaria, en la tarde de un laborable de lunes a viernes o de un domingo no festivo. Cuando la tarifa sube a partir de cierto número de guardias, se toma el primer tramo. El importe de un turno completo depende de sus horas y de las reglas de cada servicio.</p>
+      <p><b>Presencial y localizada.</b> En una guardia localizada el profesional está disponible para acudir si se le requiere. En Asturias, una hora laborable del primer tramo se paga a 30,93 € de forma presencial o a 14,61 € en localización. Cada servicio publica sus propias tarifas y reglas. <a href="https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=64">Tabla de Asturias</a>.</p>
       <p><b>Ámbito.</b> Canarias corresponde a Tenerife y Gran Canaria. Para Ceuta y Melilla se muestra la tarifa conjunta de INGESA, en su régimen tradicional. El ICS es uno de los proveedores de la red pública catalana. Sus módulos presuponen las condiciones de descanso del acuerdo e incluyen jornada ordinaria y complementaria en días laborables.</p>
       <p><b>Tarifas provisionales.</b> Las de Cantabria proceden de un borrador del anexo de 2026 y las de Navarra, de la tabla de Osasunbidea difundida por CCOO. Para el domingo de La Rioja se usa provisionalmente el importe de «Sábados y festivos» de la tabla del SERIS, cuya cabecera omite el domingo. El ranking incluye las tarifas verificadas para el día seleccionado.</p>`;
   }
 
   function ejemploGuardias() {
-    const { laborable, domingo, fuente } = DATA.guardias.territorios.MD;
-    const fijo = DATA.retribuciones.territorios.MD.fijoBruto;
     const horasLaborables = 34, horasDomingo = 24;
-    const adicional = 12 * (horasLaborables * laborable + horasDomingo * domingo);
-    return plegable("guardias-ejemplo", "Cómo se suman las guardias al sueldo", `<p>Ejemplo con las tarifas de Madrid. Si cada mes se pagaran
-      ${horasLaborables} horas de guardia presencial en laborable a ${fmt(laborable, "eur_hora")} y
-      ${horasDomingo} horas en domingo no festivo a ${fmt(domingo, "eur_hora")}, en 12 meses se sumarían
-      <b>${fmt(adicional, "eur_anual")}</b> al fijo de ${fmt(fijo, "eur_anual")}. El resultado sería de
-      <b>${fmt(fijo + adicional, "eur_anual")} brutos al año</b>.</p>
-      <p>Las horas del ejemplo son un supuesto. El total real depende del calendario, el centro y la especialidad.
-      <a href="${esc(fuente)}">Tarifas oficiales de Madrid</a>.</p>`);
+    const filas = ["AN", "MC", "MD", "PV"].map((id) => {
+      const { laborable, domingo, fuente } = DATA.guardias.territorios[id];
+      const fijo = DATA.retribuciones.territorios[id].fijoBruto;
+      const guardias = 12 * (horasLaborables * laborable + horasDomingo * domingo);
+      return { id, fuente, fijo, guardias, total: fijo + guardias };
+    }).sort((a, b) => b.total - a.total).map(({ id, fuente, fijo, guardias, total }) =>
+      `<tr class="${id === S.com ? "tuya" : ""}">
+        <th scope="row"><a href="${esc(fuente)}" aria-label="Tarifas de ${esc(NOMBRE[id])}">${esc(NOMBRE[id])}</a></th>
+        <td>${fmt(fijo, "eur_anual")}</td><td>${fmt(guardias, "eur_anual")}</td><td><b>${fmt(total, "eur_anual")}</b></td>
+      </tr>`).join("");
+    return plegable("guardias-ejemplo", "¿Cuánto suman las mismas guardias?", `
+      <p>Simulación para un especialista con cinco años de servicio y sin carrera reconocida. Aplicamos las tarifas de ${corteGuardias} a
+      ${horasLaborables} horas de guardia presencial en laborable y ${horasDomingo} en domingo no festivo cada mes durante 12 meses.</p>
+      <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
+      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de fijo más guardias">
+        <table class="tabla tabla-retribuciones"><thead><tr>
+          <th scope="col">Territorio</th><th scope="col">Fijo anual</th><th scope="col">Guardias simuladas</th>
+          <th scope="col" aria-sort="descending">Total simulado</th>
+        </tr></thead><tbody>${filas}</tbody></table>
+      </div>
+      <p>Importes brutos en euros. La simulación usa las mismas horas en las cuatro comunidades. Las horas de un especialista dependen del calendario, el centro y la especialidad.</p>`);
   }
 
   function datoGuardia(id, dia) {
@@ -1640,6 +1659,7 @@ export function iniciar(DATA: DatosApp): void {
       <p class="sub">Guardia presencial de un especialista. Tarifas vigentes a ${corteGuardias}.</p>
       <p class="sub guardias-contexto">El Institut Català de la Salut (ICS) paga parte de sus guardias por turnos completos de 24 horas. El ranking compara lo que se paga por una hora de guardia.
         <button type="button" class="btn-link" id="guardias-ir-ics">Ver el caso de Cataluña</button></p>
+      <div class="nota">${ejemploGuardias()}</div>
       <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
       <p class="sub guardias-criterio">De mayor a menor por la tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
@@ -1657,7 +1677,7 @@ export function iniciar(DATA: DatosApp): void {
         <p class="sub">Para las guardias que el ICS programa fuera de los módulos, paga ${tarifa(ics.porHora.laborable)} en laborable y ${tarifa(ics.porHora.domingo)} en domingo no festivo.</p>
         <p class="sub">${enlacesICS}</p>
       </section>
-      <div class="nota">${ejemploGuardias()}${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
+      <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
@@ -1671,6 +1691,7 @@ export function iniciar(DATA: DatosApp): void {
     const edades = cupo.edades.map(({ tramo, personas }) => `${nf(0).format(personas)} de ${esc(tramo)}`);
     return `<p>Usamos las tablas de cada servicio para estimar el sueldo del mismo perfil. El fijo incluye la antigüedad y las pagas extra. El cálculo excluye guardias, atención continuada, carrera profesional, jefaturas y objetivos.</p>
       <p><b>Pacientes asignados.</b> El grupo simulado incluye ${new Intl.ListFormat("es").format(edades)}. Se cuentan ${nf(0).format(cupo.pensionistas)} pensionistas entre los mayores de 65 para los servicios que usan ese criterio. Usamos el grado de dispersión más bajo donde hay tramos y la modalidad exclusiva donde hay un régimen diferenciado.</p>
+      <p><b>Turno y centro de salud.</b> En Madrid, el turno fijo de tarde tiene un complemento de 533,19 € al mes. La rotación de al menos tres tardes por semana tiene uno de 319,92 € al mes. La simulación usa el puesto ordinario sin esos complementos. <a href="https://www.comunidad.madrid/hospital/atencionprimaria/profesionales/medidas-economicas-materia-recursos-humanos-contempladas-plan-integral-mejora">Reglas de Madrid</a>.</p>
       <p><b>Navarra.</b> El fijo del perfil de referencia del II Ensanche de Pamplona es de ${fmt(navarra.fijo, "eur_anual")} al año antes de sumar el cupo y la dispersión. El total queda pendiente de conocer los coeficientes de ajuste aplicables. <a href="${esc(navarra.fuente)}">Plantilla</a> · <a href="${esc(navarra.norma)}">Reglas del cupo</a>.</p>`;
   }
 
@@ -1744,16 +1765,22 @@ export function iniciar(DATA: DatosApp): void {
   }
 
   function simulacionCarrera() {
-    const { territorios, carreraNivelII } = DATA.retribuciones;
+    const { territorios, carrera } = DATA.retribuciones;
     const euros = (v) => fmt(v, "eur_anual");
-    const filas = Object.entries(carreraNivelII).map(([id, { importe, fuente }]) => {
+    const filas = Object.entries(carrera).map(([id, { niveles, fuente }]) => {
       const { fijoBruto, antiguedad } = territorios[id];
+      const importe = niveles[1];
       const sinCarrera = fijoBruto + 3 * antiguedad;
       return { id, importe, fuente, sinCarrera, conCarrera: sinCarrera + importe };
     }).sort((a, b) => b.conCarrera - a.conCarrera)
       .map(({ id, importe, fuente, sinCarrera, conCarrera }) => `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         <td>${euros(sinCarrera)}</td><td>${euros(importe)}</td><td><b>${euros(conCarrera)}</b></td></tr>`).join("");
+    const porNivel = Object.entries(carrera).map(([id, { niveles, fuente }]) =>
+      `<tr class="${id === S.com ? "tuya" : ""}">
+        <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
+        ${niveles.map((importe) => `<td>${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
+      </tr>`).join("");
     return plegable("retribuciones-carrera", "Simular la carrera profesional", `<p class="sub">Simulación para Aragón, Asturias y Madrid.
       Comparamos a un especialista con 12 años de servicio, con y sin el nivel II de carrera reconocido. Las filas se ordenan por el total con nivel II. El ranking general usa el perfil de cinco años.</p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de carrera profesional">
@@ -1761,31 +1788,60 @@ export function iniciar(DATA: DatosApp): void {
           <th scope="col">Territorio</th><th scope="col">Sin carrera</th><th scope="col">Complemento de carrera</th>
           <th scope="col" aria-sort="descending">Total con nivel II</th>
         </tr></thead><tbody>${filas}</tbody></table>
-      </div>`);
+      </div>
+      ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual del nivel reconocido. Se aplica la cuantía de ese nivel. El acceso requiere evaluación y depende de las reglas del servicio.</p>
+        <p class="tabla-deslizar solo-movil">Desliza la tabla para ver todos los niveles <span aria-hidden="true">→</span></p>
+        <div class="tabla-wrap" tabindex="0" role="region" aria-label="Complementos de carrera por nivel">
+          <table class="tabla tabla-retribuciones"><thead><tr>
+            <th scope="col">Territorio</th><th scope="col">Nivel I</th><th scope="col">Nivel II</th>
+            <th scope="col">Nivel III</th><th scope="col">Nivel IV</th>
+          </tr></thead><tbody>${porNivel}</tbody></table>
+        </div>
+        <p>La instrucción de nóminas de Aragón suprime el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>`)}
+      <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>`);
+  }
+
+  function tablaDedicacion(ids) {
+    const filas = ids.map((id) => {
+      const { fijoBruto, diferenciaDedicacion } = DATA.retribuciones.territorios[id];
+      return { id, exclusiva: fijoBruto, compatible: fijoBruto - diferenciaDedicacion, diferenciaDedicacion };
+    }).sort((a, b) => b[ordenDedicacion] - a[ordenDedicacion])
+      .map(({ id, exclusiva, compatible, diferenciaDedicacion }) =>
+        `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
+          <td>${fmt(exclusiva, "eur_anual")}</td><td>${fmt(compatible, "eur_anual")}</td>
+          <td>${fmt(diferenciaDedicacion, "eur_anual")}</td></tr>`).join("");
+    const sort = (modalidad) => ordenDedicacion === modalidad ? ' aria-sort="descending"' : "";
+    return `<table class="tabla tabla-retribuciones"><thead><tr>
+      <th scope="col">Territorio</th><th scope="col"${sort("exclusiva")}>Con exclusiva</th>
+      <th scope="col"${sort("compatible")}>Con compatibilidad</th>
+      <th scope="col">Más con exclusiva</th></tr></thead><tbody>${filas}</tbody></table>`;
+  }
+
+  function territoriosDedicacion() {
+    return IDS.filter((id) => DATA.retribuciones.territorios[id]?.diferenciaDedicacion != null)
+      .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"));
   }
 
   function simulacionDedicacion() {
     const { territorios } = DATA.retribuciones;
-    const ids = IDS.filter((id) => territorios[id]?.diferenciaDedicacion != null)
-      .sort((a, b) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es"));
+    const ids = territoriosDedicacion();
     const seleccionado = territorioDedicacion ?? (ids.includes(S.com) ? S.com : ids[0]);
-    const filas = ids.map((id) => {
-      const { fijoBruto, diferenciaDedicacion } = territorios[id];
-      return `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row">${esc(nombreRetribucion(id))}</th>
-        <td>${fmt(fijoBruto, "eur_anual")}</td><td>${fmt(fijoBruto - diferenciaDedicacion, "eur_anual")}</td>
-        <td>${fmt(diferenciaDedicacion, "eur_anual")}</td></tr>`;
-    }).join("");
     const desglose = `<div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-territorio">Territorio</label>
         <select id="retribuciones-dedicacion-territorio">${ids.map((id) =>
           opt(id, nombreRetribucion(id), id === seleccionado)).join("")}</select>
       </div>
       <div id="retribuciones-dedicacion-resultado" aria-live="polite">${importesDedicacion(seleccionado)}</div>`;
     return plegable("retribuciones-dedicacion", "Comparar la dedicación exclusiva", `
-      <p>El mismo especialista puede cobrar un fijo distinto si obtiene autorización para ejercer también en la privada. Comparamos el sueldo público anual de los ${ids.length} servicios donde hemos podido calcular ambas modalidades.</p>
-      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Comparación de la dedicación exclusiva">
-        <table class="tabla tabla-retribuciones"><thead><tr>
-          <th scope="col">Territorio</th><th scope="col">Con exclusiva</th><th scope="col">Con compatibilidad</th>
-          <th scope="col">Más con exclusiva</th></tr></thead><tbody>${filas}</tbody></table>
+      <p>El sueldo público fijo puede cambiar si el mismo especialista obtiene autorización para ejercer también en la privada. Cambia el orden para ver qué ocurre en los ${ids.length} servicios donde se pueden comparar ambas modalidades.</p>
+      <div class="retribuciones-dedicacion-filtro"><label for="retribuciones-dedicacion-orden">Ordenar por</label>
+        <select id="retribuciones-dedicacion-orden">
+          ${opt("exclusiva", "Sueldo con exclusiva", ordenDedicacion === "exclusiva")}
+          ${opt("compatible", "Sueldo con compatibilidad", ordenDedicacion === "compatible")}
+        </select>
+      </div>
+      <p class="tabla-deslizar solo-movil">Desliza la tabla para ver ambas modalidades <span aria-hidden="true">→</span></p>
+      <div id="retribuciones-dedicacion-comparacion" class="tabla-wrap" tabindex="0" role="region" aria-label="Comparación de la dedicación exclusiva">
+        ${tablaDedicacion(ids)}
       </div>
       ${plegable("retribuciones-dedicacion-fuentes", "Ver cálculo y fuentes por territorio", desglose)}
       <p><b>Madrid.</b> Los ${fmt(territorios.MD.fijoBruto, "eur_anual")} del ranking corresponden al puesto ordinario.
@@ -1823,12 +1879,17 @@ export function iniciar(DATA: DatosApp): void {
         ${detalleRetribuciones([...orden, ...sinPuesto, "INGESA"])}
         ${simulacionCarrera()}
         ${simulacionDedicacion()}
+        ${plegable("retribuciones-contexto", "Qué más influye en la nómina", contextoRetribuciones())}
       </div>
       <div class="tabla-wrap tabla-ranking"><table class="tabla"><thead><tr><th scope="col">#</th><th scope="col">Territorio</th><th scope="col">Fijo bruto anual</th><th scope="col">Incluye por residencia</th><th scope="col">Fuente o estado</th></tr></thead>
       <tbody>${filas}<tr class="sep"><td colspan="5">Servicio estatal fuera del ranking autonómico</td></tr>${fila("INGESA")}</tbody></table></div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv">Descargar CSV</button>
         <a href="#datos?dato=hosp_guardias&amp;com=${S.com.toLowerCase()}">Ver las tarifas de guardia</a></div>`;
     $("#csv").onclick = () => descargarCSV(ind);
+    $("#retribuciones-dedicacion-orden").onchange = (e) => {
+      ordenDedicacion = e.target.value;
+      $("#retribuciones-dedicacion-comparacion").innerHTML = tablaDedicacion(territoriosDedicacion());
+    };
     $("#retribuciones-dedicacion-territorio").onchange = (e) => {
       territorioDedicacion = e.target.value;
       $("#retribuciones-dedicacion-resultado").innerHTML = importesDedicacion(territorioDedicacion);

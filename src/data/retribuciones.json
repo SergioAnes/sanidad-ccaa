@@ -23,9 +23,9 @@
   "provisionales": {
     "CB": {"fijoBruto": 58763.46, "residencia": 0.0, "fuentes": ["https://sinsiglas.wordpress.com/wp-content/uploads/2025/02/instrucciones-de-nominas-2026-y-anexos.pdf#page=38"], "antiguedad": 706.6}
   },
-  "carreraNivelII": {
-    "AR": {"importe": 8317.8, "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=15"},
-    "AS": {"importe": 6864.2, "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=63"},
-    "MD": {"importe": 9211.68, "fuente": "https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf#page=54"}
+  "carrera": {
+    "AR": {"niveles": [4277.76, 8317.8, 11882.52, null], "fuente": "https://www.aragon.es/documents/20127/128260043/Tablas_retributivas_personal_estatutario_SALUD_2026.pdf/e527d18c-861e-0a7d-166e-cd07bf2aad77?download=true&t=1771839687505&version=1.0#page=15"},
+    "AS": {"niveles": [3432.24, 6864.2, 10229.24, 13593.72], "fuente": "https://www.asturias.es/bopa/2026/07/10/2026-05918.pdf#page=63"},
+    "MD": {"niveles": [4969.56, 9211.68, 12969, 16362.72], "fuente": "https://www.comunidad.madrid/transparencia/sites/default/files/open-data/downloads/bocm-20260209-6.pdf#page=54"}
   }
 }
