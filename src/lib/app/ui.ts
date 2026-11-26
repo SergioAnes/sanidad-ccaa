@@ -111,9 +111,9 @@ export function iniciar(DATA: DatosApp): void {
     { laborables: 17, domingo: 24 },
     { laborables: 34, domingo: 24 },
   ];
-  let perfilHospital = 3, guardiasPerfil = 0;
-  let guardiasComparadas = 3;
-  const ordenTablasSueldos = new Map();
+  let perfilHospital = 1, guardiasPerfil = 0;
+  const trienioEstandar = 706.6; // Trienio del subgrupo A1 en las tablas de 2026 que siguen la cuantía estatal.
+    const ordenTablasSueldos = new Map();
   const usaTotalEspana = (ind) => ind.fuente === "rae" || esVidaSaludable(ind) || esPQI(ind) || esVacuna(ind);
   const esRecurso = (ind) => ["primaria", "hospitales", "resultados", "prevencion"].includes(ind.grupo);
   const primero = (ind) => periodos(ind)[0];
@@ -1191,7 +1191,7 @@ export function iniciar(DATA: DatosApp): void {
     if (esRetribucion(ind)) {
       $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos.`;
     }
-    renderPerfilesHospital(false); // Oculto hasta corregir su cobertura (solo recorría las comunidades con tabla de carrera).
+    renderPerfilesHospital(esRetribucion(ind));
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
     else if (!cont.querySelector("svg")) $("#e-desc").innerHTML = "";
     else botonPNG($("#e-desc"), "Descargar gráfico (PNG)", () => descargarPNG($("#e-chart svg"), `${S.vistaE}_${ind.id}`, $("#e-titulo").textContent, null,
@@ -1649,41 +1649,6 @@ export function iniciar(DATA: DatosApp): void {
     ordenarTablaSueldos(tabla, columna, ascendente);
   });
 
-  function ejemploGuardias() {
-    const horas = horasGuardiaMensuales[guardiasComparadas];
-    const ids = IDS.filter((id) => {
-      const tarifas = DATA.guardias.territorios[id];
-      return DATA.retribuciones.territorios[id] && tarifas?.laborable != null && tarifas.domingo != null;
-    });
-    const filas = ids.map((id) => {
-      const tarifas = DATA.guardias.territorios[id];
-      const fijo = DATA.retribuciones.territorios[id].fijoBruto;
-      const guardias = importeGuardiasAnual(tarifas, horas);
-      return { id, fuente: tarifas.fuente, fijo, guardias, total: fijo + guardias };
-    }).sort((a, b) => b.total - a.total).map(({ id, fuente, fijo, guardias, total }) =>
-      `<tr class="${id === S.com ? "tuya" : ""}">
-        <th scope="row"><a href="${esc(fuente)}" aria-label="Tarifas de ${esc(NOMBRE[id])}">${esc(NOMBRE[id])}</a></th>
-        <td data-importe="${fijo}">${fmt(fijo, "eur_anual")}</td><td data-importe="${guardias}">${fmt(guardias, "eur_anual")}</td><td data-importe="${total}"><b>${fmt(total, "eur_anual")}</b></td>
-      </tr>`).join("");
-    return plegable("guardias-ejemplo", "¿Cuánto suman las mismas guardias?", `
-      <p><b>${ids.length} de ${IDS.length} comunidades.</b> Especialista con cinco años de servicio y sin carrera reconocida. Repetimos las horas elegidas cada mes durante 12 meses con las tarifas de ${corteGuardias}.</p>
-      <div class="guardias-orden"><label for="guardias-comparadas">Horas presenciales al mes</label>
-        <select id="guardias-comparadas">
-          ${opt(0, "Sin guardias", guardiasComparadas === 0)}
-          ${opt(1, "17 h laborables", guardiasComparadas === 1)}
-          ${opt(3, "58 h · 34 laborables y 24 en domingo no festivo", guardiasComparadas === 3)}
-        </select>
-      </div>
-      <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
-      <div class="tabla-wrap" tabindex="0" role="region" aria-label="Simulación de fijo más guardias">
-        <table class="tabla tabla-retribuciones" data-orden-sueldo="guardias-simuladas"><thead><tr>
-          <th scope="col">Territorio</th>${cabeceraOrdenable("Fijo anual")}${cabeceraOrdenable("Guardias simuladas")}
-          ${cabeceraOrdenable("Total simulado", true)}
-        </tr></thead><tbody>${filas}</tbody></table>
-      </div>
-      <p>Importes brutos en euros. Todos los escenarios mantienen los servicios con fijo y ambas tarifas verificadas. Las horas reales dependen del calendario, el centro y la especialidad.</p>`);
-  }
-
   function datoGuardia(id, dia) {
     const datos = DATA.guardias.territorios[id];
     const provisional = DATA.guardias.provisionales[id];
@@ -1754,7 +1719,7 @@ export function iniciar(DATA: DatosApp): void {
       </div>
       <h2 id="guardias-titulo">${esc(ind.nombre)}</h2>
       <p class="sub">Guardia presencial de un especialista. Tarifas vigentes a ${corteGuardias}.</p>
-      <div class="nota">${ejemploGuardias()}</div>
+      <p class="sub"><a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla">Simular el sueldo con guardias</a>: suma estas tarifas al fijo, con la antigüedad y la carrera que elijas.</p>
       <div class="guardias-orden"><label for="guardias-orden">${S.vistaE === "tabla" ? "Ordenar por" : "Día de la guardia"}</label>
         <select id="guardias-orden">${opt("laborable", "Laborable", ordenGuardias === "laborable")}${opt("domingo", "Domingo no festivo", ordenGuardias === "domingo")}</select></div>
       <p class="sub guardias-criterio">Tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
@@ -1766,7 +1731,6 @@ export function iniciar(DATA: DatosApp): void {
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
     $("#guardias-orden").onchange = (e) => { ordenGuardias = e.target.value; render(); };
-    $("#guardias-comparadas").onchange = (e) => aplicar(() => { guardiasComparadas = Number(e.target.value); });
     $("#guardias-vistas").querySelectorAll("button").forEach((b) => b.onclick = () => { S.vistaE = b.dataset.v; render(); });
     $("#csv-guardias").onclick = () => descargarCSV(ind);
   }
@@ -1882,17 +1846,33 @@ export function iniciar(DATA: DatosApp): void {
     const trienios = Math.floor(anios / 3);
     const { territorios, carrera } = DATA.retribuciones;
     const euros = (v) => fmt(v, "eur_anual");
-    const filas = Object.entries(carrera).flatMap(([id, { niveles, fuente }]) => {
-      const complemento = nivel ? niveles[nivel - 1] : 0;
-      if (complemento == null) return [];
-      const { fijoBruto, antiguedad } = territorios[id];
-      const fijo = fijoBruto + (trienios - 1) * antiguedad;
-      const guardias = importeGuardiasAnual(DATA.guardias.territorios[id], horas);
+    const motivos = new Map();
+    const excluir = (id, motivo) => motivos.set(motivo, [...(motivos.get(motivo) ?? []), id]);
+    const filas = IDS.flatMap((id) => {
+      const datos = territorios[id];
+      if (!datos) return excluir(id, "no hay tabla oficial del sueldo localizada"), [];
+      if (anios !== 5 && datos.antiguedad !== trienioEstandar) return excluir(id, "su antigüedad no sigue el trienio estándar y falta comprobar cómo se calcula para otros años de servicio"), [];
+      if (nivel && !carrera[id]) return excluir(id, "falta cargar su tabla de carrera profesional"), [];
+      const complemento = nivel ? carrera[id].niveles[nivel - 1] : 0;
+      if (complemento == null) return excluir(id, "no abona ese nivel de carrera en 2026"), [];
+      const tarifas = DATA.guardias.territorios[id];
+      if ((horas.laborables && tarifas?.laborable == null) || (horas.domingo && tarifas?.domingo == null))
+        return excluir(id, "no hay tarifa oficial de guardia localizada para esos días"), [];
+      const fijo = datos.fijoBruto + (anios === 5 ? 0 : (trienios - 1) * datos.antiguedad);
+      const guardias = horas.laborables || horas.domingo ? importeGuardiasAnual(tarifas, horas) : 0;
+      const fuente = nivel ? carrera[id].fuente : datos.fuentes[0];
       return [{ id, fuente, fijo, complemento, guardias, total: fijo + complemento + guardias }];
     }).sort((a, b) => b.total - a.total);
+    const lista = (ids) => new Intl.ListFormat("es").format(ids.map((id) => esc(NOMBRE[id])));
+    const faltan = [...motivos].map(([motivo, ids]) => `<li><b>${lista(ids)}</b>: ${motivo}.</li>`).join("");
+    const calculo = (id) => {
+      const t = DATA.guardias.territorios[id];
+      return [horas.laborables && `${horas.laborables} h × ${fmt(t.laborable, "eur_hora")}`, horas.domingo && `${horas.domingo} h × ${fmt(t.domingo, "eur_hora")}`]
+        .filter(Boolean).join(" + ") + " al mes × 12";
+    };
     return `<p class="sub">${anios} años de servicio, ${trienios} ${trienios === 1 ? "trienio" : "trienios"}.
-      ${guardiasPerfil ? `${horas.laborables} h en laborable y ${horas.domingo} h en domingo no festivo al mes durante 12 meses.` : "Sin guardias."}
-      <b>${filas.length} de ${IDS.length} comunidades.</b> ${nivel === 4 ? "Las instrucciones de nóminas de Aragón suprimen el abono del nivel IV en 2026." : ""}</p>
+      ${guardiasPerfil ? `${horas.laborables} h en laborable${horas.domingo ? ` y ${horas.domingo} h en domingo no festivo` : ""} al mes durante 12 meses, con el primer tramo de cada tarifa.` : "Sin guardias."}
+      <b>${filas.length} de ${IDS.length} comunidades.</b></p>
       <p class="tabla-deslizar solo-movil">Desliza la tabla para ver el total <span aria-hidden="true">→</span></p>
       <div class="tabla-wrap" tabindex="0" role="region" aria-label="Totales del perfil hospitalario seleccionado">
         <table class="tabla tabla-retribuciones" data-orden-sueldo="perfiles"><thead><tr>
@@ -1901,9 +1881,10 @@ export function iniciar(DATA: DatosApp): void {
         </tr></thead><tbody>${filas.map(({ id, fuente, fijo, complemento, guardias, total }) =>
           `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row"><a href="${esc(fuente)}">${esc(NOMBRE[id])}</a></th>
             <td data-importe="${fijo}">${euros(fijo)}</td><td data-importe="${complemento}">${euros(complemento)}</td>
-            <td data-importe="${guardias}">${euros(guardias)}</td><td data-importe="${total}"><b>${euros(total)}</b></td></tr>`).join("")}
+            <td data-importe="${guardias}">${euros(guardias)}${guardias ? `<br><span class="sub">${calculo(id)}</span>` : ""}</td><td data-importe="${total}"><b>${euros(total)}</b></td></tr>`).join("")}
         </tbody></table>
-      </div>`;
+      </div>
+      ${faltan ? plegable("retribuciones-perfil-faltan", `Comunidades que no salen · ${IDS.length - filas.length}`, `<ul>${faltan}</ul>`) : ""}`;
   }
 
   function renderPerfilesHospital(visible) {
@@ -1917,8 +1898,8 @@ export function iniciar(DATA: DatosApp): void {
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         ${niveles.map((importe) => `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
       </tr>`).join("");
-    panel.innerHTML = plegable("retribuciones-carrera", "Comparar perfiles de sueldo hospitalario", `
-      <p>Elige la experiencia, el nivel de carrera reconocido y las horas mensuales de guardia presencial. Simulación para puestos ordinarios a jornada completa con las tablas de ${corteRetribucion}.</p>
+    panel.innerHTML = plegable("retribuciones-carrera", "Simular el sueldo con antigüedad, carrera y guardias", `
+      <p>La tabla principal es el fijo sin guardias. Aquí puedes sumar años de servicio, carrera profesional y horas mensuales de guardia presencial. Simulación para puestos ordinarios a jornada completa con las tablas de ${corteRetribucion}.</p>
       <div class="retribuciones-dedicacion-filtro"><label for="perfil-hospital">Perfil</label>
         <select id="perfil-hospital">${perfilesHospital.map(({ etiqueta }, i) => opt(i, etiqueta, i === perfilHospital)).join("")}</select>
       </div>
