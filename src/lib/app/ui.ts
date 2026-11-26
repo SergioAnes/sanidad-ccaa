@@ -98,12 +98,12 @@ export function iniciar(DATA: DatosApp): void {
   let territorioDedicacion;
   let ordenDedicacion = "exclusiva";
   const perfilesHospital = [
-    { etiqueta: "Inicio · sin antigüedad", anios: 0, nivel: 0 },
-    { etiqueta: "5 años · sin carrera", anios: 5, nivel: 0 },
-    { etiqueta: "12 años · sin carrera", anios: 12, nivel: 0 },
-    { etiqueta: "12 años · nivel II", anios: 12, nivel: 2 },
-    { etiqueta: "20 años · nivel III", anios: 20, nivel: 3 },
-    { etiqueta: "25 años · nivel IV", anios: 25, nivel: 4 },
+    { etiqueta: "Inicio · sin antigüedad", anios: 0, carrera: false },
+    { etiqueta: "5 años · sin carrera", anios: 5, carrera: false },
+    { etiqueta: "12 años · sin carrera", anios: 12, carrera: false },
+    { etiqueta: "12 años · con carrera", anios: 12, carrera: true },
+    { etiqueta: "20 años · con carrera", anios: 20, carrera: true },
+    { etiqueta: "25 años · con carrera", anios: 25, carrera: true },
   ];
   const horasGuardiaMensuales = [
     { laborables: 0, domingo: 0 },
@@ -1846,8 +1846,10 @@ export function iniciar(DATA: DatosApp): void {
       </div>`);
   }
 
+  const romano = ["", "I", "II", "III", "IV"];
+
   function resultadoPerfilHospital() {
-    const { anios, nivel } = perfilesHospital[perfilHospital];
+    const { anios, carrera: conCarrera } = perfilesHospital[perfilHospital];
     const horas = horasGuardiaMensuales[guardiasPerfil];
     const trienios = Math.floor(anios / 3);
     const { territorios, carrera } = DATA.retribuciones;
@@ -1858,16 +1860,20 @@ export function iniciar(DATA: DatosApp): void {
       const datos = territorios[id];
       if (!datos) return excluir(id, "no hay tabla oficial del sueldo localizada"), [];
       if (anios !== 5 && antiguedadSinSimular[id]) return excluir(id, antiguedadSinSimular[id]), [];
-      if (nivel && !carrera[id]) return excluir(id, "falta cargar su tabla de carrera profesional"), [];
-      const complemento = nivel ? carrera[id].niveles[nivel - 1] : 0;
-      if (complemento == null) return excluir(id, "no abona ese nivel de carrera en 2026"), [];
+      const c = conCarrera ? carrera[id] : null;
+      if (conCarrera && !c) return excluir(id, "falta cargar su tabla de carrera profesional"), [];
+      if (c?.sinAcceso) return excluir(id, c.sinAcceso), [];
+      // Nivel más alto que permiten los años, con evaluación favorable en cuanto se cumple cada plazo.
+      const nivel = c ? c.anios.filter((minimo) => minimo <= anios).length : 0;
+      const complemento = nivel ? c.niveles[nivel - 1] : 0;
+      if (complemento == null) return excluir(id, `no abona en 2026 el nivel ${romano[nivel]}, que corresponde a esos años`), [];
       const tarifas = DATA.guardias.territorios[id];
       if ((horas.laborables && tarifas?.laborable == null) || (horas.domingo && tarifas?.domingo == null))
         return excluir(id, "no hay tarifa oficial de guardia localizada para esos días"), [];
       const fijo = datos.fijoBruto + (anios === 5 ? 0 : (trienios - 1) * datos.antiguedad);
       const guardias = horas.laborables || horas.domingo ? importeGuardiasAnual(tarifas, horas) : 0;
-      const fuente = nivel ? carrera[id].fuente : datos.fuentes[0];
-      return [{ id, fuente, fijo, complemento, guardias, total: fijo + complemento + guardias }];
+      const fuente = c ? c.fuente : datos.fuentes[0];
+      return [{ id, fuente, nivel, fijo, complemento, guardias, total: fijo + complemento + guardias }];
     }).sort((a, b) => b.total - a.total);
     const lista = (ids) => new Intl.ListFormat("es").format(ids.map((id) => esc(NOMBRE[id])));
     const faltan = [...motivos].map(([motivo, ids]) => `<li><b>${lista(ids)}</b>: ${motivo}.</li>`).join("");
@@ -1884,9 +1890,9 @@ export function iniciar(DATA: DatosApp): void {
         <table class="tabla tabla-retribuciones" data-orden-sueldo="perfiles"><thead><tr>
           <th scope="col">Territorio</th>${cabeceraOrdenable("Fijo con antigüedad")}${cabeceraOrdenable("Carrera")}
           ${cabeceraOrdenable("Guardias")}${cabeceraOrdenable("Total bruto anual", true)}
-        </tr></thead><tbody>${filas.map(({ id, fuente, fijo, complemento, guardias, total }) =>
+        </tr></thead><tbody>${filas.map(({ id, fuente, nivel, fijo, complemento, guardias, total }) =>
           `<tr class="${id === S.com ? "tuya" : ""}"><th scope="row"><a href="${esc(fuente)}">${esc(NOMBRE[id])}</a></th>
-            <td data-importe="${fijo}">${euros(fijo)}</td><td data-importe="${complemento}">${euros(complemento)}</td>
+            <td data-importe="${fijo}">${euros(fijo)}</td><td data-importe="${complemento}">${euros(complemento)}${conCarrera ? `<br><span class="sub">${nivel ? `Nivel ${romano[nivel]}` : "Sin nivel"}</span>` : ""}</td>
             <td data-importe="${guardias}">${euros(guardias)}${guardias ? `<br><span class="sub">${calculo(id)}</span>` : ""}</td><td data-importe="${total}"><b>${euros(total)}</b></td></tr>`).join("")}
         </tbody></table>
       </div>
@@ -1899,10 +1905,11 @@ export function iniciar(DATA: DatosApp): void {
     if (!visible) return;
     const { territorios, carrera } = DATA.retribuciones;
     const euros = (v) => fmt(v, "eur_anual");
-    const porNivel = Object.entries(carrera).sort(([a], [b]) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es")).map(([id, { niveles, fuente }]) =>
+    const porNivel = Object.entries(carrera).sort(([a], [b]) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es")).map(([id, { niveles, fuente, anios, fuenteAnios }]) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
         ${niveles.map((importe) => `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
+        <td><a href="${esc(fuenteAnios)}">${anios.join(" · ")}</a></td>
       </tr>`).join("");
     panel.innerHTML = plegable("retribuciones-carrera", "Simular el sueldo con antigüedad, carrera y guardias", `
       <p>La tabla principal es el fijo sin guardias. Aquí puedes sumar años de servicio, carrera profesional y horas mensuales de guardia presencial. Simulación para puestos ordinarios a jornada completa con las tablas de ${corteRetribucion}.</p>
@@ -1914,19 +1921,19 @@ export function iniciar(DATA: DatosApp): void {
           opt(i, i === 0 ? "Sin guardias" : `${laborables} h laborables${domingo ? ` + ${domingo} h en domingo` : ""}`, i === guardiasPerfil)).join("")}</select>
       </div>
       <div id="resultado-perfil-hospital" aria-live="polite">${resultadoPerfilHospital()}</div>
-      <p class="sub">Los años del ejemplo se tratan como servicios reconocidos en la misma categoría. El nivel supone una evaluación favorable y depende de los requisitos de cada servicio.
+      <p class="sub">Los años del ejemplo se tratan como servicios reconocidos en la misma categoría. Con carrera, cada comunidad tiene el nivel más alto que permiten esos años según sus normas, suponiendo una evaluación favorable en cuanto se cumple cada plazo. Los años exigidos están en «Cuánto añade cada nivel».
         <a href="#datos?dato=hosp_guardias">Ver tarifas de guardia</a>.</p>
-      ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual según el nivel reconocido. El acceso requiere evaluación y depende de las reglas del servicio.</p>
+      ${plegable("retribuciones-carrera-niveles", "Cuánto añade cada nivel", `<p>Complemento bruto anual según el nivel reconocido. La última columna da los años de servicio mínimos para llegar a cada nivel, sumando las permanencias que exige cada servicio; el acceso requiere además una evaluación favorable.</p>
         <p class="tabla-deslizar solo-movil">Desliza la tabla para ver todos los niveles <span aria-hidden="true">→</span></p>
         <div class="tabla-wrap" tabindex="0" role="region" aria-label="Complementos de carrera por nivel">
           <table class="tabla tabla-retribuciones" data-orden-sueldo="niveles-carrera"><thead><tr>
             <th scope="col">Territorio</th>${["Nivel I", "Nivel II", "Nivel III", "Nivel IV"].map((nivel) => cabeceraOrdenable(nivel)).join("")}
+            <th scope="col">Años mínimos (I · II · III · IV)</th>
           </tr></thead><tbody>${porNivel}</tbody></table>
         </div>
-        <p><b>Extremadura.</b> El perfil de nivel III usa 20 años, el mínimo de ejercicio del especialista según su acuerdo. <a href="https://doe.juntaex.es/pdfs/doe/2006/190o/190o.pdf">Acuerdo del SES</a>.</p>
         <p><b>Galicia.</b> Sumamos 3.602,28 € anuales por cada grado reconocido según el acuerdo de 2018. Los grados reconocidos con el régimen anterior tienen otras cuantías. <a href="https://www.xunta.gal/dog/Publicados/2018/20180730/AnuncioC3K1-200718-0001_es.pdf">Acuerdo del SERGAS</a>.</p>
         <p><b>Aragón.</b> Las instrucciones de nóminas suprimen el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>
-        <p><b>Castilla-La Mancha.</b> Las dos convocatorias extraordinarias prevén efectos económicos desde enero de 2027 y enero de 2028, respectivamente. <a href="https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/pdf/20260518/pacto-docm.pdf">Pacto del SESCAM</a>.</p>`)}
+        <p><b>Castilla-La Mancha.</b> Los importes son los de quien ya tenía grado reconocido. La Ley 5/2025 de presupuestos mantiene suspendido en 2026 el reconocimiento de nuevos grados, por lo que no entra en los perfiles con carrera. Las dos convocatorias extraordinarias prevén efectos económicos desde enero de 2027 y enero de 2028, respectivamente. <a href="https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/pdf/20260518/pacto-docm.pdf">Pacto del SESCAM</a>.</p>`)}
       <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>
       <p><b>Jornada inferior a la completa.</b> En Madrid, el fijo del perfil de cinco años sería de ${euros(territorios.MD.fijoBruto * 0.75)} brutos anuales al 75 % de jornada durante todo el año, aplicando la reducción proporcional del puesto y del trienio. <a href="${esc(territorios.MD.fuentes[0])}#page=18">Instrucciones de nómina del SERMAS</a>.</p>`);
     function actualizarResultado() {

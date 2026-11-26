@@ -70,6 +70,14 @@ describe("datos de la interfaz", () => {
       const importes = niveles.filter((v): v is number => v != null);
       expect(importes, id).toEqual([...importes].sort((x, y) => Number(x) - Number(y)));
     }
+    for (const [id, { anios, fuenteAnios }] of Object.entries(carrera)) {
+      expect(anios, id).toHaveLength(4);
+      expect(anios, id).toEqual([...anios].sort((x, y) => x - y));
+      expect(fuenteAnios, id).toMatch(/^https:\/\//);
+    }
+    expect(carrera.EX.anios).toEqual([5, 12, 20, 25]);
+    expect(carrera.GA.anios).toEqual([5, 12, 18, 23]);
+    expect(carrera.CM.sinAcceso).toMatch(/suspendido en 2026/);
     expect(carrera.CM.niveles).toEqual([3738.84, 7476.96, 11214.84, 14953.08]);
     expect(carrera.PV.niveles).toEqual([3898.68, 7797.36, 10396.47, 14295.15]);
     expect(carrera.RI.niveles).toEqual([3272.67, 6545.31, 9817.96, 13090.61]);
