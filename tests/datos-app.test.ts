@@ -61,21 +61,24 @@ describe("datos de la interfaz", () => {
     expect(i.serie.CT).toBeUndefined();
   });
 
-  it("guarda cuatro niveles de carrera crecientes por servicio", () => {
+  it("guarda los niveles de carrera crecientes y los años de cada servicio", () => {
     const { carrera, territorios } = d.retribuciones;
     for (const [id, { niveles, fuente }] of Object.entries(carrera)) {
       expect((territorios as Record<string, unknown>)[id], id).toBeTruthy();
-      expect(niveles, id).toHaveLength(4);
+      expect([4, 5], id).toContain(niveles.length);
       expect(fuente, id).toMatch(/^https:\/\//);
       const importes = niveles.filter((v): v is number => v != null);
       expect(importes, id).toEqual([...importes].sort((x, y) => Number(x) - Number(y)));
     }
     for (const [id, { anios, fuenteAnios }] of Object.entries(carrera)) {
-      expect(anios, id).toHaveLength(4);
+      expect(anios.length, id).toBe(carrera[id as keyof typeof carrera].niveles.length);
       expect(anios, id).toEqual([...anios].sort((x, y) => x - y));
       expect(fuenteAnios, id).toMatch(/^https:\/\//);
     }
     expect(carrera.EX.anios).toEqual([5, 12, 20, 25]);
+    expect(carrera.CN.anios).toEqual([5, 10, 16, 23, 28]);
+    expect(carrera.AN.niveles).toEqual([1448.64, 3748.8, 7498.68, 11248.2, 14997.24]);
+    expect(carrera.IB.niveles).toEqual([3199.2, 6398.28, 9597.48, 12796.68]);
     expect(carrera.GA.anios).toEqual([5, 12, 18, 23]);
     expect(carrera.CM.sinAcceso).toMatch(/suspendido en 2026/);
     expect(carrera.CM.niveles).toEqual([3738.84, 7476.96, 11214.84, 14953.08]);

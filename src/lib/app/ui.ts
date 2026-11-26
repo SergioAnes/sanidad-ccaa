@@ -1846,7 +1846,7 @@ export function iniciar(DATA: DatosApp): void {
       </div>`);
   }
 
-  const romano = ["", "I", "II", "III", "IV"];
+  const romano = ["", "I", "II", "III", "IV", "V"];
 
   function resultadoPerfilHospital() {
     const { anios, carrera: conCarrera } = perfilesHospital[perfilHospital];
@@ -1908,7 +1908,11 @@ export function iniciar(DATA: DatosApp): void {
     const porNivel = Object.entries(carrera).sort(([a], [b]) => nombreRetribucion(a).localeCompare(nombreRetribucion(b), "es")).map(([id, { niveles, fuente, anios, fuenteAnios }]) =>
       `<tr class="${id === S.com ? "tuya" : ""}">
         <th scope="row"><a href="${esc(fuente)}">${esc(nombreRetribucion(id))}</a></th>
-        ${niveles.map((importe) => `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`).join("")}
+        ${[0, 1, 2, 3, 4].map((i) => {
+          if (i >= niveles.length) return '<td data-importe="">—</td>';
+          const importe = niveles[i];
+          return `<td data-importe="${importe ?? ""}">${importe == null ? "Sin abono" : euros(importe)}</td>`;
+        }).join("")}
         <td><a href="${esc(fuenteAnios)}">${anios.join(" · ")}</a></td>
       </tr>`).join("");
     panel.innerHTML = plegable("retribuciones-carrera", "Simular el sueldo con antigüedad, carrera y guardias", `
@@ -1927,10 +1931,12 @@ export function iniciar(DATA: DatosApp): void {
         <p class="tabla-deslizar solo-movil">Desliza la tabla para ver todos los niveles <span aria-hidden="true">→</span></p>
         <div class="tabla-wrap" tabindex="0" role="region" aria-label="Complementos de carrera por nivel">
           <table class="tabla tabla-retribuciones" data-orden-sueldo="niveles-carrera"><thead><tr>
-            <th scope="col">Territorio</th>${["Nivel I", "Nivel II", "Nivel III", "Nivel IV"].map((nivel) => cabeceraOrdenable(nivel)).join("")}
-            <th scope="col">Años mínimos (I · II · III · IV)</th>
+            <th scope="col">Territorio</th>${["Nivel I", "Nivel II", "Nivel III", "Nivel IV", "Nivel V"].map((nivel) => cabeceraOrdenable(nivel)).join("")}
+            <th scope="col">Años mínimos por nivel</th>
           </tr></thead><tbody>${porNivel}</tbody></table>
         </div>
+        <p>Andalucía y Canarias tienen cinco niveles; el resto, cuatro (el guion indica que no existe ese nivel). Los importes mensuales se cuentan en doce pagas: Canarias lo fija en su decreto; la resolución de Andalucía solo reparte en catorce pagas el complemento específico y da la carrera como importe mensual, y la tabla de Illes Balears desglosa la paga extraordinaria en sueldo, destino y específico, sin la carrera.</p>
+        <p><b>Andalucía.</b> ${esc(carrera.AN.nota)} <a href="${esc(carrera.AN.fuenteAnios)}">Modelo de carrera del SAS (2026)</a>.</p>
         <p><b>Galicia.</b> Sumamos 3.602,28 € anuales por cada grado reconocido según el acuerdo de 2018. Los grados reconocidos con el régimen anterior tienen otras cuantías. <a href="https://www.xunta.gal/dog/Publicados/2018/20180730/AnuncioC3K1-200718-0001_es.pdf">Acuerdo del SERGAS</a>.</p>
         <p><b>Aragón.</b> Las instrucciones de nóminas suprimen el abono del nivel IV en 2026. <a href="${esc(territorios.AR.fuentes[1])}#page=3">Instrucción de Aragón</a>.</p>
         <p><b>Castilla-La Mancha.</b> Los importes son los de quien ya tenía grado reconocido. La Ley 5/2025 de presupuestos mantiene suspendido en 2026 el reconocimiento de nuevos grados, por lo que no entra en los perfiles con carrera. Las dos convocatorias extraordinarias prevén efectos económicos desde enero de 2027 y enero de 2028, respectivamente. <a href="https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/pdf/20260518/pacto-docm.pdf">Pacto del SESCAM</a>.</p>`)}
