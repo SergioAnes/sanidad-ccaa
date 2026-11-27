@@ -181,6 +181,9 @@ export function iniciar(DATA: DatosApp): void {
     for (const id of IDS) out[id] = dato(ind, id, anio);
     return out;
   }
+  // Gasto por habitante del conjunto del sector Comunidades Autónomas (gasto total / población total), tal como lo
+  // publica el Ministerio en «Principales resultados» (tabla 5). Solo para explicar la diferencia con la media simple.
+  const GASTO_HAB_CONJUNTO = { 2024: 1958 };
   const media = (o) => { const v = Object.values(o).filter((x) => x != null); return v.reduce((a, b) => a + b, 0) / v.length; };
   function ordenados(o) { return IDS.filter((id) => o[id] != null).sort((a, b) => o[b] - o[a]); }
   // Años provisionales: solo los del gasto (la EGSP). Sin indicador, se mira el que se está viendo.
@@ -2739,7 +2742,7 @@ export function iniciar(DATA: DatosApp): void {
 
       <h2 id="metodo-comparar">Comparar comunidades</h2>
       <ul>
-        <li><b>Medias simples:</b> cada comunidad cuenta igual, sea grande o pequeña.</li>
+        <li><b>Medias simples:</b> cada comunidad cuenta igual, sea grande o pequeña. Por eso la media del gasto por habitante no coincide con la que publica el Ministerio para el conjunto de las comunidades, que divide el gasto total entre la población total y en la que pesan más las comunidades grandes${GASTO_HAB_CONJUNTO[ULT] ? `: en ${ULT}, ${fmt(media(valores(IND.gasto_hab, ULT)), "eur_hab")} de media simple frente a ${fmt(GASTO_HAB_CONJUNTO[ULT], "eur_hab")} del conjunto (<a href="https://www.sanidad.gob.es/estadEstudios/estadisticas/inforRecopilaciones/gastoSanitario2005/tablasEstEGSP/Principales_resultados.pdf">Principales resultados de la EGSP</a>, tabla 5)` : ""}.</li>
         <li><b>Colores del mapa:</b> en gasto, cinco tramos de 3 o 4 comunidades cada uno, de menos a más. En listas de espera, el color dice si la comunidad está por encima (rojo) o por debajo (azul) de la media, en gris si está cerca.</li>
         <li><b>Ceuta y Melilla</b> aparecen aparte en listas de espera: su sanidad la gestiona el Ministerio (INGESA) y su población es muy pequeña. No cuentan para medias, puestos ni colores. En gasto no aparecen, porque el Excel solo recoge la parte del INGESA.</li>
         <li><b>Gasto frente a espera:</b> el gráfico describe si las comunidades que más gastan esperan más o menos; no mide causas. Damos dos correlaciones (Pearson y por rangos, Spearman) y solo hablamos de relación si ambas superan el umbral a partir del cual no se pueden atribuir fácilmente al azar (con 17 comunidades, ±0,48). Como se pueden mirar muchas combinaciones de espera y especialidad, alrededor del 5 % superará ese umbral solo por azar: por eso, cuando aparece, la llamamos «posible relación». Aunque la haya, no prueba que una cosa cause la otra: influyen la edad, la dispersión, las derivaciones a la concertada, el seguro privado, la organización de cada servicio y cómo se registran las listas. Además, compara comunidades, no personas, y el gasto (${ULT}) y la espera (${DATA.corteListas}) no son del mismo momento.</li>
