@@ -2060,6 +2060,9 @@ export function iniciar(DATA: DatosApp): void {
       ${plegable("retribuciones-dedicacion-fuentes", "Ver cálculo y fuentes por territorio", desglose)}
       <p><b>Madrid.</b> Los ${fmt(territorios.MD.fijoBruto, "eur_anual")} del ranking corresponden al puesto ordinario.
         La Comunidad permite solicitar una reducción del complemento específico para pedir la compatibilidad. La tabla de 2026 recoge un único importe para ese puesto.
+        La reducción ajusta el específico al 30 % de la retribución básica sin antigüedad (artículo 16.4 de la Ley 53/1984).
+        <b>Cálculo propio, no publicado por la Comunidad:</b> el específico del puesto suma 5.664,96 € al año (472,08 € en 12 mensualidades) y el 30 % de la retribución básica del subgrupo A1, 5.507,69 € (sueldo de 12 meses y de las dos pagas extraordinarias), así que la pérdida sería de unos 157 € al año.
+        La orden no precisa si la retribución básica incluye las pagas extraordinarias ni si se reduce también la paga adicional del específico; según cómo se aplique, la pérdida llegaría a unos 783 €. Por eso Madrid no entra en la tabla.
         <a href="${esc(territorios.MD.fuentes[0])}#page=39">Tabla de Madrid</a> ·
         <a href="https://www.bocm.es/boletin/CM_Orden_BOCM/2023/02/23/BOCM-20230223-5.PDF">Procedimiento de compatibilidad</a>.</p>`);
   }
