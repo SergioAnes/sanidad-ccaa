@@ -345,6 +345,26 @@ def ingresos_y_dia(anios: list[int]):
     return ing, dia, {"hosp_ingresos": esp_ing, "hosp_dia": esp_dia}, avisos
 
 
+PRIMER_ANIO_URGENCIAS = 2017  # desde este año la tabla de urgencias trae el % atendido en la red pública
+
+
+def urgencias(anios: list[int]):
+    """Urgencias atendidas en hospitales de la red pública por 1.000 habitantes (cálculo propio: tasa × % SNS)."""
+    urg = {c: [] for c, _ in ORDEN_SIAE}
+    esp, avisos, peor = [], [], 0.0
+    for a in anios:
+        com, total = filas_ccaa(hoja(a, ("AOA.4.", "7.4", "6.4")), 2, a, avisos)
+        for c, v in list(com.items()) + [("ES", total)]:
+            n, pct, tasa = v[0], v[1], v[2]
+            calc = n / POB_SIAE[(a, c)] * 1000
+            if abs(calc / tasa - 1) > 0.02 or not 0.3 <= pct <= 1:
+                raise SystemExit(f"SIAE {a} {c}: urgencias por 1.000 hab. ({tasa}) no cuadran con urgencias / población ({calc:.1f}) o % SNS raro ({pct})")
+            peor = max(peor, abs(calc / tasa - 1))
+            (esp if c == "ES" else urg[c]).append(round(tasa * pct, 1))
+    print(f"  SIAE urgencias {anios[0]}-{anios[-1]}: tasa = urgencias / población (diferencia máxima {peor:.2%})")
+    return urg, esp, avisos
+
+
 ANIO_EQUIPOS_ROTO = 2022  # columnas desplazadas en el Excel y en el PDF de la tabla 3.2
 COD_SIAE = {"MU": "MC"}
 
@@ -847,6 +867,12 @@ def main() -> None:
     amb, esp_amb, avisos_c = cirugia(anios_h)
     ing, dia, esp_id, avisos_i = ingresos_y_dia(anios_h)
     picos_dia = picos(dia, anios_h)
+    anios_u = [a for a in anios_h if a >= PRIMER_ANIO_URGENCIAS]
+    urg, esp_urg, avisos_u = urgencias(anios_u)
+    # Urgencias: años con una cifra un 20 % o más distinta de la del año anterior y de la del siguiente (sin explicarlo)
+    # 2020 baja en todas las comunidades (coincide con la pandemia): no se usa como término de comparación.
+    picos_urg = [x for x in picos(urg, anios_u, 0.2) if not {x["anio"] - 1, x["anio"], x["anio"] + 1} & {2020}]
+    print(f"  Urgencias, años con una cifra muy distinta de los de alrededor: {[(x['ccaa'], x['anio']) for x in picos_urg]}")
     eq, esp_eq = equipos(anios_h)
     print(f"  Hospital de día, años con una cifra muy distinta de los de alrededor: {[(x['ccaa'], x['anio']) for x in picos_dia]}")
     indicadores += [{"id": "hosp_camas_sns", "fuente": "siae", "anios": anios_h, "valor": c_sns, "espana": esp_h["hosp_camas_sns"]},
@@ -855,7 +881,8 @@ def main() -> None:
                     {"id": "hosp_estancia", "fuente": "siae", "anios": anios_h, "valor": est, "espana": esp_a["hosp_estancia"]},
                     {"id": "hosp_cma", "fuente": "siae", "anios": anios_h, "valor": amb, "espana": esp_amb},
                     {"id": "hosp_ingresos", "fuente": "siae", "anios": anios_h, "valor": ing, "espana": esp_id["hosp_ingresos"]},
-                    {"id": "hosp_dia", "fuente": "siae", "anios": anios_h, "valor": dia, "espana": esp_id["hosp_dia"]}]
+                    {"id": "hosp_dia", "fuente": "siae", "anios": anios_h, "valor": dia, "espana": esp_id["hosp_dia"]},
+                    {"id": "hosp_urgencias", "fuente": "siae", "anios": anios_u, "valor": urg, "espana": esp_urg}]
     indicadores += [{"id": k, "fuente": "siae", "anios": anios_h, "valor": eq[k], "espana": esp_eq[k]} for k in eq]
     anios_p, pers, esp_p = personal(anios_h)
     # Personal, justo después de las camas
@@ -879,8 +906,8 @@ def main() -> None:
         },
         "ruptura": RUPTURA,
         "repetidos": repetidos,
-        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i + avisos_q)),
-        "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia],
+        "etiquetas_siae": sorted(set(avisos_h + avisos_a + avisos_c + avisos_i + avisos_q + avisos_u)),
+        "picos": [{"indicador": "hosp_dia", **x} for x in picos_dia] + [{"indicador": "hosp_urgencias", **x} for x in picos_urg],
         "saltos_personal": saltos_p,
         "anio_equipos_sin_dato": ANIO_EQUIPOS_ROTO,
         "reclasificaciones": reclasif,
