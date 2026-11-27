@@ -1203,6 +1203,12 @@ export function iniciar(DATA: DatosApp): void {
         desplazable.setAttribute("aria-labelledby", "e-titulo");
         desplazable.insertAdjacentHTML("beforebegin", '<p class="tabla-deslizar solo-movil">Desliza la tabla para ver más columnas <span aria-hidden="true">→</span></p>');
       }
+    } else if (esRetribucion(ind)) {
+      // El ranking sigue al perfil del simulador (antigüedad, carrera y guardias).
+      const simulados = esPerfilHospitalBase() ? mapa.vals : totalesPerfilHospital();
+      const mo = ordenados(simulados);
+      $("#e-titulo").textContent = `${tituloRetribucion(ind)}, ${fecha}${mo.length ? `: la cifra más alta, ${empatadas(simulados, mo[0], ind.unidad)}` : ""}`;
+      ranking(cont, simulados, { ...ind, nombre: tituloRetribucion(ind) });
     } else {
       const mo = ordenados(mapa.vals);
       $("#e-titulo").textContent = graficoEncuesta(ind) ? `${ind.nombre}, ${fecha}${esEstimacion(ind) ? "" : ", con su margen de error"}`
@@ -1213,7 +1219,10 @@ export function iniciar(DATA: DatosApp): void {
       if (graficoEncuesta(ind)) rankingOpinion(cont, ind, anio); else ranking(cont, mapa.vals, mapa.ind);
     }
     if (esRetribucion(ind)) {
-      $("#e-sub").textContent = `${perfilRetribucion} Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos.`;
+      const comun = "Usamos la modalidad exclusiva donde hay tablas diferenciadas. El orden puede cambiar con otros complementos.";
+      $("#e-sub").textContent = S.vistaE === "tabla" && !esPerfilHospitalBase()
+        ? `La tabla de abajo es la del perfil base: ${perfilRetribucion.charAt(0).toLowerCase()}${perfilRetribucion.slice(1)} Los totales del perfil elegido están en el simulador. ${comun}`
+        : `${perfilRetribucionTxt()} ${comun}`;
     }
     renderPerfilesHospital(esRetribucion(ind));
     if (S.vistaE === "tabla") $("#e-desc").innerHTML = "";
@@ -1874,12 +1883,34 @@ export function iniciar(DATA: DatosApp): void {
   // efectos económicos se implantan por porcentajes (BORM 21/11/2022), así que no hay un importe único que simular.
   const carreraSinSimular = { MC: "su tabla de 2026 da importes que dependen del año en que se reconoció cada nivel y de un calendario de implantación por porcentajes, así que no hay un importe único para el perfil" };
 
-  function resultadoPerfilHospital() {
+  // Perfil por defecto del simulador (5 años, sin carrera ni guardias): coincide con la tabla principal.
+  const esPerfilHospitalBase = () => perfilHospital === 1 && guardiasPerfil === 0;
+  const aniosEnLetra = { 0: "cero", 5: "cinco", 12: "doce", 20: "veinte", 25: "veinticinco" };
+  const textoGuardiasPerfil = ({ laborables, domingo }) => `${laborables} h de guardia en laborable${domingo ? ` y ${domingo} h en domingo` : ""} al mes`;
+
+  // Título y subtítulo del gráfico de retribuciones según el perfil elegido en el simulador.
+  function tituloRetribucion(ind) {
+    if (esPerfilHospitalBase()) return ind.nombre;
+    const { carrera } = perfilesHospital[perfilHospital];
+    return `${guardiasPerfil ? "Retribución anual" : "Retribución fija anual"} de un especialista hospitalario ${guardiasPerfil ? "con guardias" : "sin guardias"}${carrera ? " y con carrera" : ""}`;
+  }
+  function perfilRetribucionTxt() {
+    if (esPerfilHospitalBase()) return perfilRetribucion;
+    const { anios, carrera } = perfilesHospital[perfilHospital];
+    const servicio = anios ? `con ${aniosEnLetra[anios] ?? anios} años de servicio` : "sin antigüedad";
+    const guardias = guardiasPerfil ? `con ${textoGuardiasPerfil(horasGuardiaMensuales[guardiasPerfil])}` : "sin guardias";
+    const resto = carrera
+      ? `${guardias} y con el nivel de carrera profesional más alto que permiten esos años`
+      : guardiasPerfil ? `${guardias} y sin carrera profesional reconocida` : "sin guardias ni carrera profesional reconocida";
+    return `Especialista a jornada completa, ${servicio}, ${resto}.`;
+  }
+  const totalesPerfilHospital = () => Object.fromEntries(calcularPerfilHospital().filas.map(({ id, total }) => [id, total]));
+
+  function calcularPerfilHospital() {
     const { anios, carrera: conCarrera } = perfilesHospital[perfilHospital];
     const horas = horasGuardiaMensuales[guardiasPerfil];
     const trienios = Math.floor(anios / 3);
     const { territorios, carrera } = DATA.retribuciones;
-    const euros = (v) => fmt(v, "eur_anual");
     const motivos = new Map();
     const excluir = (id, motivo) => motivos.set(motivo, [...(motivos.get(motivo) ?? []), id]);
     const filas = IDS.flatMap((id) => {
@@ -1901,6 +1932,12 @@ export function iniciar(DATA: DatosApp): void {
       const fuente = c ? c.fuente : datos.fuentes[0];
       return [{ id, fuente, nivel, fijo, complemento, guardias, total: fijo + complemento + guardias }];
     }).sort((a, b) => b.total - a.total);
+    return { anios, conCarrera, horas, trienios, filas, motivos };
+  }
+
+  function resultadoPerfilHospital() {
+    const { anios, conCarrera, horas, trienios, filas, motivos } = calcularPerfilHospital();
+    const euros = (v) => fmt(v, "eur_anual");
     const lista = (ids) => new Intl.ListFormat("es").format(ids.map((id) => esc(NOMBRE[id])));
     const faltan = [...motivos].map(([motivo, ids]) => `<li><b>${lista(ids)}</b>: ${motivo}.</li>`).join("");
     const calculo = (id) => {
@@ -1968,12 +2005,15 @@ export function iniciar(DATA: DatosApp): void {
         <p><b>Castilla-La Mancha.</b> Los importes son los de quien ya tenía grado reconocido. La Ley 5/2025 de presupuestos mantiene suspendido en 2026 el reconocimiento de nuevos grados, por lo que no entra en los perfiles con carrera. Las dos convocatorias extraordinarias prevén efectos económicos desde enero de 2027 y enero de 2028, respectivamente. <a href="https://sanidad.castillalamancha.es/sites/sescam.castillalamancha.es/files/documentos/pdf/20260518/pacto-docm.pdf">Pacto del SESCAM</a>.</p>`)}
       <p><b>Nombramiento fijo o temporal.</b> El acceso a la carrera depende del servicio y de la convocatoria. En Madrid, el trámite prevé la solicitud del personal estatutario fijo e interino. El complemento se abona según el nivel reconocido. <a href="https://sede.comunidad.madrid/node/212833">Requisitos del SERMAS</a>.</p>
       <p><b>Jornada inferior a la completa.</b> En Madrid, el fijo del perfil de cinco años sería de ${euros(territorios.MD.fijoBruto * 0.75)} brutos anuales al 75 % de jornada durante todo el año, aplicando la reducción proporcional del puesto y del trienio. <a href="${esc(territorios.MD.fuentes[0])}#page=18">Instrucciones de nómina del SERMAS</a>.</p>`);
-    function actualizarResultado() {
-      $("#resultado-perfil-hospital").innerHTML = resultadoPerfilHospital();
-      recuperarOrdenSueldos($("#resultado-perfil-hospital"));
-    }
-    $("#perfil-hospital").onchange = (e) => { perfilHospital = Number(e.target.value); actualizarResultado(); };
-    $("#guardias-perfil").onchange = (e) => { guardiasPerfil = Number(e.target.value); actualizarResultado(); };
+    // El perfil también cambia el título, el subtítulo y el ranking: se repinta la vista entera.
+    $("#perfil-hospital").onchange = (e) => {
+      aplicar(() => { perfilHospital = Number(e.target.value); });
+      $("#perfil-hospital").focus({ preventScroll: true });
+    };
+    $("#guardias-perfil").onchange = (e) => {
+      aplicar(() => { guardiasPerfil = Number(e.target.value); });
+      $("#guardias-perfil").focus({ preventScroll: true });
+    };
   }
 
   function tablaDedicacion(ids) {
