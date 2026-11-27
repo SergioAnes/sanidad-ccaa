@@ -77,7 +77,10 @@ Proyecto: web estática (Next.js + TypeScript) que compara datos sanitarios púb
   intervenciones con y sin ingreso de cada fila.
   Ingresos en la red pública por 1.000 hab. (frecuentación × % SNS; la tabla de 2022 viene traspuesta) y sesiones de
   hospital de día por 1.000 hab. (todos los hospitales; 2010-2013 con la población de la tabla de camas). Picos de un año
-  (≥ 40 % frente al anterior y al siguiente) en `picos`, sin explicarlos. Hospitalización a domicilio: no usar (serie
+  (≥ 40 % frente al anterior y al siguiente) en `picos`, sin explicarlos. Urgencias en la red pública por 1.000 hab.
+  (`hosp_urgencias`, 2017-2023: tasa publicada × % SNS de la tabla de urgencias, que no lo trae antes de 2017; comprobado
+  número / población = tasa); sus picos, con umbral del 20 % y sin usar 2020 (baja en las 17: solo decir que coincide
+  con la pandemia). No incluye urgencias de atención primaria (es estadística de hospitales). Hospitalización a domicilio: no usar (serie
   incoherente: Extremadura 0 todos los años, Andalucía 12 → 1,4 → 40).
   Quirófanos por 100.000 hab. (red pública y total, 2010-2023, 2022 sin dato ni España: tabla 3.1 desplazada en Excel
   y PDF; 2023 traspuesta): tasa = número / población comprobada con la publicada; España 2010-2019 = tabla nacional
