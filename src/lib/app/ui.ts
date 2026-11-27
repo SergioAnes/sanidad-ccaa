@@ -93,6 +93,24 @@ export function iniciar(DATA: DatosApp): void {
   const escenariosFamilia = DATA.medicinaFamilia.escenarios;
   let escenarioFamilia = "base";
   const pendienteRetribucion = "Sin fuente oficial";
+  // Por qué falta cada comunidad en sueldos y guardias (solo fuentes oficiales: si no hay tabla oficial, no sale).
+  const SIN_TABLA_OFICIAL = "no hemos encontrado sus tablas oficiales de 2026: su servicio de salud no las publica y solo circulan copias de sindicatos, que no usamos";
+  const motivosSinDato = {
+    retribucion: { CT: SIN_TABLA_OFICIAL, CB: SIN_TABLA_OFICIAL },
+    guardia: { CT: SIN_TABLA_OFICIAL, CB: SIN_TABLA_OFICIAL, NC: "su tabla oficial solo trae la tarifa general de guardia de la Administración foral, no la del Servicio Navarro de Salud" },
+    familia: { CT: SIN_TABLA_OFICIAL, CB: SIN_TABLA_OFICIAL, NC: "falta conocer los coeficientes de ajuste que aplica al cupo de pacientes" },
+  };
+  // «No salen: Cataluña y Cantabria, porque …» agrupando las comunidades que comparten motivo.
+  function avisoSinDato(ids, tipo) {
+    if (!ids.length) return "";
+    const grupos = new Map();
+    for (const id of [...ids].sort((a, b) => NOMBRE[a].localeCompare(NOMBRE[b], "es"))) {
+      const motivo = motivosSinDato[tipo][id] ?? "no hay fuente oficial localizada";
+      grupos.set(motivo, [...(grupos.get(motivo) ?? []), id]);
+    }
+    const lista = (g) => new Intl.ListFormat("es").format(g.map((id) => esc(NOMBRE[id])));
+    return `<p class="sub aviso-sin-dato"><b>No ${ids.length === 1 ? "sale" : "salen"}:</b> ${[...grupos].map(([motivo, g]) => `${lista(g)}, porque ${esc(motivo)}`).join(". ")}.</p>`;
+  }
   const perfilRetribucion = "Especialista a jornada completa, con cinco años de servicio, sin guardias ni carrera profesional reconocida.";
   const nombreRetribucion = (id) => id === "INGESA" ? "INGESA (Ceuta y Melilla)" : NOMBRE[id];
   let territorioDedicacion;
@@ -1228,7 +1246,7 @@ export function iniciar(DATA: DatosApp): void {
       (S.vistaE !== "evolucion" && !esRetribucion(ind) ? `<p><b>Ceuta y Melilla.</b> ${esVidaSaludable(ind) ? "Sanidad publica el dato de las dos ciudades en conjunto." : esECV(ind) || ind.fuente === "rae" || esPQI(ind) || ind.grupo === "resultados" || ind.grupo === "prevencion" ? "La fuente publica sus cifras. El mapa y los gráficos muestran las 17 comunidades." : ind.grupo === "gasto" ? AVISO_GASTO : ind.grupo === "opinion" ? AVISO_OPINION_CIUDADES : esRecurso(ind) ? AVISO_RECURSOS_CIUDADES : AVISO_CIUDADES} <a href="#comunidad-ce">Ficha de Ceuta</a> · <a href="#comunidad-ml">Ficha de Melilla</a>.</p>` : "");
     const sinDatoVerificado = esRetribucion(ind) ? sinDato.filter((id) => !DATA.retribuciones.provisionales[id]) : sinDato;
     const conProvisional = esRetribucion(ind) ? sinDato.filter((id) => DATA.retribuciones.provisionales[id]) : [];
-    $("#e-nota").innerHTML = (sinDatoVerificado.length ? `${esRetribucion(ind) ? pendienteRetribucion : "Sin dato en la fuente"}: ${sinDatoVerificado.map((id) => esc(NOMBRE[id])).join(", ")}.` : "") +
+    $("#e-nota").innerHTML = (sinDatoVerificado.length ? esRetribucion(ind) ? avisoSinDato(sinDatoVerificado, "retribucion") : `Sin dato en la fuente: ${sinDatoVerificado.map((id) => esc(NOMBRE[id])).join(", ")}.` : "") +
       (conProvisional.length ? `<p>Importe provisional en la tabla: ${conProvisional.map((id) => esc(NOMBRE[id])).join(", ")}. El ranking usa los importes verificados.</p>` : "") +
       plegable("e-nota", `Qué mide este dato${cuenta.length ? ` · ${cuenta.join(" · ")}` : ""}`, cuerpo);
   }
@@ -1717,9 +1735,8 @@ export function iniciar(DATA: DatosApp): void {
       .map(([id, { fuente }]) => `<li><a href="${esc(fuente)}">${esc(nombreRetribucion(id))} (provisional)</a></li>`).join("");
     const nombresProvisionales = new Intl.ListFormat("es").format(pendientes
       .filter((id) => provisionales[id]?.[ordenGuardias] != null).map((id) => esc(NOMBRE[id])));
-    const nombresPendientes = new Intl.ListFormat("es").format([...pendientes
-      .filter((id) => provisionales[id]?.[ordenGuardias] == null), ...IDS.filter((id) => !territorios[id])]
-      .sort((x, y) => NOMBRE[x].localeCompare(NOMBRE[y], "es")).map((id) => esc(NOMBRE[id])));
+    const idsPendientes = [...new Set([...pendientes
+      .filter((id) => provisionales[id]?.[ordenGuardias] == null), ...IDS.filter((id) => !territorios[id])])];
     $("#guardias").innerHTML = `<div class="seg" id="guardias-vistas" role="group" aria-label="Tipo de gráfico">
         ${vistasComparacionSueldos.map(([id, nombre]) => `<button type="button" data-v="${id}" aria-pressed="${S.vistaE === id}">${nombre}</button>`).join("")}
       </div>
@@ -1731,8 +1748,8 @@ export function iniciar(DATA: DatosApp): void {
       <p class="sub guardias-criterio">Tarifa en <b>${dia}</b>. ${orden.length} comunidades con dato verificado para ese día.</p>
       ${S.vistaE === "tabla" ? tabla : `${rankingSueldos(ind, orden, puestos, importes, "Ranking de comunidades por tarifa")}
         ${nombresProvisionales ? `<p class="sub">La tabla recoge las tarifas provisionales de ${nombresProvisionales}.</p>` : ""}
-        ${nombresPendientes ? `<p class="sub">Sin tarifa oficial localizada en ${nombresPendientes}.</p>` : ""}
         <p class="sub">Ceuta y Melilla (INGESA) figuran juntas, fuera del ranking autonómico. Tarifa en ${dia} de <b>${tarifa(territorios.INGESA[ordenGuardias])}</b>.</p>`}
+      ${avisoSinDato(idsPendientes, "guardia")}
       <div class="nota">${plegable("guardias-fuentes", "Fuentes y criterios de comparación", `${notasGuardias()}<ul class="guardias-fuentes">${fuentes}${fuentesProvisionales}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-guardias">Descargar CSV</button>
         <a href="#datos?dato=hosp_retribuciones&amp;grafico=tabla&amp;com=${S.com.toLowerCase()}">Ver el sueldo fijo sin guardias</a></div>`;
@@ -1794,6 +1811,7 @@ export function iniciar(DATA: DatosApp): void {
         ${vals[S.com] == null ? (escenarioFamilia === "dispersion" ? `Este escenario no tiene cálculo para ${esc(NOMBRE[S.com])}.` : `${esc(NOMBRE[S.com])} tiene el total pendiente de completar.`) : ""}</p>
       ${S.vistaE === "tabla" ? tablaFamilia : `${rankingSueldos(ind, orden, puestos, vals, "Ranking de comunidades por salario simulado")}
         ${totalIng == null ? "" : `<p class="sub">Ceuta y Melilla (INGESA), fuera del ranking autonómico. Total simulado de <b>${euros(totalIng)}</b>.</p>`}`}
+      ${escenarioFamilia === "base" ? avisoSinDato(IDS.filter((id) => vals[id] == null), "familia") : ""}
       <div class="nota">${plegable("familia-fuentes", "Cómo se calcula y fuentes", notasMedicinaFamilia(escenario)
         + `<p><b>Comunidades sin total para este perfil.</b> ${esc(pendientes)}.</p><ul>${fuentes}</ul>`)}</div>
       <div class="cta guardias-enlaces"><button type="button" class="btn" id="csv-familia">Descargar CSV</button></div>`;
@@ -1861,7 +1879,7 @@ export function iniciar(DATA: DatosApp): void {
     const excluir = (id, motivo) => motivos.set(motivo, [...(motivos.get(motivo) ?? []), id]);
     const filas = IDS.flatMap((id) => {
       const datos = territorios[id];
-      if (!datos) return excluir(id, "no hay tabla oficial del sueldo localizada"), [];
+      if (!datos) return excluir(id, motivosSinDato.retribucion[id] ?? "no hay tabla oficial del sueldo localizada"), [];
       if (anios !== 5 && antiguedadSinSimular[id]) return excluir(id, antiguedadSinSimular[id]), [];
       const c = conCarrera ? carrera[id] : null;
       if (conCarrera && !c) return excluir(id, carreraSinSimular[id] ?? "falta cargar su tabla de carrera profesional"), [];
