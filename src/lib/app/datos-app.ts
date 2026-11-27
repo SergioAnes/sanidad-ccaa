@@ -221,6 +221,11 @@ const RECURSOS: Record<string, TextoRecurso> = {
     corto: "Hospital de día", nombre: "Sesiones de hospital de día por 1.000 habitantes (todos los hospitales)",
     desc: "Sesiones de hospital de día (tratamientos de unas horas sin pasar la noche, como quimioterapia, transfusiones o curas) por cada 1.000 habitantes, en todos los hospitales de la comunidad, públicos y privados (la tabla no las separa). Parte de lo que antes requería ingreso se hace así. De 2014 en adelante, tasa publicada por el Ministerio de Sanidad (SIAE); de 2010 a 2013 la tabla solo trae el número de sesiones y la tasa la calculamos con la población que usa esa misma tabla.",
   },
+  hosp_urgencias: {
+    unidad: "urgencias_mil", que: "urgencias por 1.000 habitantes", espanaTxt: "en el conjunto de los hospitales de la red pública, con Ceuta y Melilla",
+    corto: "Urgencias en hospitales públicos", nombre: "Urgencias atendidas en hospitales de la red pública por 1.000 habitantes",
+    desc: "Urgencias atendidas en los hospitales de la red pública de la comunidad durante el año, por cada 1.000 habitantes. Cuenta cada visita (una persona puede ir varias veces) en la comunidad del hospital, aunque el paciente viva en otra. No incluye las urgencias de atención primaria (centros de salud y puntos de atención continuada): esta estadística es de hospitales. Depende también de la edad y la salud de la población. Cálculo propio: urgencias por 1.000 habitantes × porcentaje de la red pública, ambos publicados por el Ministerio de Sanidad (SIAE); el porcentaje se publica desde 2017.",
+  },
   hosp_tac_sns: {
     unidad: "equipos_100k", que: "equipos por 100.000 habitantes", espanaTxt: "con todas las comunidades, Ceuta y Melilla (dato del Ministerio)",
     corto: "TAC públicos", nombre: "Equipos de TAC de la red pública por 100.000 habitantes",

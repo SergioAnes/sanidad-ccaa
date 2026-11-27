@@ -30,7 +30,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
     expect(ind("hosp_camas_sns").anios.at(-1)).toBe(2023);
     for (const i of rec.indicadores) {
       expect(i.espana).toHaveLength(i.anios.length);
-      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_medicos_sns" ? [1, 3.5] : /hosp_quir/.test(i.id) ? [3, 15] : i.id === "hosp_enfermeria_sns" ? [2, 7] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
+      const [lo, hi] = i.id.startsWith("ap_consultas") ? [5, 70] : i.fuente === "siap" ? [300, 3000] : i.id === "hosp_ocupacion" ? [40, 100] : i.id === "hosp_cma" ? [10, 90] : i.id === "hosp_ingresos" ? [30, 200] : i.id === "hosp_dia" ? [20, 400] : i.id === "hosp_urgencias" ? [150, 900] : /hosp_(tac|rm|mam)/.test(i.id) ? [0.2, 6] : i.id === "hosp_medicos_sns" ? [1, 3.5] : /hosp_quir/.test(i.id) ? [3, 15] : i.id === "hosp_enfermeria_sns" ? [2, 7] : i.id === "hosp_estancia" ? [3, 15] : [0.5, 6];
       for (const c of CCAA) {
         const s = (i.valor as Record<string, number[]>)[c.id];
         expect(s, `${i.id} ${c.id}`).toHaveLength(i.anios.length);
@@ -62,6 +62,7 @@ describe("Recursos de atención primaria (SIAP)", () => {
     // Hospital de día (tabla 6.5 de 2023: Andalucía 125 sesiones por 1.000 hab.) e ingresos en la red pública (5.1 de 2023: 84,1 × 0,74)
     expect(val("hosp_dia", "AN", 2023)).toBeCloseTo(125, 1);
     expect(val("hosp_ingresos", "AN", 2023)).toBeCloseTo(84.1 * 0.74, 1);
+    expect(val("hosp_urgencias", "AN", 2023)).toBeCloseTo(831 * 0.73, 1); // tabla 6.4 del SIAE 2023
     expect(rec.picos.map((p) => `${p.ccaa}${p.anio}`)).toContain("EX2021");
     // TAC y resonancia 2023 (tabla 3.2: Cataluña 1,54 TAC públicos; Madrid 2,18 resonancias en total); 2022 sin dato
     expect(val("hosp_tac_sns", "CT", 2023)).toBeCloseTo(1.54, 1);

@@ -79,6 +79,7 @@ export function formatear(valor: number | undefined, unidad: Unidad): string {
     case "por_mil_hab":
       return numero(valor, 1);
     case "sesiones_mil":
+    case "urgencias_mil":
       return numero(valor, 0);
     case "equipos_100k":
     case "prof_mil":
